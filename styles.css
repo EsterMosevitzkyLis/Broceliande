@@ -1,0 +1,156 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000; /* letterbox bars */
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* Fixed 1920×1080 stage; size and scale transform are set from js/main.js. */
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+#game-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+}
+
+/* UI layer covers the stage; only interactive elements take pointer events,
+   so clicks elsewhere fall through to the canvas. */
+#ui-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #e9e4d0;
+}
+
+#ui-layer button {
+  pointer-events: auto;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ---------- HUD strip ---------- */
+#hud {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 32px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  background: rgba(16, 22, 14, 0.95);
+  border-bottom: 2px solid #4a5e36;
+  font-size: 30px;
+}
+
+.hud-center {
+  display: flex;
+  gap: 28px;
+  align-items: baseline;
+}
+
+#hud-phase {
+  font-weight: bold;
+  letter-spacing: 0.08em;
+}
+
+#hud-timer {
+  font-family: 'Consolas', monospace;
+}
+
+#hud-wolves {
+  font-size: 24px;
+  color: #d9a58f;
+}
+
+.hud-right {
+  justify-self: end;
+}
+
+#btn-start-combat {
+  font-size: 24px;
+  padding: 10px 24px;
+  background: #7a3b22;
+  color: #fff1e0;
+  border: 2px solid #c47a4f;
+  border-radius: 6px;
+}
+
+#btn-start-combat:hover {
+  background: #93492b;
+}
+
+/* ---------- Victory / Defeat overlay ---------- */
+#end-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+
+.end-panel {
+  min-width: 560px;
+  padding: 40px 56px;
+  text-align: center;
+  background: #1b2416;
+  border: 3px solid #4a5e36;
+  border-radius: 10px;
+}
+
+#end-title {
+  font-size: 84px;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+}
+
+#end-overlay[data-result="VICTORY"] #end-title { color: #b8e07a; }
+#end-overlay[data-result="DEFEAT"] #end-title { color: #e0705a; }
+
+#end-stats {
+  margin: 16px 0 32px;
+  font-size: 26px;
+}
+
+#btn-restart {
+  font-size: 28px;
+  padding: 12px 40px;
+  background: #3d5a2a;
+  color: #f0f5e0;
+  border: 2px solid #7fa55a;
+  border-radius: 6px;
+}
+
+#btn-restart:hover {
+  background: #4b6e34;
+}
+
+/* ---------- Debug panel ---------- */
+#debug-panel {
+  position: absolute;
+  right: 16px;
+  top: 96px;
+  margin: 0;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #9fe7ff;
+  font: 18px/1.4 'Consolas', monospace;
+  border-radius: 6px;
+}

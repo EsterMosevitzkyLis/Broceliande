@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Broceliande — M1</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-layer">
+      <div id="hud">
+        <div class="hud-left"></div>
+        <div class="hud-center">
+          <span id="hud-phase"></span>
+          <span id="hud-timer"></span>
+          <span id="hud-wolves"></span>
+        </div>
+        <div class="hud-right">
+          <button id="btn-start-combat" type="button">Start Combat</button>
+        </div>
+      </div>
+
+      <div id="end-overlay" hidden>
+        <div class="end-panel">
+          <div id="end-title"></div>
+          <div id="end-stats"></div>
+          <button id="btn-restart" type="button">Restart</button>
+        </div>
+      </div>
+
+      <pre id="debug-panel" hidden></pre>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
