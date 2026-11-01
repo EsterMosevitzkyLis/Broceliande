@@ -345,8 +345,37 @@ const MARKS = {
   },
 };
 
-// The "item found" floater (M2e §3.2): the slot-type silhouette with a soft golden glow, rising
-// and fading like the resource floaters. t: 0 → 1 over FLOATER_TIME.
+// A pattern (M2p §3.2): a rolled parchment scroll tied with a ribbon. (x, y): centre; size: width.
+export function drawScrollIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 64, size / 64);
+  ctx.rotate(-0.35);
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(80, 60, 30, 0.95)';
+  ctx.fillStyle = '#e9d9a8';
+  ctx.beginPath(); // the rolled sheet
+  ctx.roundRect(-24, -11, 48, 22, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#d4bf86';
+  for (const side of [-1, 1]) { // the rolled ends
+    ctx.beginPath();
+    ctx.ellipse(side * 24, 0, 5, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#9c3a2e'; // ribbon and seal
+  ctx.fillRect(-3, -11, 6, 22);
+  ctx.beginPath();
+  ctx.arc(0, 12, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// The "item found" floater (M2e §3.2): the slot-type silhouette (or, for a pattern, the scroll,
+// M2p §3.2) with a soft golden glow, rising and fading like the resource floaters. t: 0 → 1 over FLOATER_TIME.
 export function drawSlotFloater(ctx, f, t) {
   const size = C.ITEM_FLOATER_SIZE;
   const y = f.y - C.FLOATER_RISE_PX * (1 - (1 - t) * (1 - t));
@@ -359,6 +388,7 @@ export function drawSlotFloater(ctx, f, t) {
   ctx.beginPath();
   ctx.arc(f.x, y, size * 0.8, 0, Math.PI * 2);
   ctx.fill();
-  drawSlotIcon(ctx, f.slot, f.x, y, size);
+  if (f.pattern) drawScrollIcon(ctx, f.x, y, size);
+  else drawSlotIcon(ctx, f.slot, f.x, y, size);
   ctx.restore();
 }

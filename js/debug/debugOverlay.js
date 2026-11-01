@@ -511,9 +511,9 @@ function drawDoubleJobs(ctx, game) {
 // M2e §6: a gold double ring round the resource spot holding the battle's hidden item, with the
 // item's ID (or "found" once searched); "no item" when none was hidden.
 function drawHiddenItem(ctx, game) {
-  const h = game.hiddenItem;
+  const h = game.hiddenFind;
   if (!h) {
-    label(ctx, 'Hidden item: none this battle', 24, C.HUD_STRIP_HEIGHT + 24, ITEM_COLOR);
+    label(ctx, 'Hidden find: none this battle', 24, C.HUD_STRIP_HEIGHT + 24, ITEM_COLOR);
     return;
   }
   const f = game.features[h.featureIndex];
@@ -525,5 +525,5 @@ function drawHiddenItem(ctx, game) {
     ctx.stroke();
   }
   ctx.lineWidth = 1.5;
-  label(ctx, `ITEM: ${h.itemId} (${C.RARITY[C.ITEMS[h.itemId].rarity].label})${h.found ? ' (found)' : ''}`, f.x - 60, f.y - C.LOCATION_RADIUS - 20, ITEM_COLOR);
+  label(ctx, `${h.kind === 'pattern' ? 'PATTERN' : 'ITEM'}: ${h.itemId} (${C.RARITY[C.ITEMS[h.itemId].rarity].label})${h.found ? ' (found)' : ''}`, f.x - 60, f.y - C.LOCATION_RADIUS - 20, ITEM_COLOR);
 }

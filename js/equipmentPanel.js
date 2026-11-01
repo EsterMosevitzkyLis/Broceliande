@@ -10,6 +10,7 @@ import { drawEquipmentPortrait } from './render/equipment.js';
 import { drawSlotIcon, drawFramedItemIcon } from './render/items.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
 import { RESOURCE_KEYS, resourceName } from './resources.js';
+import { knownPatterns, newPatterns, totalPatterns, markPatternsSeen } from './patterns.js';
 
 const SLOTS = Object.keys(C.SLOT_TYPES);
 const ICON_PX = 60;     // item / slot icon inside a slot circle
@@ -30,6 +31,22 @@ export function createEquipmentPanel(callbacks) {
   const tip = document.getElementById('equip-tip');
   const stats = document.getElementById('equip-stats');
   const carried = document.getElementById('equip-carried-rows');
+  const patternsEl = document.getElementById('equip-patterns');
+  const patternList = document.getElementById('equip-pattern-list');
+
+  // M2p §2.3: hovering the pattern count lists the known patterns by slot; the New marks show for
+  // this hover and then clear.
+  patternsEl.addEventListener('mouseenter', () => {
+    renderPatternList(newPatterns());
+    markPatternsSeen();
+    const r = patternsEl.getBoundingClientRect();
+    const box = panel.getBoundingClientRect();
+    const s = box.width / C.EQUIP_PANEL_WIDTH; // stage scale
+    patternList.style.left = `${(r.left - box.left) / s}px`;
+    patternList.style.bottom = `${(box.bottom - r.top) / s + 8}px`;
+    patternList.hidden = false;
+  });
+  patternsEl.addEventListener('mouseleave', () => { patternList.hidden = true; });
 
   // One button per slot: frame, icon canvas, badge.
   const slotEls = {};
@@ -208,21 +225,49 @@ export function createEquipmentPanel(callbacks) {
     }));
   }
 
+  // "Patterns known: 5 / 24", with a New badge while any are unseen.
+  function renderPatterns() {
+    const row = [textSpan('', `Patterns known: ${knownPatterns().length} / ${totalPatterns()}`)];
+    if (newPatterns().length) row.push(textSpan('equip-new', 'New'));
+    patternsEl.replaceChildren(...row);
+  }
+
+  function renderPatternList(fresh) {
+    const known = knownPatterns();
+    const groups = SLOTS.map((slot) => {
+      const ids = known.filter((id) => C.ITEMS[id].slot === slot);
+      const g = document.createElement('div');
+      g.className = 'pattern-group';
+      g.append(textDiv('pattern-group-title', C.SLOT_TYPES[slot].label));
+      if (ids.length === 0) g.append(textDiv('pattern-none', 'none yet'));
+      for (const id of ids) {
+        const line = textDiv('', C.ITEMS[id].name);
+        line.style.color = C.RARITY[C.ITEMS[id].rarity].frame;
+        if (fresh.includes(id)) line.append(textSpan('equip-new', 'New'));
+        g.append(line);
+      }
+      return g;
+    });
+    patternList.replaceChildren(...groups);
+  }
+
   function update(game) {
     const shown = game.state === GameState.MAP && !!game.run;
     panel.hidden = !shown;
     if (!shown) {
       closePopover();
       tip.hidden = true;
+      patternList.hidden = true;
       return;
     }
     run = game.run;
-    const k = JSON.stringify([run.items, run.equipped, run.seenItems, run.inventory]);
+    const k = JSON.stringify([run.items, run.equipped, run.seenItems, run.inventory, knownPatterns(), newPatterns()]);
     if (k === key) return;
     key = k;
     renderSlots();
     renderStats();
     renderCarried();
+    renderPatterns();
     if (openSlot) renderPopover();
   }
 

@@ -30,6 +30,7 @@ import { updateClouds } from './systems/cloudSystem.js';
 import { updateDoubles } from './systems/doubleSystem.js';
 import { startSweep, updateSweep, finishSweep } from './systems/sweepSystem.js';
 import { updateVisit, enterTrader, isTraderNode } from './visit.js';
+import { learnPattern, randomUnknownPattern } from './patterns.js';
 
 export { GameState };
 
@@ -70,6 +71,7 @@ export function createGame(levelId) {
     state: GameState.START,
     prepMode: C.PREP_MODE, // PrepMode; kept across restarts, toggled by debug M (M1b §2)
     run: null,             // M2a §2.2: the run (map progress, inventory), kept apart from the encounter state
+    mapMessage: null,      // M2p §3.3: { text, age } shown on the map, e.g. "Pattern learned: …"
     encounterStart: null,  // how the current encounter started { levelId, seed, resources, druidHp } (debug R)
     stats: resolveStats(null, scene.level), // M2e §2.2: effective stats, resolved again when each battle starts
     levelId,
@@ -179,8 +181,8 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.druidStrike = null;
   game.resources = resources ? { ...emptyResources(), ...resources } : emptyResources();
   game.features = createFeatures(game.layout);
-  game.hiddenItem = hideItem(game); // M2e §3.1: chosen from the encounter's seed, after its layout
-  game.itemMessage = null;          // M2e §3.2: { slot, age } of the "You found a …!" message
+  game.hiddenFind = hideFind(game); // M2p §3.1 (was M2e §3.1): chosen from the encounter's seed, after its layout
+  game.itemMessage = null;          // M2e §3.2: { slot, pattern, age } of the "You found a …!" message (pattern: M2p §3.2)
   game.turrets = [];
   game.projectiles = [];
   game.clouds = [];
@@ -263,8 +265,13 @@ function finishEnding(game) {
   game.action = createIdleAction();
   if (game.state === GameState.VICTORY) {
     finishSweep(game); // every swept item counted before the carry-over is saved (M2d §2.1)
-    // M2e §3.3: a found item joins the run only now, on Victory.
-    if (game.hiddenItem?.found) addItem(game.run, game.hiddenItem.itemId);
+    // M2e §3.3: a found item joins the run only now, on Victory. M2p §3.3: a found pattern is
+    // learned now (permanently), and named on the map afterwards.
+    const h = game.hiddenFind;
+    if (h?.found && h.kind === 'item') addItem(game.run, h.itemId);
+    if (h?.found && h.kind === 'pattern' && learnPattern(h.itemId)) {
+      game.mapMessage = { text: `Pattern learned: ${C.ITEMS[h.itemId].name}`, age: 0 };
+    }
     recordVictory(game.run, game.resources, game.druidHp);
     if (isRunComplete(game.run)) events.emit('runComplete', {});
   }
@@ -329,15 +336,23 @@ function checkEndConditions(game) {
   }
 }
 
-// M2e §3.1: hide one item the run doesn't own yet in one random resource spot, both with the
-// encounter's seeded RNG. Nothing in the spot's look or tooltip shows it. Null when there is no
-// run (direct starts), no spot, or the run owns every item.
-// hiddenItem: { featureIndex, itemId, found }
-function hideItem(game) {
+// M2p §3.1 (overrides M2e §3.1): hide one find in one random resource spot, all with the
+// encounter's seeded RNG: a pattern (FIND_PATTERN_CHANCE) the player doesn't know yet, weighted by
+// patternWeight, or else an item the run doesn't own (never Crafted), weighted by rarity. If the
+// chosen pool is empty the other one is used. Nothing in the spot's look or tooltip shows it. Null
+// when there is no run (direct starts), no spot, or both pools are empty.
+// hiddenFind: { featureIndex, kind: 'item' | 'pattern', itemId (the item, or the item the pattern is for), found }
+function hideFind(game) {
   if (!game.run || C.ITEMS_PER_BATTLE < 1 || game.features.length === 0) return null;
-  const itemId = randomUnownedItem(game.run, game.rng);
+  const pools = { item: () => randomUnownedItem(game.run, game.rng), pattern: () => randomUnknownPattern(game.rng) };
+  let kind = game.rng.next() < C.FIND_PATTERN_CHANCE ? 'pattern' : 'item';
+  let itemId = pools[kind]();
+  if (!itemId) {
+    kind = kind === 'item' ? 'pattern' : 'item';
+    itemId = pools[kind]();
+  }
   if (!itemId) return null;
-  return { featureIndex: game.rng.int(0, game.features.length - 1), itemId, found: false };
+  return { featureIndex: game.rng.int(0, game.features.length - 1), kind, itemId, found: false };
 }
 
 // Bell tolls (M2f §4.10): at each of the level's toll times in Combat, a bellToll event (heard as a
@@ -446,6 +461,13 @@ export function updateGame(game, dt) {
   switch (game.state) {
     case GameState.TRADER:
       updateVisit(game, dt); // M2n §4: the scene's clock and leaving
+      break;
+    case GameState.MAP:
+      // M2p §3.3: the "Pattern learned" message ages only while the map is shown.
+      if (game.mapMessage) {
+        game.mapMessage.age += dt;
+        if (game.mapMessage.age >= C.MAP_MESSAGE_TIME) game.mapMessage = null;
+      }
       break;
     case GameState.PREP:
       // Step mode has no countdown: Prep ends only via Start Battle (M1b §5.6).

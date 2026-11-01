@@ -668,16 +668,94 @@ html, body {
 }
 
 /* ---------- Debug panel ---------- */
-#debug-panel {
+#debug-box {
   position: absolute;
   right: 16px;
   top: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+#debug-panel {
   margin: 0;
   padding: 12px 16px;
   background: rgba(0, 0, 0, 0.7);
   color: #9fe7ff;
   font: 15px/1.35 'Consolas', monospace;
   border-radius: 6px;
+}
+/* M2p §6: pattern debug buttons under the panel. */
+#debug-pattern-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  color: #9fe7ff;
+  font: 14px 'Consolas', monospace;
+  pointer-events: auto;
+}
+#debug-pattern-buttons button {
+  font: 13px 'Consolas', monospace;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+/* M2p §3.3: the map's short message ("Pattern learned: …"), centred over the map. */
+#map-message {
+  position: absolute;
+  left: 50%;
+  top: 130px;
+  transform: translateX(-50%);
+  padding: 12px 26px;
+  background: rgba(24, 20, 12, 0.92);
+  border: 1px solid #c9a74a;
+  border-radius: 10px;
+  color: #f4ecd4;
+  font-size: 24px;
+  pointer-events: none;
+}
+
+/* M2p §2.3: known patterns on the equipment panel, with a hover list. */
+#equip-patterns {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #e9e1c6;
+  pointer-events: auto;
+  cursor: default;
+}
+#equip-patterns .equip-new {
+  margin-left: 8px;
+}
+#equip-pattern-list {
+  position: absolute;
+  z-index: 4;
+  max-height: 560px;
+  overflow: hidden;
+  padding: 10px 14px;
+  background: rgba(24, 20, 12, 0.96);
+  border: 1px solid #8a7a54;
+  border-radius: 8px;
+  pointer-events: none;
+  font-size: 14px;
+  columns: 2;
+  column-gap: 22px;
+}
+.pattern-group {
+  break-inside: avoid;
+  margin-bottom: 8px;
+}
+.pattern-group-title {
+  color: #c4bda4;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pattern-none {
+  color: #8a8270;
+  font-style: italic;
 }
 
 /* ---------- Found items (M2e §3.2–3.3) ---------- */

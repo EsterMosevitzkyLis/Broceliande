@@ -85,8 +85,8 @@
         <div class="end-panel">
           <div id="end-title"></div>
           <div id="end-stats"></div>
-          <!-- M2e §3.3: the slot type found this battle (Victory only). -->
-          <div id="end-found" hidden><div id="end-found-line"></div><div class="end-found-hint">Check your equipment on the map.</div></div>
+          <!-- M2e §3.3: the slot type (or M2p: "a Pattern") found this battle (Victory only). -->
+          <div id="end-found" hidden><div id="end-found-line"></div><div id="end-found-hint" class="end-found-hint">Check your equipment on the map.</div></div>
           <!-- M2a §4.4: what carries over (Victory, run goes on) or the closing line (run complete). -->
           <!-- M2d §2.3: what the field sweep collected on Victory (omitted if nothing). -->
           <div id="end-gathered" hidden><div class="end-carry-title">Gathered from the field:</div><div id="end-gathered-rows"></div></div>
@@ -115,9 +115,12 @@
           <div id="equip-stats"></div>
           <div class="equip-heading">Carried resources</div>
           <div id="equip-carried-rows"></div>
+          <!-- M2p §2.3: known patterns (permanent); hovering lists them. -->
+          <div id="equip-patterns"></div>
         </div>
         <div id="equip-popover" hidden></div>
         <div id="equip-tip" hidden></div>
+        <div id="equip-pattern-list" hidden></div>
       </div>
 
       <!-- Trader scene (M2n §4.2): the text and controls over the canvas art, built by
@@ -150,7 +153,21 @@
       <!-- Contextual menu: one .menu-option per choice, built by js/ui.js. -->
       <div id="menu" hidden><div id="menu-header" hidden></div><div id="menu-options"></div></div>
 
-      <pre id="debug-panel" hidden></pre>
+      <!-- M2p §3.3: a short message on the map, e.g. "Pattern learned: …". -->
+      <div id="map-message" hidden></div>
+
+      <div id="debug-box" hidden>
+        <pre id="debug-panel"></pre>
+        <!-- M2p §6: pattern debug buttons; Forget asks for confirmation here, not in a browser dialog. -->
+        <div id="debug-pattern-buttons">
+          <button id="btn-learn-patterns" type="button">Learn all patterns</button>
+          <button id="btn-forget-patterns" type="button">Forget all patterns</button>
+          <span id="debug-forget-confirm" hidden>Forget every pattern?
+            <button id="btn-forget-yes" type="button">Yes, forget</button>
+            <button id="btn-forget-no" type="button">Cancel</button>
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 

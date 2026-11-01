@@ -26,7 +26,8 @@ import { isMuted, soundStats, audioStatus } from './audio.js';
 import { chosenSpeed } from './gameSpeed.js';
 import { isRunComplete, mapNode, nodeRadius } from './run.js';
 import { resolveStats, changedStats, statLabel } from './stats.js';
-import { drawSlotIcon } from './render/items.js';
+import { drawSlotIcon, drawScrollIcon } from './render/items.js';
+import { knownPatterns, newPatterns, totalPatterns } from './patterns.js';
 import { tradeValue, exactCost, tradeRatio, goodsTag, packTag } from './trade.js';
 
 const RESOURCE_LABELS = Object.fromEntries(Object.entries(C.RESOURCES).map(([k, r]) => [k, r.name])); // full names (data/resources.csv)
@@ -303,7 +304,10 @@ export function createUI(callbacks) {
     hudItemIcon: document.getElementById('hud-item-icon'),
     endFound: document.getElementById('end-found'),
     endFoundLine: document.getElementById('end-found-line'),
+    endFoundHint: document.getElementById('end-found-hint'),
     debugPanel: document.getElementById('debug-panel'),
+    debugBox: document.getElementById('debug-box'),
+    mapMessage: document.getElementById('map-message'),
     wavePreview: document.getElementById('wave-preview'),
     wavePreviewTitle: document.getElementById('wave-preview-title'),
     wavePreviewEntries: document.getElementById('wave-preview-entries'),
@@ -378,6 +382,7 @@ export function createUI(callbacks) {
     updateBoss(el, game);
     updateWavePreview(el, game);
     updateFoundItem(el, game);
+    updateMapMessage(el, game);
     updateDebugPanel(el, game, clock, view, layoutLinesFor(game.scene), game.scene);
   }
 
@@ -393,7 +398,25 @@ export function createUI(callbacks) {
     return out;
   }
 
+  // M2p §6: pattern debug buttons; Forget asks for confirmation inside the panel.
+  const confirmForget = document.getElementById('debug-forget-confirm');
+  const forgetBtn = document.getElementById('btn-forget-patterns');
+  document.getElementById('btn-learn-patterns').addEventListener('click', (e) => { e.currentTarget.blur(); callbacks.onLearnAllPatterns(); });
+  forgetBtn.addEventListener('click', () => { confirmForget.hidden = false; forgetBtn.hidden = true; });
+  const closeConfirm = () => { confirmForget.hidden = true; forgetBtn.hidden = false; };
+  document.getElementById('btn-forget-yes').addEventListener('click', () => { callbacks.onForgetAllPatterns(); closeConfirm(); });
+  document.getElementById('btn-forget-no').addEventListener('click', closeConfirm);
+
   return { update, resourceTargets };
+}
+
+// M2p §3.3: the map's short message ("Pattern learned: …"), fading over its last third.
+function updateMapMessage(el, game) {
+  const m = game.state === GameState.MAP ? game.mapMessage : null;
+  el.mapMessage.hidden = !m;
+  if (!m) return;
+  setText(el.mapMessage, m.text);
+  el.mapMessage.style.opacity = String(Math.min(1, (C.MAP_MESSAGE_TIME - m.age) / (C.MAP_MESSAGE_TIME / 3)));
 }
 
 // The current Wilds' name, bottom-left (M2a §6): during Prep and Combat, and still through
@@ -408,12 +431,14 @@ function updateLevelName(el, game) {
 const withArticle = (label) => (label.endsWith('s') ? label : `a ${label}`);
 
 // Draw a slot-type silhouette into a small canvas, only when the slot changes.
+// slot: a slot type, or 'pattern' for the scroll (M2p §3.2).
 function paintSlotIcon(canvas, slot) {
   if (canvas.dataset.slot === slot) return;
   canvas.dataset.slot = slot;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawSlotIcon(ctx, slot, canvas.width / 2, canvas.height / 2, canvas.width * 0.92);
+  if (slot === 'pattern') drawScrollIcon(ctx, canvas.width / 2, canvas.height / 2, canvas.width * 0.92);
+  else drawSlotIcon(ctx, slot, canvas.width / 2, canvas.height / 2, canvas.width * 0.92);
 }
 
 // Found items (M2e §3.2–3.3): the centred "You found a …!" message fading over its last third,
@@ -424,16 +449,22 @@ function updateFoundItem(el, game) {
   const m = inBattle ? game.itemMessage : null;
   el.itemFound.hidden = !m;
   if (m) {
-    paintSlotIcon(el.itemFoundIcon, m.slot);
-    setText(el.itemFoundText, `You found ${withArticle(C.SLOT_TYPES[m.slot].label)}!`);
+    paintSlotIcon(el.itemFoundIcon, m.pattern ? 'pattern' : m.slot);
+    setText(el.itemFoundText, m.pattern ? 'You found a Pattern!' : `You found ${withArticle(C.SLOT_TYPES[m.slot].label)}!`);
     el.itemFound.style.opacity = String(Math.min(1, (C.ITEM_FOUND_TIME - m.age) / (C.ITEM_FOUND_TIME / 3)));
   }
-  const found = game.hiddenItem?.found ? C.ITEMS[game.hiddenItem.itemId].slot : null;
+  // found: the item's slot type, or 'pattern' (M2p §3.2–3.3).
+  const h = game.hiddenFind;
+  const found = h?.found ? (h.kind === 'pattern' ? 'pattern' : C.ITEMS[h.itemId].slot) : null;
   el.hudItem.hidden = !(inBattle && found);
   if (inBattle && found) paintSlotIcon(el.hudItemIcon, found);
+  el.hudItem.title = found === 'pattern' ? 'You found a pattern this battle' : 'You found an item this battle';
   const shownOnVictory = game.state === GameState.VICTORY && found;
   el.endFound.hidden = !shownOnVictory;
-  if (shownOnVictory) setText(el.endFoundLine, `Found: ${C.SLOT_TYPES[found].label}`);
+  if (shownOnVictory) {
+    setText(el.endFoundLine, found === 'pattern' ? 'Found: a Pattern' : `Found: ${C.SLOT_TYPES[found].label}`);
+    setText(el.endFoundHint, found === 'pattern' ? 'You will learn it on the road.' : 'Check your equipment on the map.');
+  }
 }
 
 // The living mini-boss, if any (M2c §2.7): the first one spawned.
@@ -1141,6 +1172,17 @@ function equipmentLines(game) {
 }
 const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(2));
 
+// M2p §6: known patterns, and this battle's hidden find (item or pattern, and which).
+function patternDebugLines(game) {
+  const h = game.hiddenFind;
+  const inBattle = [GameState.PREP, GameState.COMBAT, GameState.ENDING, GameState.VICTORY, GameState.DEFEAT].includes(game.state);
+  const find = !h ? 'none' : `${h.kind} ${h.itemId} (${C.RARITY[C.ITEMS[h.itemId].rarity].label})${h.found ? ' — found' : ''}`;
+  return [
+    `Patterns known: ${knownPatterns().length} / ${totalPatterns()}${newPatterns().length ? `  (${newPatterns().length} New)` : ''}   (Shift+P on the map learns one)`,
+    ...(inBattle ? [`Hidden find: ${find}`] : []),
+  ];
+}
+
 // Run figures (M2a §8): run seed, current and completed nodes, carried inventory, level.
 function runLines(game) {
   const r = game.run;
@@ -1149,6 +1191,7 @@ function runLines(game) {
     `Node:   ${r.currentNodeId ?? '—'}   completed: ${r.completedNodeIds.join(', ') || '—'}${isRunComplete(r) ? '   RUN COMPLETE' : ''}`,
     `Carried: ${resourceLine(r.inventory)}   Druid HP ${r.druidHp.toFixed(1)}${C.CARRY_DRUID_HP ? ' (carried)' : ' (not carried)'}`,
     ...equipmentLines(game),
+    ...patternDebugLines(game),
     // M2d §4: items the field sweep gathered on the last Victory.
     `Last sweep: ${game.lastSweep ? `${game.lastSweep.items} items  ${resourceLine(game.lastSweep.gathered)}` : 'none yet'}`,
   ];
@@ -1181,7 +1224,7 @@ function traderDebugLines(v) {
 }
 
 function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
-  el.debugPanel.hidden = !view.debug;
+  el.debugBox.hidden = !view.debug;
   if (!view.debug) return;
   if (game.state === GameState.MAP) {
     setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), `Level:  ${game.levelId} (last scene)`].join('\n'));

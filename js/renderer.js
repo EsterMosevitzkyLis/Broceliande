@@ -210,7 +210,7 @@ export function createRenderer(canvas) {
     // Resource floaters (M2d §1), above all entities; each waits for its stagger.
     for (const f of game.floaters) {
       if (f.age < f.delay) continue;
-      (f.slot ? drawSlotFloater : drawFloater)(ctx, f, (f.age - f.delay) / C.FLOATER_TIME); // M2e §3.2: slot floater
+      (f.slot || f.pattern ? drawSlotFloater : drawFloater)(ctx, f, (f.age - f.delay) / C.FLOATER_TIME); // M2e §3.2: slot floater (M2p: or scroll)
     }
 
     // Summon placement ghost of the chosen summon under the cursor (§15.1, M1d §2.1). The Bough

@@ -207,6 +207,16 @@ export function validateTables(t, problems) {
   const traderCount = t.globals.find((r) => r.key === 'TRADERS_PER_RUN')?.value ?? 0;
   if (t.traders.filter((r) => r.kind === 'name').length < traderCount) err('traders', '', 'kind', `fewer names than TRADERS_PER_RUN (${traderCount})`);
 
+  // recipes (M2p §5.1): one per item, known item IDs, known cost resources, a positive pattern weight.
+  const itemIds = new Set(t.items.map((r) => r.id));
+  ids('recipes', 'item');
+  for (const r of t.recipes) {
+    known('recipes', r, 'item', itemIds, 'item');
+    if (!(r.patternWeight > 0)) err('recipes', r, 'patternWeight', 'patternWeight must be above 0');
+    for (const k of Object.keys(r)) if (k.startsWith('cost_') && !RESOURCE_IDS.includes(k.slice(5))) err('recipes', r, k, `unknown resource "${k.slice(5)}"`);
+  }
+  for (const id of itemIds) if (!t.recipes.some((r) => r.item === id)) err('recipes', '', 'item', `item ${id} has no recipe`);
+
   ids('sounds');
 
   for (const r of t.levels) {

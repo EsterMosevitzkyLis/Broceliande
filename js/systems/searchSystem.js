@@ -33,21 +33,24 @@ export function completeSearch(game, featureIndex) {
   const found = RESOURCE_KEYS.filter((k) => gained[k] > 0);
   if (found.length) events.emit('resourcesGained', { resources: found }); // one chime per resource found
   const shown = addResourceFloaters(game, gained, feature.x, feature.y - C.LOCATION_RADIUS - 20); // M2d §1
-  if (game.hiddenItem && game.hiddenItem.featureIndex === featureIndex && !game.hiddenItem.found) {
+  if (game.hiddenFind && game.hiddenFind.featureIndex === featureIndex && !game.hiddenFind.found) {
     findItem(game, feature, shown);
   }
 }
 
-// M2e §3.2: the spot held the battle's hidden item. A message names its slot type (not the item),
-// a slot-silhouette floater rises after the resource floaters, a "magic find" sound plays, and the
-// HUD shows a reminder (from hiddenItem.found). The item joins the run only on Victory.
+// M2e §3.2: the spot held the battle's hidden find. A message names its slot type (not the item),
+// or for a pattern (M2p §3.2) just "a Pattern"; a slot-silhouette (or rolled-scroll) floater rises
+// after the resource floaters, a "magic find" sound plays, and the HUD shows a reminder (from
+// hiddenFind.found). The item joins the run, or the pattern is learned, only on Victory.
 function findItem(game, feature, floatersBefore) {
-  game.hiddenItem.found = true;
-  const slot = C.ITEMS[game.hiddenItem.itemId].slot;
-  game.itemMessage = { slot, age: 0 };
+  const h = game.hiddenFind;
+  h.found = true;
+  const pattern = h.kind === 'pattern';
+  const slot = pattern ? null : C.ITEMS[h.itemId].slot;
+  game.itemMessage = { slot, pattern, age: 0 };
   game.floaters.push({
-    slot, x: feature.x, y: feature.y - C.LOCATION_RADIUS - 20 - floatersBefore * C.FLOATER_STACK_PX,
+    slot, pattern, x: feature.x, y: feature.y - C.LOCATION_RADIUS - 20 - floatersBefore * C.FLOATER_STACK_PX,
     delay: floatersBefore * C.FLOATER_STAGGER, age: 0,
   });
-  events.emit('magicFound', { slot });
+  events.emit('magicFound', { slot, pattern });
 }

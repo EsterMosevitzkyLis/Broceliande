@@ -21,6 +21,7 @@ import { events } from './events.js';
 import { chosenSpeed, setChosenSpeed, resetChosenSpeed } from './gameSpeed.js';
 import { buildShowcase } from './debug/showcase.js';
 import { createTraderScreen } from './traderScreen.js';
+import { learnPattern, randomUnknownPattern, knownPatterns, learnAllPatterns, forgetAllPatterns } from './patterns.js';
 import { openDebugTrader, selectResource, stepBundles, maxOutBundles, doTrade, undoVisitTrade, leaveVisit } from './visit.js';
 
 const stage = document.getElementById('stage');
@@ -111,6 +112,8 @@ const ui = createUI({
   onToggleMute: toggleMute,
   onCallNextWave: () => callNextWave(game), // M2i §3.2
   onSetSpeed: setSpeed,                     // M2k §1.1
+  onLearnAllPatterns: learnAllPatterns,     // M2p §6
+  onForgetAllPatterns: forgetAllPatterns,
 });
 checkLevelNameLabel(LEVEL_IDS.map(sceneFor)); // M2a §6: the label must not cover a candidate in any level
 checkBossBar(LEVEL_IDS.map(sceneFor));        // M2c §2.7: nor may the boss HP bar
@@ -149,7 +152,9 @@ const input = createInput(stage, canvas, () => scale, {
         if (view.debug && !wavesLogged) { logWaveTotals(); wavesLogged = true; } // M2i §2: once
         break;
       case ' ': callNextWave(game); e.preventDefault(); break; // M2i §3.2: Call next wave (countdown / gap only)
-      case 'p': clock.paused = !clock.paused; break;
+      case 'p': // P: pause; Shift+P on the map (M2p §6): learn a random unknown pattern
+        if (e.shiftKey) { if (game.state === GameState.MAP) debugLearnPattern(); } else clock.paused = !clock.paused;
+        break;
       case '1': case '2': case '4': setSpeed(Number(key)); break; // M2k §1: game speed (Combat only)
       case 'n': // N: start Combat from Prep; Shift+N (M2i §7): kill all and skip the rest of this wave
         if (e.shiftKey) skipWave(game);
@@ -232,6 +237,13 @@ function summonShortcut(key) {
 function debugNewMap() {
   if (!regenerateMap(game.run, makeRandomSeed())) startNewRun();
   view.mapHover = null;
+}
+
+// Debug Shift+P on the map (M2p §6): learn a random unknown pattern, weighted as when found
+// (seeded from the run seed and how many are known).
+function debugLearnPattern() {
+  const id = randomUnknownPattern(createRng(game.run.seed + 104729 * (knownPatterns().length + 1)));
+  if (id && learnPattern(id)) game.mapMessage = { text: `Pattern learned: ${C.ITEMS[id].name}`, age: 0 };
 }
 
 // Debug key I on the map (M2e §6): a random unowned item joins the run (seeded from the run seed),

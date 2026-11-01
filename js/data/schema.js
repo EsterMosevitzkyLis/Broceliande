@@ -25,7 +25,7 @@ export const GLOBAL_TYPES = {
   DROP_SPACING: 'number', DROP_POP_HEIGHT: 'number', DROP_POP_TIME: 'number', DROP_POP_STAGGER: 'number', DROP_SINGLE_OFFSET: 'list',
   FLOATER_RISE_PX: 'number', FLOATER_TIME: 'number', FLOATER_STAGGER: 'number', FLOATER_STACK_PX: 'number',
   SWEEP_FLIGHT_TIME: 'number', SWEEP_STAGGER: 'number', SWEEP_END_MARGIN: 'number', SWEEP_END_SCALE: 'number', SWEEP_PULSE_TIME: 'number',
-  CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
+  CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
   MASTER_VOLUME: 'number', SOUND_PITCH_JITTER: 'number',
   TRADERS_PER_RUN: 'int', TRADE_PRICE_VARIATION: 'number', TRADE_MARGIN: 'number', TRADE_MAX_RATIO_TERM: 'int',
   TRADE_TAG_CHEAP: 'number', TRADE_TAG_PRICEY: 'number',
@@ -97,6 +97,8 @@ export const TABS = {
     pattern: [/^effect\d+_(stat|op|value)$/, { type: 'effect' }],
   },
   stats: { columns: { stat: { type: 'text', required: true }, description: { type: 'text', required: true } } },
+  // M2p §5.1: one recipe (pattern) per item: its crafting cost and how likely its pattern is to be found.
+  recipes: { columns: { item: { type: 'id', required: true }, patternWeight: { type: 'number', required: true } }, pattern: [/^cost_[a-z][a-zA-Z0-9]*$/, COST] },
   levels: {
     columns: {
       id: { type: 'id', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },

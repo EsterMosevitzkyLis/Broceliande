@@ -1153,6 +1153,7 @@ export const RARITY_FRAME_WIDTH = 2.5;   // px, the frame round an item icon (at
 
 // Finding items (M2e §3): one hidden in a random resource spot of each battle.
 export const ITEM_FOUND_TIME = 2.5;       // s the "You found a …!" message stays, fading over its last third
+export const MAP_MESSAGE_TIME = 4;        // s the map's "Pattern learned: …" message stays, fading over its last third (M2p §3.3)
 export const ITEM_FLOATER_SIZE = 40;      // px, the slot-type silhouette floater rising from the spot
 
 // Equipment area on the map (M2e §4, as revised): about the left half of the screen, below the HUD
@@ -1215,7 +1216,7 @@ export let ZONE_NEAR_TURRET, ZONE_NEAR_FEATURE, ZONE_FAR_TURRET, ZONE_FAR_FEATUR
 export let DROP_SPACING, DROP_POP_HEIGHT, DROP_POP_TIME, DROP_POP_STAGGER, DROP_SINGLE_OFFSET;
 export let FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX;
 export let SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME;
-export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
+export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
 export let MASTER_VOLUME, SOUND_PITCH_JITTER;
 export let TRADERS_PER_RUN, TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY;
 
@@ -1248,6 +1249,8 @@ export let WISP_COST, WISP_SPEED, MAX_WISPS, WISP_RADIUS, WISP_BURST_RADIUS, WIS
 export let BOUGH_DOUBLE_COST, MAX_BOUGH_DOUBLES, DOUBLE_WISP_TIME;
 // items: id → { slot, name, description, effects: [{ stat, op, value }], colors: [main, accent], mark }
 export let ITEMS;
+// M2p §5: item ID → { cost, patternWeight } (its pattern's crafting cost and find weight).
+export let RECIPES;
 // stats: stat → description (labels; the stats themselves are in js/stats.js)
 export let STATS;
 // levels: id → LEVEL_GEOMETRY[id] plus name, description, row, nodeType, stepBudget, featureMix,
@@ -1286,7 +1289,7 @@ export function applyData(t) {
     DROP_SPACING, DROP_POP_HEIGHT, DROP_POP_TIME, DROP_POP_STAGGER, DROP_SINGLE_OFFSET,
     FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX,
     SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME,
-    CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
+    CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
     MASTER_VOLUME, SOUND_PITCH_JITTER,
     TRADERS_PER_RUN, TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY,
   } = keyed(t.globals));
@@ -1356,6 +1359,7 @@ export function applyData(t) {
     return { slot: r.slot, rarity: r.rarity, name: r.name, description: r.description, effects, colors: [r.iconColor, r.iconAccent], mark: r.iconMark };
   });
   STATS = byId(t.stats, (r) => r.description, 'stat');
+  RECIPES = byId(t.recipes, (r) => ({ cost: cost(r), patternWeight: r.patternWeight }), 'item');
 
   const featureIds = Object.keys(FEATURE_TYPES);
   LEVELS = byId(t.levels, (r) => {
