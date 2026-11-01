@@ -525,5 +525,5 @@ function drawHiddenItem(ctx, game) {
     ctx.stroke();
   }
   ctx.lineWidth = 1.5;
-  label(ctx, `ITEM: ${h.itemId}${h.found ? ' (found)' : ''}`, f.x - 60, f.y - C.LOCATION_RADIUS - 20, ITEM_COLOR);
+  label(ctx, `ITEM: ${h.itemId} (${C.RARITY[C.ITEMS[h.itemId].rarity].label})${h.found ? ' (found)' : ''}`, f.x - 60, f.y - C.LOCATION_RADIUS - 20, ITEM_COLOR);
 }

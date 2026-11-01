@@ -144,9 +144,10 @@ export function wispStart(game) {
   return { x: p.x, y: p.y - C.DRUID_RADIUS * 0.8 };
 }
 
-// A summon's cap: its config max, or for the Bough Double the effective double.max (M2e).
+// A summon's cap: its effective <kind>.max where equipment can change it (double.max, M2e;
+// vulture.max, M2p), else its config max.
 export function summonMax(game, kind) {
-  return SUMMONS[kind].targeted ? game.stats['double.max'] : SUMMONS[kind].max;
+  return game.stats[`${kind}.max`] ?? SUMMONS[kind].max;
 }
 
 // "Not enough Feathers" / "Not enough Pits, Feathers": the resources the cost is short of.
@@ -162,7 +163,8 @@ export function summonAvailability(game, kind) {
   if (game.state !== GameState.COMBAT) return { available: false, reason: '' };
   if (game.action.state !== ActionState.IDLE) return { available: false, reason: 'Druid is busy' };
   if (s.targeted) return doubleAvailability(game);
-  if (s.active(game).length >= s.max) return { available: false, reason: `${s.max} ${s.max === 1 ? s.name : s.plural} ${s.activeLabel ?? 'already active'}` };
+  const max = summonMax(game, kind);
+  if (s.active(game).length >= max) return { available: false, reason: `${max} ${max === 1 ? s.name : s.plural} ${s.activeLabel ?? 'already active'}` };
   if (!canAfford(game.resources, s.cost)) return { available: false, reason: shortfallReason(game.resources, s.cost) };
   return { available: true, reason: '' };
 }
@@ -196,7 +198,7 @@ export function placeSummon(game, p) {
   const s = SUMMONS[game.action.target];
   if (s.targeted) return false; // a Bough Double starts a job on a target instead (startDoubleJob)
   game.action = createIdleAction();
-  if (s.active(game).length >= s.max || !canAfford(game.resources, s.cost)) return false;
+  if (s.active(game).length >= summonMax(game, s.kind) || !canAfford(game.resources, s.cost)) return false;
   deduct(game.resources, s.cost);
   s.active(game).push(s.create(game.nextEntityId++, p.x, p.y, game.stats[`${s.kind}.duration`], game)); // effective duration (M2e)
   events.emit('summonPlaced', { kind: s.kind, x: p.x, y: p.y });

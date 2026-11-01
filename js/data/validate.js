@@ -129,6 +129,7 @@ export function validateTables(t, problems) {
   ids('items');
   for (const r of t.items) {
     if (!SLOT_TYPES[r.slot]) err('items', r, 'slot', `unknown slot "${r.slot}"`);
+    if (![0, 1, 2, 3].includes(r.rarity)) err('items', r, 'rarity', 'rarity must be 0 (Crafted), 1 (Common), 2 (Uncommon) or 3 (Rare)');
     for (const col of Object.keys(r)) {
       const m = col.match(/^effect(\d+)_stat$/);
       if (!m) continue;

@@ -15,11 +15,12 @@ export function emptyDropStats() {
 }
 
 // Roll each resource independently with the seeded RNG (§1.1). Chances are multiplied by the
-// debug drop multiplier (key X), capped at certainty. Returns one resource key per unit.
+// effective drops.chanceMult (M2p, Gleaner's Belt) and the debug drop multiplier (key X), capped
+// at certainty. Returns one resource key per unit.
 function rollDrops(game, table) {
   const units = [];
   for (const { resource, chance, min, max } of table) {
-    if (game.rng.next() >= Math.min(1, chance * game.dropMult)) continue;
+    if (game.rng.next() >= Math.min(1, chance * game.stats['drops.chanceMult'] * game.dropMult)) continue;
     const amount = game.rng.int(min, max);
     for (let i = 0; i < amount; i++) units.push(resource);
   }

@@ -35,12 +35,16 @@ function retarget(game, s) {
 }
 
 // §1.4: resource into the inventory immediately, item removed, a resource floater (M2d §1).
+// M2p (Hoarder's Grip): with squirrel.doublePickupChance it collects the item twice; the RNG is
+// only rolled when that chance is above 0, so runs without it are unchanged.
 function collect(game, s, drop) {
-  add(game.resources, { [drop.resource]: 1 });
-  game.dropStats.collected[drop.resource]++;
-  if (drop.resource === 'boughs') game.doubleStats.boughsGained++; // M1i §4 debug figure
+  const chance = game.stats['squirrel.doublePickupChance'];
+  const n = chance > 0 && game.rng.next() < chance ? 2 : 1;
+  add(game.resources, { [drop.resource]: n });
+  game.dropStats.collected[drop.resource] += n;
+  if (drop.resource === 'boughs') game.doubleStats.boughsGained += n; // M1i §4 debug figure
   game.drops = game.drops.filter((d) => d !== drop);
-  addResourceFloaters(game, { [drop.resource]: 1 }, drop.x, drop.y - 14); // M2d §1.3, at the item
+  addResourceFloaters(game, { [drop.resource]: n }, drop.x, drop.y - 14); // M2d §1.3, at the item
   events.emit('resourcesGained', { resources: [drop.resource] });
   s.targetId = null;
 }
@@ -96,9 +100,10 @@ function strike(game, s, target) {
   if (Math.abs(target.x - s.x) > 0.5) s.facing = Math.sign(target.x - s.x);
   game.swipes.push({ x1: s.x, y1: s.y, x2: target.x, y2: target.y, age: 0, small: true });
   target.lastStruckTime = game.combatTime;
-  addFloatingText(game, `-${C.SQUIRREL_DAMAGE}`, target.x, target.y - target.radius * 2, true);
+  const damage = game.stats['squirrel.damage']; // effective (M2p, Thornwood Grip)
+  addFloatingText(game, `-${damage}`, target.x, target.y - target.radius * 2, true);
   events.emit('squirrelStrikes', { x: s.x, y: s.y });
-  damageEnemy(game, target, C.SQUIRREL_DAMAGE, 'squirrel');
+  damageEnemy(game, target, damage, 'squirrel');
 }
 
 // Blockers wolves stop for (§2.4): with SQUIRREL_BLOCKS_WOLVES, Squirrels that are not moving.

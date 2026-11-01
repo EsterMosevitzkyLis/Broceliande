@@ -878,6 +878,11 @@ html, body {
   font-size: 14px;
   color: #c4bda4;
 }
+/* Rarity label (M2p §1.1); its colour is set per item from RARITY. */
+.equip-rarity {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
 .equip-new,
 .equip-on {
   margin-left: 8px;

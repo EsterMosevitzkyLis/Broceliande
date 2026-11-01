@@ -1141,6 +1141,14 @@ export const SLOT_TYPES = {
   shoes:    { label: 'Shoes',         group: 'personal' }, // movement
 };
 
+// Item rarity (M2p §1.1): the items tab's `rarity` → its label and icon frame colour.
+export const RARITY = {
+  0: { label: 'Crafted',  frame: '#a070d8' }, // purple, craft-only
+  1: { label: 'Common',   frame: '#b07a4a' }, // bronze
+  2: { label: 'Uncommon', frame: '#5fae5a' }, // green
+  3: { label: 'Rare',     frame: '#e0b83a' }, // gold
+};
+export const RARITY_FRAME_WIDTH = 2.5;   // px, the frame round an item icon (at a 64 px icon; scales with it)
 
 
 // Finding items (M2e §3): one hidden in a random resource spot of each battle.
@@ -1207,7 +1215,7 @@ export let ZONE_NEAR_TURRET, ZONE_NEAR_FEATURE, ZONE_FAR_TURRET, ZONE_FAR_FEATUR
 export let DROP_SPACING, DROP_POP_HEIGHT, DROP_POP_TIME, DROP_POP_STAGGER, DROP_SINGLE_OFFSET;
 export let FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX;
 export let SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME;
-export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
+export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
 export let MASTER_VOLUME, SOUND_PITCH_JITTER;
 export let TRADERS_PER_RUN, TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY;
 
@@ -1278,7 +1286,7 @@ export function applyData(t) {
     DROP_SPACING, DROP_POP_HEIGHT, DROP_POP_TIME, DROP_POP_STAGGER, DROP_SINGLE_OFFSET,
     FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX,
     SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME,
-    CARRY_DRUID_HP, ITEMS_PER_BATTLE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
+    CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
     MASTER_VOLUME, SOUND_PITCH_JITTER,
     TRADERS_PER_RUN, TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY,
   } = keyed(t.globals));
@@ -1345,7 +1353,7 @@ export function applyData(t) {
     for (let n = 1; r[`effect${n}_stat`] !== undefined || r[`effect${n + 1}_stat`] !== undefined; n++) {
       if (r[`effect${n}_stat`] !== undefined) effects.push({ stat: r[`effect${n}_stat`], op: r[`effect${n}_op`], value: r[`effect${n}_value`] });
     }
-    return { slot: r.slot, name: r.name, description: r.description, effects, colors: [r.iconColor, r.iconAccent], mark: r.iconMark };
+    return { slot: r.slot, rarity: r.rarity, name: r.name, description: r.description, effects, colors: [r.iconColor, r.iconAccent], mark: r.iconMark };
   });
   STATS = byId(t.stats, (r) => r.description, 'stat');
 

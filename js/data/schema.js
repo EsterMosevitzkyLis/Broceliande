@@ -25,7 +25,7 @@ export const GLOBAL_TYPES = {
   DROP_SPACING: 'number', DROP_POP_HEIGHT: 'number', DROP_POP_TIME: 'number', DROP_POP_STAGGER: 'number', DROP_SINGLE_OFFSET: 'list',
   FLOATER_RISE_PX: 'number', FLOATER_TIME: 'number', FLOATER_STAGGER: 'number', FLOATER_STACK_PX: 'number',
   SWEEP_FLIGHT_TIME: 'number', SWEEP_STAGGER: 'number', SWEEP_END_MARGIN: 'number', SWEEP_END_SCALE: 'number', SWEEP_PULSE_TIME: 'number',
-  CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
+  CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
   MASTER_VOLUME: 'number', SOUND_PITCH_JITTER: 'number',
   TRADERS_PER_RUN: 'int', TRADE_PRICE_VARIATION: 'number', TRADE_MARGIN: 'number', TRADE_MAX_RATIO_TERM: 'int',
   TRADE_TAG_CHEAP: 'number', TRADE_TAG_PRICEY: 'number',
@@ -91,7 +91,7 @@ export const TABS = {
   },
   items: {
     columns: {
-      id: { type: 'id', required: true }, slot: { type: 'id', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
+      id: { type: 'id', required: true }, slot: { type: 'id', required: true }, rarity: { type: 'int', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
       iconColor: { type: 'text', required: true }, iconAccent: { type: 'text', required: true }, iconMark: { type: 'id', required: true },
     },
     pattern: [/^effect\d+_(stat|op|value)$/, { type: 'effect' }],

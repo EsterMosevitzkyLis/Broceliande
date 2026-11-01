@@ -11,13 +11,15 @@ export const SquirrelState = Object.freeze({
   WAITING: 'WAITING',
 });
 
-// duration: its effective lifetime (stats resolver, M2e §2.2).
-export function createSquirrel(id, x, y, duration = C.SQUIRREL_DURATION) {
+// duration: its effective lifetime (stats resolver, M2e §2.2); game: for its effective HP (M2p).
+export function createSquirrel(id, x, y, duration = C.SQUIRREL_DURATION, game = null) {
+  const maxHp = game?.stats['squirrel.hp'] ?? C.SQUIRREL_HP;
   return {
     id,
     x,
     y,
-    hp: C.SQUIRREL_HP,
+    hp: maxHp,
+    maxHp,                        // status bar
     state: SquirrelState.WAITING, // picks a target on its first update
     targetId: null,               // id of the claimed drop
     duration,                     // s it lasts in all (status bar)

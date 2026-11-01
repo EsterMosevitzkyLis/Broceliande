@@ -1226,7 +1226,7 @@ function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
     ...bossDebugLines(game),
     ...waveDebugLines(game),
     `Resources: ${resourceLine(game.resources)}`,
-    `Turrets: ${game.turrets.length}  Pebbles in flight: ${game.projectiles.length}  Vultures: ${game.vultures.length}/${C.MAX_VULTURES}  Squirrels: ${game.squirrels.length}/${C.MAX_SQUIRRELS}${C.SQUIRREL_BLOCKS_WOLVES ? ' (block wolves)' : ''}`,
+    `Turrets: ${game.turrets.length}  Pebbles in flight: ${game.projectiles.length}  Vultures: ${game.vultures.length}/${game.stats['vulture.max']}  Squirrels: ${game.squirrels.length}/${C.MAX_SQUIRRELS}${C.SQUIRREL_BLOCKS_WOLVES ? ' (block wolves)' : ''}`,
     ...dropDebugLines(game),
     ...doubleDebugLines(game),
     ...turretDebugLines(game),

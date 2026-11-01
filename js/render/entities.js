@@ -1857,7 +1857,7 @@ export function drawSquirrel(ctx, s, t, hit, ghost = false) {
 
 export function drawSquirrelStatus(ctx, s) {
   const r = C.SQUIRREL_RADIUS;
-  drawSummonStatus(ctx, s.x, s.y, r, s.y - r * 4.2, s.remaining / s.duration, s.hp / C.SQUIRREL_HP);
+  drawSummonStatus(ctx, s.x, s.y, r, s.y - r * 4.2, s.remaining / s.duration, s.hp / (s.maxHp ?? C.SQUIRREL_HP));
 }
 
 // Placement ghost (M1d §2.1): the same shape, translucent; with SQUIRREL_BLOCKS_WOLVES it also

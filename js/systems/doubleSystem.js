@@ -44,18 +44,23 @@ function sumCosts(a, b) {
   return Object.fromEntries(RESOURCE_KEYS.map((k) => [k, (a[k] ?? 0) + (b[k] ?? 0)]));
 }
 
+// A Double's work speed: the Druid's (work.speed, M2e) times its own (double.workSpeed, M2p).
+function doubleWorkSpeed(game) {
+  return game.stats['work.speed'] * game.stats['double.workSpeed'];
+}
+
 // The job a Double would do on a slot: { job, turretType, toLevel, cost, time }, with cost the
-// full price (resources + Bough) and time divided by the effective work speed (M2e, Wright's Belt).
+// full price (resources + Bough) and time divided by the Double's work speed.
 // An empty slot needs the turret type chosen; null if none fits.
 export function doubleJob(game, slotIndex, turretType = null) {
   const turret = turretOnSlot(game, slotIndex);
   if (turret) {
     const next = nextLevelStats(turret);
     if (!next) return null;
-    return { job: 'upgrade', turretType: turret.type, toLevel: turret.level + 1, cost: sumCosts(next.cost, C.BOUGH_DOUBLE_COST), time: next.time / game.stats['work.speed'] };
+    return { job: 'upgrade', turretType: turret.type, toLevel: turret.level + 1, cost: sumCosts(next.cost, C.BOUGH_DOUBLE_COST), time: next.time / doubleWorkSpeed(game) };
   }
   if (!turretType) return null;
-  return { job: 'build', turretType, toLevel: 1, cost: sumCosts(buildCost(turretType), C.BOUGH_DOUBLE_COST), time: buildTime(turretType) / game.stats['work.speed'] };
+  return { job: 'build', turretType, toLevel: 1, cost: sumCosts(buildCost(turretType), C.BOUGH_DOUBLE_COST), time: buildTime(turretType) / doubleWorkSpeed(game) };
 }
 
 // Druid-menu availability (§2.4 step 1): no Bough, the effective double.max already working, or no

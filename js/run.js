@@ -151,10 +151,20 @@ export function validateMap() {
 // Equipment (M2e §5). Items fit only their own slot; one per slot; swapping is free (on the map).
 // ---------------------------------------------------------------------------
 
-// A random ITEMS key the run doesn't own yet (seeded rng), or null if it owns them all.
-export function randomUnownedItem(run, rng) {
-  const left = Object.keys(C.ITEMS).filter((id) => !run.items.includes(id));
-  return left.length ? left[rng.int(0, left.length - 1)] : null;
+// A random item the run doesn't own yet (seeded rng), or null if none is left. The hidden find
+// (M2p §3.1): never a Crafted (rarity 0) item, weighted by RARITY_WEIGHT_1/2/3. anyItem (debug
+// key I): every unowned item, Crafted ones included, with equal chances.
+export function randomUnownedItem(run, rng, { anyItem = false } = {}) {
+  const weight = (id) => (anyItem ? 1 : [0, C.RARITY_WEIGHT_1, C.RARITY_WEIGHT_2, C.RARITY_WEIGHT_3][C.ITEMS[id].rarity] ?? 0);
+  const left = Object.keys(C.ITEMS).filter((id) => !run.items.includes(id) && weight(id) > 0);
+  const total = left.reduce((sum, id) => sum + weight(id), 0);
+  if (total <= 0) return null;
+  let r = rng.next() * total;
+  for (const id of left) {
+    r -= weight(id);
+    if (r < 0) return id;
+  }
+  return left[left.length - 1];
 }
 
 export function addItem(run, itemId) {

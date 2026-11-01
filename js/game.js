@@ -349,14 +349,15 @@ function updateTolls(game) {
   }
 }
 
-// Equipment HP regen (M2e §2.3, Sap Pendant): druid.regenAmount HP every DRUID_REGEN_INTERVAL of
-// Combat, never above his max HP. Nothing happens without it.
+// Equipment HP regen (M2e §2.3, Sap Pendant): druid.regenAmount HP every druid.regenInterval s of
+// Combat (M2p, Heartwood Amulet), never above his max HP. Nothing happens without it.
 function updateDruidRegen(game, dt) {
   const amount = game.stats['druid.regenAmount'];
   if (amount <= 0) return;
+  const interval = game.stats['druid.regenInterval'];
   game.regenTimer += dt;
-  if (game.regenTimer < C.DRUID_REGEN_INTERVAL - 1e-9) return;
-  game.regenTimer -= C.DRUID_REGEN_INTERVAL;
+  if (game.regenTimer < interval - 1e-9) return;
+  game.regenTimer -= interval;
   game.druidHp = Math.min(game.stats['druid.maxHp'], game.druidHp + amount);
 }
 

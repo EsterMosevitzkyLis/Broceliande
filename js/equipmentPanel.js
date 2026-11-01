@@ -7,7 +7,7 @@ import * as C from './config.js';
 import { GameState } from './states.js';
 import { resolveStats, baseStats } from './stats.js';
 import { drawEquipmentPortrait } from './render/equipment.js';
-import { drawSlotIcon, drawItemIcon } from './render/items.js';
+import { drawSlotIcon, drawFramedItemIcon } from './render/items.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
 import { RESOURCE_KEYS, resourceName } from './resources.js';
 
@@ -82,7 +82,7 @@ export function createEquipmentPanel(callbacks) {
       return;
     }
     const item = C.ITEMS[id];
-    tip.replaceChildren(textDiv('equip-tip-name', item.name), textDiv('equip-tip-desc', item.description));
+    tip.replaceChildren(textDiv('equip-tip-name', item.name), rarityLine(item), textDiv('equip-tip-desc', item.description));
     placeBeside(tip, slot, 14);
     tip.hidden = false;
   }
@@ -117,13 +117,13 @@ export function createEquipmentPanel(callbacks) {
       row.className = 'equip-pop-item' + (run.equipped[slot] === id ? ' equipped' : '');
       const icon = document.createElement('canvas');
       icon.width = icon.height = ROW_ICON_PX;
-      drawItemIcon(icon.getContext('2d'), id, ROW_ICON_PX / 2, ROW_ICON_PX / 2, ROW_ICON_PX * 0.92);
+      drawFramedItemIcon(icon.getContext('2d'), id, ROW_ICON_PX / 2, ROW_ICON_PX / 2, ROW_ICON_PX * 0.96);
       const text = document.createElement('div');
       text.className = 'equip-pop-text';
       const name = textDiv('equip-pop-name', item.name);
       if (newInPopover.includes(id)) name.append(textSpan('equip-new', 'New'));
       if (run.equipped[slot] === id) name.append(textSpan('equip-on', 'Equipped'));
-      text.append(name, textDiv('equip-pop-desc', item.description));
+      text.append(name, rarityLine(item), textDiv('equip-pop-desc', item.description));
       row.append(icon, text);
       row.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -163,7 +163,7 @@ export function createEquipmentPanel(callbacks) {
       const id = run.equipped[slot];
       const ctx = icon.getContext('2d');
       ctx.clearRect(0, 0, ICON_PX, ICON_PX);
-      if (id) drawItemIcon(ctx, id, ICON_PX / 2, ICON_PX / 2, ICON_PX * 0.9);
+      if (id) drawFramedItemIcon(ctx, id, ICON_PX / 2, ICON_PX / 2, ICON_PX * 0.96);
       else drawSlotIcon(ctx, slot, ICON_PX / 2, ICON_PX / 2, ICON_PX * 0.9, null, 0.35); // faded silhouette
       btn.classList.toggle('filled', !!id);
       badge.hidden = !itemsFor(slot).some((i) => !run.seenItems.includes(i));
@@ -183,7 +183,7 @@ export function createEquipmentPanel(callbacks) {
       ['Step length', 'steps.length', (v) => String(Math.round(v * 100) / 100)],
       ['Build speed', 'work.speed', pct],
       ['Search bonus', 'search.mainBonus', (v) => (v ? `+${v}` : '—')],
-      ['Regen', 'druid.regenAmount', (v) => (v ? `${v} HP / ${C.DRUID_REGEN_INTERVAL} s` : '—')],
+      ['Regen', 'druid.regenAmount', (v) => (v ? `${v} HP / ${Math.round(eff['druid.regenInterval'] * 10) / 10} s` : '—')],
     ];
     stats.replaceChildren(...entries.map(([label, k, fmt]) => {
       const el = document.createElement('span');
@@ -227,6 +227,13 @@ export function createEquipmentPanel(callbacks) {
   }
 
   return { update };
+}
+
+// "Rare · Crown Charm" in the rarity's colour (M2p §1.1).
+function rarityLine(item) {
+  const d = textDiv('equip-rarity', `${C.RARITY[item.rarity].label} · ${C.SLOT_TYPES[item.slot].label}`);
+  d.style.color = C.RARITY[item.rarity].frame;
+  return d;
 }
 
 function textDiv(cls, text) {

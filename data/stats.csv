@@ -12,4 +12,12 @@ work.speed,Build speed
 search.mainBonus,Search bonus
 steps.budget,Steps
 steps.length,Step length (px)
+vulture.max,Vultures at a time
+squirrel.hp,Squirrel HP
+squirrel.damage,Squirrel counter-attack damage
+squirrel.doublePickupChance,Squirrel double pickup chance
+double.workSpeed,Bough Double job speed
+druid.damageTakenMult,Damage taken x
+druid.regenInterval,Regen interval (s)
+drops.chanceMult,Drop chance x
 enemy.hpMult,Enemy HP X

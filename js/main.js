@@ -234,10 +234,11 @@ function debugNewMap() {
   view.mapHover = null;
 }
 
-// Debug key I on the map (M2e §6): a random unowned item joins the run (seeded from the run seed).
+// Debug key I on the map (M2e §6): a random unowned item joins the run (seeded from the run seed),
+// Crafted ones included so every item can be tried (M2p).
 function debugAddItem() {
   if (game.state !== GameState.MAP) return;
-  const id = randomUnownedItem(game.run, createRng(game.run.seed + 7919 * (game.run.items.length + 1)));
+  const id = randomUnownedItem(game.run, createRng(game.run.seed + 7919 * (game.run.items.length + 1)), { anyItem: true });
   if (id) addItem(game.run, id);
 }
 

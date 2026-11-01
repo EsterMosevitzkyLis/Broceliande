@@ -39,6 +39,27 @@ export function drawItemIcon(ctx, itemId, x, y, size) {
   ctx.restore();
 }
 
+// Rarity frame (M2p §1.1): a thin ring in the item's rarity colour round its icon, at the icon's
+// edge. (x, y): centre; size: the icon's width, as for drawItemIcon.
+export function drawRarityFrame(ctx, itemId, x, y, size) {
+  const rarity = C.RARITY[C.ITEMS[itemId].rarity];
+  if (!rarity) return;
+  const w = C.RARITY_FRAME_WIDTH * size / 64;
+  ctx.save();
+  ctx.strokeStyle = rarity.frame;
+  ctx.lineWidth = w;
+  ctx.beginPath();
+  ctx.arc(x, y, size / 2 - w / 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// An item's icon inside its rarity frame, shrunk a little so the frame clears it.
+export function drawFramedItemIcon(ctx, itemId, x, y, size) {
+  drawItemIcon(ctx, itemId, x, y, size * 0.8);
+  drawRarityFrame(ctx, itemId, x, y, size);
+}
+
 function darker(hex) {
   const n = parseInt(hex.slice(1), 16);
   const f = (v) => Math.round(v * 0.55);
@@ -214,6 +235,113 @@ const MARKS = {
       ctx.ellipse(-5 + side * 3, -30, 2.6, 8, side * 0.2, 0, Math.PI * 2);
       ctx.fill();
     }
+  },
+  // M2p §1.3 items.
+  nest(ctx) { // Eyrie Crown: a twig nest with an egg
+    ctx.beginPath();
+    ctx.ellipse(0, 9, 10, 4, 0, 0, Math.PI);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, 4, 4, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  bolt(ctx) { // Stormfeather Crown: a lightning bolt
+    ctx.beginPath();
+    ctx.moveTo(3, -8);
+    ctx.lineTo(-5, 4);
+    ctx.lineTo(1, 4);
+    ctx.lineTo(-3, 14);
+    ctx.lineTo(6, 0);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    ctx.fill();
+  },
+  coins(ctx) { // Hoarder's Grip: two stacked coins
+    for (const [dx, dy] of [[-3, 4], [3, -3]]) {
+      ctx.beginPath();
+      ctx.ellipse(dx, dy, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  },
+  thorns(ctx) { // Thornwood Grip: thorns sticking out of the wrap
+    ctx.beginPath();
+    for (const [x, y, d] of [[-14, -10, -1], [-14, 8, -1], [14, -4, 1], [14, 12, 1]]) {
+      ctx.moveTo(x, y - 3);
+      ctx.lineTo(x + d * 7, y);
+      ctx.lineTo(x, y + 3);
+    }
+    ctx.fill();
+  },
+  wind(ctx) { // Swiftroot Ferrule: speed lines
+    ctx.beginPath();
+    for (const [y, w] of [[-6, 14], [0, 18], [6, 12]]) {
+      ctx.moveTo(-w / 2, y);
+      ctx.lineTo(w / 2, y);
+    }
+    ctx.stroke();
+  },
+  heart(ctx) { // Heartroot Ferrule: a heart
+    ctx.beginPath();
+    ctx.moveTo(0, 8);
+    ctx.bezierCurveTo(-12, -1, -6, -11, 0, -4);
+    ctx.bezierCurveTo(6, -11, 12, -1, 0, 8);
+    ctx.fill();
+  },
+  torc(ctx) { // Ward Torc: an open ring on the pendant
+    ctx.beginPath();
+    ctx.arc(0, 17, 6, Math.PI * 0.65, Math.PI * 2.35);
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  },
+  leafheart(ctx) { // Heartwood Amulet: a heart-shaped leaf on the pendant
+    ctx.beginPath();
+    ctx.moveTo(0, 24);
+    ctx.bezierCurveTo(-9, 17, -5, 9, 0, 13);
+    ctx.bezierCurveTo(5, 9, 9, 17, 0, 24);
+    ctx.fill();
+  },
+  wheat(ctx) { // Gleaner's Belt: an ear of wheat on the buckle
+    ctx.beginPath();
+    ctx.moveTo(0, 8);
+    ctx.lineTo(0, -8);
+    ctx.stroke();
+    for (const y of [-6, -1, 4]) {
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.ellipse(side * 2.5, y, 1.8, 3, side * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  },
+  anvil(ctx) { // Wildwright's Belt: a small anvil on the buckle
+    ctx.beginPath();
+    ctx.moveTo(-7, -5);
+    ctx.lineTo(7, -5);
+    ctx.lineTo(4, 0);
+    ctx.lineTo(4, 5);
+    ctx.lineTo(-4, 5);
+    ctx.lineTo(-4, 0);
+    ctx.closePath();
+    ctx.fill();
+  },
+  wing(ctx) { // Strider Boots: a little wing on the heel
+    ctx.beginPath();
+    ctx.moveTo(-14, -8);
+    ctx.quadraticCurveTo(-26, -14, -28, -4);
+    ctx.quadraticCurveTo(-22, -6, -20, 0);
+    ctx.quadraticCurveTo(-18, -4, -14, -2);
+    ctx.closePath();
+    ctx.fill();
+  },
+  star(ctx) { // Pathfinder's Shoes: a four-point compass star
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+      const r = i % 2 ? 2.5 : 8;
+      ctx.lineTo(-4 + Math.cos(a) * r, -6 + Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
   },
 };
 

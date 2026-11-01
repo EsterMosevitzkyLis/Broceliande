@@ -10,13 +10,22 @@ import * as C from './config.js';
 const BASES = {
   'vulture.duration':         () => C.VULTURE_DURATION,
   'vulture.damage':           () => C.VULTURE_DAMAGE,
+  'vulture.max':              () => C.MAX_VULTURES,
   'squirrel.duration':        () => C.SQUIRREL_DURATION,
   'squirrel.speed':           () => C.SQUIRREL_SPEED,
   'squirrel.pickupRange':     () => C.SQUIRREL_PICKUP_RANGE,
+  'squirrel.hp':              () => C.SQUIRREL_HP,
+  'squirrel.damage':          () => C.SQUIRREL_DAMAGE,
+  // M2p §1.3: identities (no chance, ×1) unless an item changes them.
+  'squirrel.doublePickupChance': () => 0,
   'double.boughRefundChance': () => C.BOUGH_REFUND_CHANCE,
   'double.max':               () => C.MAX_BOUGH_DOUBLES,
+  'double.workSpeed':         () => 1, // Bough Double job time / this (on top of work.speed)
   'druid.maxHp':              () => C.DRUID_HP,
   'druid.regenAmount':        () => C.DRUID_REGEN_AMOUNT,
+  'druid.regenInterval':      () => C.DRUID_REGEN_INTERVAL,
+  'druid.damageTakenMult':    () => 1,
+  'drops.chanceMult':         () => 1,
   'work.speed':               () => C.WORK_SPEED,
   'search.mainBonus':         () => C.SEARCH_MAIN_BONUS,
   'steps.budget':             (level) => level.stepBudget,

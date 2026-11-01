@@ -62,6 +62,9 @@ SWEEP_PULSE_TIME,0.3,s a HUD counter pulses after an item lands on it
 # Run and equipment bases,,
 CARRY_DRUID_HP,FALSE,TUNING - true: the Druid starts the next encounter with the HP he won with (M2a sec. 3)
 ITEMS_PER_BATTLE,1,0 turns hidden items off
+RARITY_WEIGHT_1,6,TUNING - weight of a Common (rarity 1) item when picking the hidden find (M2p sec. 3.1)
+RARITY_WEIGHT_2,3,TUNING - weight of an Uncommon (rarity 2) item
+RARITY_WEIGHT_3,1,TUNING - weight of a Rare (rarity 3) item; Crafted (rarity 0) items are never hidden
 WORK_SPEED,1,build / upgrade speed multiplier: job time / this (Wright's Belt)
 SEARCH_MAIN_BONUS,0,extra units of a spot's mainResource per search (Forager's Belt)
 BOUGH_REFUND_CHANCE,0,chance a Bough Double's Bough is refunded when its job starts (Mossheart Ferrule)

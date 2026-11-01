@@ -208,6 +208,11 @@ function recordDamage(game, source, amount) {
 // ---------------------------------------------------------------------------
 // Enemies attacking the Druid (§12.5), each with its type's damage and interval
 // ---------------------------------------------------------------------------
+// An enemy's blow lands on the Druid: its damage × druid.damageTakenMult (M2p, Ward Torc).
+function hurtDruid(game, damage) {
+  game.druidHp = Math.max(0, game.druidHp - damage * game.stats['druid.damageTakenMult']);
+}
+
 export function updateMelee(game, dt) {
   for (const enemy of game.enemies) {
     if (enemy.state !== EnemyState.BITING) continue;
@@ -219,7 +224,7 @@ export function updateMelee(game, dt) {
       enemy.biteTimer -= t.attackInterval;
       enemy.bites++;
       enemy.lastBiteTime = game.combatTime;
-      game.druidHp = Math.max(0, game.druidHp - t.damage);
+      hurtDruid(game, t.damage);
       game.druidLastHitTime = game.combatTime;
       lifestealOnBite(game, enemy);
       events.emit('enemyAttacked', { type: enemy.type, target: 'druid' });
@@ -278,7 +283,7 @@ function blow(game, enemy, t) {
   let at = { x: enemy.x + enemy.facing * enemy.radius * 1.1, y: enemy.y + enemy.radius * 0.4 };
   let landed = false;
   if (same && aim.kind === 'druid') {
-    game.druidHp = Math.max(0, game.druidHp - t.damage);
+    hurtDruid(game, t.damage);
     game.druidLastHitTime = game.combatTime;
     at = { ...game.scene.level.druidPos };
     landed = true;
