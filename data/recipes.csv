@@ -1,5 +1,5 @@
 item,cost_pits,cost_reeds,cost_feathers,cost_boughs,cost_shells,patternWeight,notes
-hawkfeatherCrown,4,,2,,,3,TUNING - M2p sec. 5.2; patternWeight 3 for rarity 1-2; 2 for rarity 3 and 0
+hawkfeatherCrown,4,,2,,,3,"TUNING - M2p sec. 5.2, patternWeight 3 for rarity 1-2 and 2 for rarity 3 and 0"
 talonCrown,5,,3,,1,3,
 eyrieCrown,6,,4,1,,2,
 stormfeatherCrown,8,,5,2,,2,
