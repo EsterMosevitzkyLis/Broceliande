@@ -9,6 +9,7 @@ export const GameState = Object.freeze({
   VICTORY: 'VICTORY',
   DEFEAT: 'DEFEAT',
   TRADER: 'TRADER', // M2n §4.1: a Wandering Trader's scene, between map nodes (MAP → TRADER → MAP)
+  TINKER: 'TINKER', // M2p §4.2: a Tinker's Rest scene, between map nodes (MAP → TINKER → MAP)
 });
 
 // Prep variants (M1b addendum §2). Combat and everything after are identical in both.

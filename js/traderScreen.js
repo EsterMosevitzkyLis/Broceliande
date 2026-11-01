@@ -1,6 +1,6 @@
 // The trader scene's HTML (M2n §4.2–4.4): title and speech, the player's pack and the trader's
 // goods (icon, count, tag), the ratio, quantity, preview and Trade button, Undo and Back to the
-// road; plus the fade into and out of the scene (§1). Shown only in the TRADER state. It reads
+// road; plus how dark the scene fade should be (§1). Shown only in the TRADER state. It reads
 // game state and calls back for every action; the art is on the canvas (render/trader.js).
 
 import * as C from './config.js';
@@ -27,7 +27,7 @@ export function createTraderScreen(callbacks) {
     root: $('trader-screen'), title: $('trader-title'), speech: $('trader-speech'),
     ratio: $('trade-ratio'), get: $('trade-get'), preview: $('trade-preview'), reason: $('trade-reason'),
     less: $('btn-trade-less'), more: $('btn-trade-more'), max: $('btn-trade-max'), trade: $('btn-trade'),
-    undo: $('btn-trade-undo'), leave: $('btn-trade-leave'), fade: $('scene-fade'),
+    undo: $('btn-trade-undo'), leave: $('btn-trade-leave'),
   };
   const cards = { give: buildShelf($('trader-pack'), 'give', callbacks), get: buildShelf($('trader-goods'), 'get', callbacks) };
   el.less.addEventListener('click', () => callbacks.onStep(-1));
@@ -37,18 +37,11 @@ export function createTraderScreen(callbacks) {
   el.undo.addEventListener('click', () => callbacks.onUndo());
   el.leave.addEventListener('click', () => callbacks.onLeave());
 
-  let lastState = null;
-  let mapFadeFrom = null; // performance.now() when the map came back after a visit (fade in, visual only)
-
+  // Returns how dark the scene fade should be (0–1) for this screen.
   function update(game) {
-    if (game.state !== lastState) {
-      if (lastState === GameState.TRADER && game.state === GameState.MAP) mapFadeFrom = performance.now();
-      lastState = game.state;
-    }
-    updateFade(el, game, mapFadeFrom);
     const v = game.visit;
     el.root.hidden = game.state !== GameState.TRADER || !v;
-    if (el.root.hidden) return;
+    if (el.root.hidden) return 0;
     const inv = game.run.inventory;
     setText(el.title, `${v.trader.name}'s Cart`);
     setText(el.speech, `“${v.line}”`);
@@ -76,6 +69,7 @@ export function createTraderScreen(callbacks) {
     setText(el.reason, ratio && blocker ? blocker : '');
     el.undo.disabled = !v.trades.length || leaving;
     el.leave.disabled = leaving;
+    return fade(v);
   }
 
   return { update };
@@ -109,18 +103,10 @@ function fillCard(c, count, tag, selected, soldOut) {
   if (c.card.classList.contains('soldout') !== soldOut) c.card.classList.toggle('soldout', soldOut);
 }
 
-// The fade (§1): from black as the scene opens, to black while leaving, then from black again as
-// the map comes back.
-function updateFade(el, game, mapFadeFrom) {
-  let opacity = 0;
-  const v = game.visit;
-  if (game.state === GameState.TRADER && v) {
-    opacity = v.leaving !== null ? v.leaving / C.TRADER_FADE_TIME : 1 - v.time / C.TRADER_FADE_TIME;
-  } else if (game.state === GameState.MAP && mapFadeFrom !== null) {
-    opacity = 1 - (performance.now() - mapFadeFrom) / 1000 / C.TRADER_FADE_TIME;
-  }
-  const value = String(Math.max(0, Math.min(1, opacity)).toFixed(3));
-  if (el.fade.style.opacity !== value) el.fade.style.opacity = value;
+// The fade (§1): from black as the scene opens, to black while leaving.
+function fade(v) {
+  const opacity = v.leaving !== null ? v.leaving / C.TRADER_FADE_TIME : 1 - v.time / C.TRADER_FADE_TIME;
+  return Math.max(0, Math.min(1, opacity));
 }
 
 function setText(node, text) {

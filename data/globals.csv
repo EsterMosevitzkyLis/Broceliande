@@ -79,3 +79,6 @@ TRADE_MARGIN,0.1,TUNING - traders sell at value x (1 + this) and buy at value x 
 TRADE_MAX_RATIO_TERM,5,TUNING - largest term in a shown trade ratio a -> b
 TRADE_TAG_CHEAP,0.85,TUNING - multiplier at or below this: cheap (goods) / sells poorly (pack)
 TRADE_TAG_PRICEY,1.15,TUNING - multiplier at or above this: pricey (goods) / sells well (pack)
+# Tinker's Rest,,
+TINKERS_PER_RUN,2,TUNING - Tinker's Rest nodes added to the map each run (M2p sec. 4.1)
+TINKER_MIN_ROW,4,TUNING - lowest map row a Tinker's Rest may go in; the rows from it to the one under the boss are split into TINKERS_PER_RUN bands

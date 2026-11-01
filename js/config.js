@@ -232,6 +232,21 @@ export const TRADER_SCENE = {
   blanket: { x: 1490, y: 790, rx: 360, ry: 92 }, // the goods lie on it (DOM over it, traderScreen.js)
   scale: { x: 960, y: 560 },              // balance scale, centre
 };
+// The Tinker's Rest (M2p §4.2): ruins and an old forge on the left by the Druid, the open book on
+// its workbench on the right (the book's pages are HTML over it, tinkerScreen.js).
+export const TINKER_SCENE = {
+  forge: { x: 760, y: 520 },              // the forge's base, centre (behind the anvil)
+  anvil: { x: 640, y: 700 },              // the anvil's base, centre; the craft animation plays over it
+  beam: { x1: 560, x2: 960, y: 250 },     // the beam the tools hang from, above the forge
+  book: { x: 990, y: 150, w: 870, h: 790 }, // the open book (both pages), stage px
+};
+export const TINKER_FADE_TIME = 0.35;     // s, the fade into and out of the Tinker's Rest (M2n §1)
+export const CRAFT_ANIM = {               // s from Craft (M2p §4.3): visual timings only
+  strikes: [0.25, 0.6],                   // the hammer hits the anvil
+  appear: 0.95,                           // the item appears in a burst of sparks
+  end: 1.9,                               // the animation is over (Craft and Undo are back)
+};
+export const FORGE_CRACKLE_GAPS = [0.8, 1.3, 0.6, 1.1, 0.9]; // s between the forge's quiet crackles, in turn (M2p §4.4)
 export const TRADER_FADE_TIME = 0.35;     // s, the fade into and out of the trader scene (M2n §1)
 export const TRADER_SCALE_TIP_TIME = 0.7; // s the scale tips toward the trader after a trade (visual)
 export const TRADER_LOOKS = [             // per-trader colour variation (cloak, hood lining, pack)
@@ -1069,6 +1084,9 @@ export const NODE_TYPES = {
   // M2n §2.2: a Wandering Trader (no battle): a warm amber rim, a lantern, and a gold coin mark
   // instead of the red V once visited. Generated with the map, not listed in MAP_NODES.
   trader: { label: 'Wandering Trader', icon: 'lantern', rim: '#e0a63c', fill: '#5a3c1e', completedMark: 'coin' },
+  // M2p §4.1: a Tinker's Rest (no battle): a copper rim, an anvil, and a small hammer mark once
+  // visited. Generated with the map, like the Traders.
+  tinker: { label: "Tinker's Rest", icon: 'anvil', rim: '#c8784a', fill: '#4e3226', completedMark: 'hammer' },
 };
 
 // M2e §4.6 (as revised): the map's ground runs across the whole screen; its nodes use the right
@@ -1198,7 +1216,7 @@ export const EQUIP_CLEARING_RAGGED = 0.2;
 export const RESOURCE_IDS = ['pits', 'reeds', 'feathers', 'boughs', 'shells'];
 export const SUMMON_KINDS = ['vulture', 'squirrel', 'double', 'slowWisp'];
 // Palettes of non-combat places (M2n §1): rows of the palettes tab that aren't levels.
-export const PLACE_PALETTES = ['trader'];
+export const PLACE_PALETTES = ['trader', 'tinker'];
 // The traders tab's kinds (M2n §4.5): the name pool and the lines for each moment.
 export const TRADER_LINE_KINDS = ['name', 'greet', 'trade', 'soldout', 'leave'];
 
@@ -1218,6 +1236,7 @@ export let FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX;
 export let SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME;
 export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
 export let MASTER_VOLUME, SOUND_PITCH_JITTER;
+export let TINKERS_PER_RUN, TINKER_MIN_ROW;
 export let TRADERS_PER_RUN, TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY;
 
 // druid tab
@@ -1292,6 +1311,7 @@ export function applyData(t) {
     CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
     MASTER_VOLUME, SOUND_PITCH_JITTER,
     TRADERS_PER_RUN, TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY,
+    TINKERS_PER_RUN, TINKER_MIN_ROW,
   } = keyed(t.globals));
   SPOT_SCALE = LOCATION_RADIUS / SPOT_ART_RADIUS;
 

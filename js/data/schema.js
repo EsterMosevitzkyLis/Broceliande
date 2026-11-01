@@ -27,6 +27,7 @@ export const GLOBAL_TYPES = {
   SWEEP_FLIGHT_TIME: 'number', SWEEP_STAGGER: 'number', SWEEP_END_MARGIN: 'number', SWEEP_END_SCALE: 'number', SWEEP_PULSE_TIME: 'number',
   CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
   MASTER_VOLUME: 'number', SOUND_PITCH_JITTER: 'number',
+  TINKERS_PER_RUN: 'int', TINKER_MIN_ROW: 'int',
   TRADERS_PER_RUN: 'int', TRADE_PRICE_VARIATION: 'number', TRADE_MARGIN: 'number', TRADE_MAX_RATIO_TERM: 'int',
   TRADE_TAG_CHEAP: 'number', TRADE_TAG_PRICEY: 'number',
 };

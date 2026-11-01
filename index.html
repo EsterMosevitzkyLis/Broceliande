@@ -145,6 +145,32 @@
         <button id="btn-trade-undo" type="button">Undo last trade</button>
         <button id="btn-trade-leave" type="button">Back to the road</button>
       </div>
+      <!-- Tinker's Rest (M2p §4.2): the open book's tabs, recipe list (left page) and recipe page
+           (right page) over the canvas art, built by js/tinkerScreen.js; only shown in the TINKER state. -->
+      <div id="tinker-screen" hidden>
+        <div id="tinker-title">Tinker's Rest</div>
+        <div id="tinker-book">
+          <div id="tinker-tabs"></div>
+          <div id="tinker-left">
+            <div id="tinker-count"></div>
+            <div id="tinker-list"></div>
+          </div>
+          <div id="tinker-right">
+            <div id="tinker-empty" hidden></div>
+            <div id="tinker-detail" hidden>
+              <canvas id="tinker-icon"></canvas>
+              <div id="tinker-name"></div>
+              <div id="tinker-rarity"></div>
+              <div id="tinker-desc"></div>
+              <div id="tinker-cost"></div>
+              <button id="btn-craft" type="button">Craft</button>
+              <div id="tinker-reason"></div>
+            </div>
+          </div>
+        </div>
+        <button id="btn-craft-undo" type="button">Undo last craft</button>
+        <button id="btn-tinker-leave" type="button">Back to the road</button>
+      </div>
       <!-- M2n §1: the fade into and out of a place scene; never blocks clicks. -->
       <div id="scene-fade"></div>
 

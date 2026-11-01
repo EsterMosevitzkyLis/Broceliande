@@ -29,6 +29,7 @@ import { resolveStats, changedStats, statLabel } from './stats.js';
 import { drawSlotIcon, drawScrollIcon } from './render/items.js';
 import { knownPatterns, newPatterns, totalPatterns } from './patterns.js';
 import { tradeValue, exactCost, tradeRatio, goodsTag, packTag } from './trade.js';
+import { craftableCount, craftBlocker } from './tinker.js';
 
 const RESOURCE_LABELS = Object.fromEntries(Object.entries(C.RESOURCES).map(([k, r]) => [k, r.name])); // full names (data/resources.csv)
 // "Pits 3  Reeds 0  Feathers 2  Boughs 1": every resource, in display order (debug panel).
@@ -422,7 +423,7 @@ function updateMapMessage(el, game) {
 // The current Wilds' name, bottom-left (M2a §6): during Prep and Combat, and still through
 // ENDING and under the Victory / Defeat overlay.
 function updateLevelName(el, game) {
-  const shown = game.state !== GameState.START && game.state !== GameState.MAP && game.state !== GameState.TRADER; // not in a place scene (M2n §4.2)
+  const shown = game.state !== GameState.START && game.state !== GameState.MAP && game.state !== GameState.TRADER && game.state !== GameState.TINKER; // not in a place scene (M2n §4.2)
   el.levelName.hidden = !shown;
   if (shown) setText(el.levelName, game.scene.level.name);
 }
@@ -629,7 +630,7 @@ function updateHud(el, game) {
   // M2i §4.1: in Combat, the wave (the current one, or the next during the countdown and gaps).
   setText(el.phase, isCombat && game.wave
     ? `WAVE ${Math.min(game.wave.index + 1, waveCount(game))} / ${waveCount(game)}`
-    : game.state);
+    : game.state === GameState.TINKER ? "TINKER'S REST" : game.state); // M2p §4.2
   if (isPrep) {
     // Countdown shows 00:25 at the start and 00:00 only at the moment Combat begins.
     setText(el.timer, formatTime(Math.ceil(game.prepRemaining)));
@@ -672,7 +673,7 @@ function updateHud(el, game) {
 function updateStepBar(el, game, view) {
   const shown = game.state === GameState.PREP && isStepMode(game);
   el.steps.hidden = !shown;
-  el.timer.hidden = shown || game.state === GameState.MAP || game.state === GameState.TRADER; // no clock on the map (M2a §4) or at a Trader
+  el.timer.hidden = shown || game.state === GameState.MAP || game.state === GameState.TRADER || game.state === GameState.TINKER; // no clock on the map (M2a §4) or in a place scene
   if (!shown) return;
 
   const preview = routePreview(game, view.hover);
@@ -759,6 +760,7 @@ function mapTooltip(run, nodeId) {
   const node = mapNode(run, nodeId);
   const anchor = { x: node.pos.x, y: node.pos.y, halfWidth: nodeRadius(node) * C.MAP_HOVER_SCALE };
   if (node.type === 'trader') return traderTooltip(run.traders[node.id], anchor);
+  if (node.type === 'tinker') return tinkerTooltip(run, anchor);
   const level = C.LEVELS[node.levelId];
   // M2i §4.3: "3 waves · Wolves 42 · Stirges 4 · Bears 3" (types in display order, from the waves).
   const waves = `${levelWaves(level).length} waves`;
@@ -794,6 +796,16 @@ function traderTooltip(trader, anchor) {
   if (paysWell.length) lines.push(['', `Pays well for: ${paysWell.join(', ')}`]);
   if (trader.stock.boughs > 0) lines.push(['', `Has ${C.RESOURCES.boughs.plural}: ${trader.stock.boughs}`]);
   return { title: `${C.NODE_TYPES.trader.label} — ${trader.name}`, lines, anchor };
+}
+
+// A Tinker's Rest node (M2p §4.1), with M counted from the carried resources as it is hovered.
+function tinkerTooltip(run, anchor) {
+  const known = knownPatterns().filter((id) => C.RECIPES[id]).length;
+  return {
+    title: `${C.NODE_TYPES.tinker.label} — Craft equipment from your patterns.`,
+    lines: [['', `Patterns known: ${known} · Craftable now: ${craftableCount(run)}`]],
+    anchor,
+  };
 }
 
 function updateTooltip(el, game, view, prevKey) {
@@ -1223,6 +1235,15 @@ function traderDebugLines(v) {
   return lines;
 }
 
+// The Tinker's Rest (M2p §6): where it was opened from, the crafts this visit and the selected recipe.
+function tinkerDebugLines(game) {
+  const v = game.tinker;
+  const lines = [`Tinker's Rest${v.nodeId ? ` (node ${v.nodeId})` : ' (debug Shift+K)'}   crafts this visit: ${v.crafts.map((c) => c.itemId).join(', ') || 'none'}`];
+  lines.push(`  tab ${v.tab}   selected ${v.selected ?? 'none'}${v.selected ? ` (${craftBlocker(game.run, v.selected) ?? 'craftable'})` : ''}`);
+  lines.push(`  craftable now: ${craftableCount(game.run)}`);
+  return lines;
+}
+
 function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
   el.debugBox.hidden = !view.debug;
   if (!view.debug) return;
@@ -1232,6 +1253,10 @@ function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
   }
   if (game.state === GameState.TRADER) {
     setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...traderDebugLines(game.visit)].join('\n'));
+    return;
+  }
+  if (game.state === GameState.TINKER) {
+    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...tinkerDebugLines(game)].join('\n'));
     return;
   }
   const speed = clock.paused ? `PAUSED (×${clock.speed})` : `×${clock.speed}`;

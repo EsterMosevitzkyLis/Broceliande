@@ -20,6 +20,7 @@ import { drawFootsteps, drawTrail } from './render/footsteps.js';
 import { animationTime } from './game.js';
 import { drawMap } from './render/map.js';
 import { drawTraderScene } from './render/trader.js';
+import { drawTinkerScene } from './render/tinker.js';
 import { drawCinderjaw, drawConeBurst, drawBurning, drawEmberJump } from './render/cinderjaw.js';
 import { drawSlotFloater } from './render/items.js';
 import { drawWisp, drawWispTarget, drawWispGhost, drawWispBurst, drawSlowSpiral } from './render/wisp.js';
@@ -61,6 +62,13 @@ export function createRenderer(canvas) {
     if (game.state === GameState.TRADER) {
       // M2n §4.2: the trader's scene; its text and controls are HTML (traderScreen.js).
       drawTraderScene(ctx, game.visit, game.visit.time);
+      ctx.fillStyle = COLORS.hudBackdrop;
+      ctx.fillRect(0, 0, C.STAGE_WIDTH, C.HUD_STRIP_HEIGHT);
+      return;
+    }
+    if (game.state === GameState.TINKER) {
+      // M2p §4.2: the Tinker's Rest; the book's text and controls are HTML (tinkerScreen.js).
+      drawTinkerScene(ctx, game.tinker, game.tinker.time);
       ctx.fillStyle = COLORS.hudBackdrop;
       ctx.fillRect(0, 0, C.STAGE_WIDTH, C.HUD_STRIP_HEIGHT);
       return;

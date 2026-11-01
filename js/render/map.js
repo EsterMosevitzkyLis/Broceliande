@@ -71,7 +71,7 @@ function roadStyle(run, from, to) {
 }
 
 // Icon draw functions named by NODE_TYPES (M2c §1.1).
-const NODE_ICONS = { wolfHead: drawWolfHead, lantern: drawLanternIcon };
+const NODE_ICONS = { wolfHead: drawWolfHead, lantern: drawLanternIcon, anvil: drawAnvilIcon };
 
 const STATE_ALPHA = { available: 1, completed: 1, locked: 0.5, bypassed: 0.3 };
 
@@ -103,6 +103,8 @@ function drawNode(ctx, node, state, hovered, t) {
   NODE_ICONS[type.icon](ctx, x, y + r * 0.04, r * 0.62, COLORS.head, type.fill ?? COLORS.node, { redEyes: type.redEyes });
   if (state === 'completed' && type.completedMark === 'coin') {
     drawCoinMark(ctx, x + r * 0.55, y + r * 0.5, r * 0.42); // M2n §2.2: a visited Trader
+  } else if (state === 'completed' && type.completedMark === 'hammer') {
+    drawHammerMark(ctx, x + r * 0.55, y + r * 0.5, r * 0.5); // M2p §4.1: a visited Tinker's Rest
   } else if (state === 'completed') {
     // A bold red V over the circle.
     ctx.strokeStyle = COLORS.victory;
@@ -168,6 +170,52 @@ function drawLanternIcon(ctx, x, y, size, color, cutColor) {
   ctx.beginPath();
   ctx.moveTo(x, y - s * 0.5);
   ctx.lineTo(x, y + s * 0.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// The Tinker's Rest node's icon (M2p §4.1): an anvil silhouette over a faint forge glow. Same
+// signature as the other node icons; size: about its half-height.
+function drawAnvilIcon(ctx, x, y, size, color) {
+  const s = size;
+  ctx.save();
+  const g = ctx.createRadialGradient(x, y + s * 0.2, 0, x, y + s * 0.2, s * 1.1);
+  g.addColorStop(0, 'rgba(255, 150, 70, 0.45)');
+  g.addColorStop(1, 'rgba(255, 150, 70, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y + s * 0.2, s * 1.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x - s * 0.95, y - s * 0.42);            // the horn's tip
+  ctx.quadraticCurveTo(x - s * 0.6, y - s * 0.12, x - s * 0.35, y - s * 0.1);
+  ctx.lineTo(x - s * 0.2, y + s * 0.1);              // the waist
+  ctx.lineTo(x - s * 0.22, y + s * 0.38);
+  ctx.lineTo(x - s * 0.6, y + s * 0.62);             // the foot
+  ctx.lineTo(x + s * 0.6, y + s * 0.62);
+  ctx.lineTo(x + s * 0.22, y + s * 0.38);
+  ctx.lineTo(x + s * 0.2, y + s * 0.1);
+  ctx.lineTo(x + s * 0.7, y - s * 0.1);              // the heel
+  ctx.lineTo(x + s * 0.7, y - s * 0.42);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// A visited Tinker's Rest's mark (M2p §4.1), in place of the red V: a small hammer.
+function drawHammerMark(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.6);
+  ctx.fillStyle = '#8a5a30';                         // the handle
+  ctx.fillRect(-size * 0.09, -size * 0.3, size * 0.18, size * 1.05);
+  ctx.fillStyle = '#c8cdd2';                         // the head
+  ctx.strokeStyle = '#4a4e52';
+  ctx.lineWidth = size * 0.08;
+  ctx.beginPath();
+  ctx.rect(-size * 0.5, -size * 0.6, size, size * 0.34);
+  ctx.fill();
   ctx.stroke();
   ctx.restore();
 }
@@ -275,7 +323,7 @@ export function drawMap(ctx, run, hoverId, t, debug) {
     const head = [
       `Map: ${map.attempts}/${C.MAP_MAX_ATTEMPTS} attempts  paths ${pathTotal(map)}${map.failed.length ? `  FAILS: ${map.failed.join(', ')}` : ''}${C.MAP_RANDOMISE ? '' : `  FIXED (seed ${C.MAP_FIXED_SEED})`}  (L = new map)`,
       `Failed most: ${counts.length ? counts.map(([c, n]) => `${c} ${n}`).join(', ') : 'none'}`,
-      `Traders in rows: ${map.traderRows.map((i) => map.rows[i][0].row).join(', ') || 'none'}${map.movedTrader ? ' (moved: its first row never passed)' : ''}`,
+      `Traders in rows: ${map.traderRows.map((i) => map.rows[i][0].row).join(', ') || 'none'}   Tinker's Rests in rows: ${map.tinkerRows.map((i) => map.rows[i][0].row).join(', ') || 'none'}${map.movedExtra ? ' (one moved: its first row never passed)' : ''}`,
     ];
     head.forEach((line, i) => ctx.fillText(line, C.EQUIP_PANEL_WIDTH + 24, C.HUD_STRIP_HEIGHT + 16 + i * 20));
     map.nodes.forEach((n, i) => {

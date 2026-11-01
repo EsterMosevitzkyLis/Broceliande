@@ -110,7 +110,9 @@ function subscribe() {
   events.on('mapNodeHover', (e) => play('mapNodeHover', e));
   events.on('mapNodeChosen', (e) => play('mapNodeChosen', e));
   events.on('runComplete', (e) => play('runComplete', e));
-  events.on('magicFound', (e) => play('magicFound', e));
+  events.on('magicFound', (e) => play(e.pattern ? 'patternFound' : 'magicFound', e)); // M2p §4.4: a pattern has its own sound
+  // M2p §4.4: the Tinker's Rest.
+  for (const name of ['forgeAmbience', 'craftHammer', 'craftComplete']) events.on(name, (e) => play(name, e));
   events.on('bellToll', (e) => play('bellToll', e));
   events.on('waveStarts', (e) => play('waveStarts', e));   // M2i §4.3
   events.on('waveCleared', (e) => play('waveCleared', e));
@@ -408,6 +410,40 @@ const RECIPES = {
     });
     noise(t, out, { filter: 'highpass', freq: 6000 * p, dur: 0.9, attack: 0.05, gain: 0.25 });
     return 0.95;
+  },
+
+  // A pattern found (M2p §4.4): a paper rustle, then a soft two-note chime.
+  patternFound(t, out, p) {
+    noise(t, out, { freq: 3000 * p, to: 1800 * p, q: 1.2, dur: 0.18, attack: 0.02, gain: 0.6 });
+    noise(t, out, { freq: 2600 * p, to: 1500 * p, q: 1.2, dur: 0.16, attack: 0.02, gain: 0.45, delay: 0.14 });
+    bell(t, out, 1046 * p, 0.3, 0.6, 0.35);
+    return bell(t, out, 1568 * p, 0.42, 0.8, 0.3);
+  },
+
+  // The forge (M2p §4.4): a very quiet crackle, a few soft pops over a low hiss; played every
+  // second or so while in the Tinker's Rest (its volume in the sounds tab keeps it in the background).
+  forgeAmbience(t, out, p) {
+    noise(t, out, { filter: 'lowpass', freq: 900 * p, dur: 0.5, attack: 0.15, gain: 0.35 });
+    [0, 0.11, 0.27].forEach((d, i) => noise(t, out, { filter: 'highpass', freq: (3000 + i * 600) * p, dur: 0.02, gain: 0.8, delay: d }));
+    return 0.5;
+  },
+
+  // Crafting (M2p §4.4): two metallic clangs, in time with the hammer's strikes (CRAFT_ANIM).
+  craftHammer(t, out, p) {
+    let end = 0;
+    for (const s of C.CRAFT_ANIM.strikes) {
+      bell(t, out, 1650 * p, s, 0.35, 0.5);
+      bell(t, out, 2470 * p, s, 0.25, 0.3);
+      end = noise(t, out, { filter: 'highpass', freq: 2500 * p, dur: 0.05, gain: 0.7, delay: s });
+    }
+    return Math.max(end, C.CRAFT_ANIM.strikes[C.CRAFT_ANIM.strikes.length - 1] + 0.35);
+  },
+
+  // The item appears (M2p §4.4): a bright, rising shimmer.
+  craftComplete(t, out, p) {
+    [1568, 1976, 2349, 3136].forEach((f, i) => bell(t, out, f * p, i * 0.05, 0.5, 0.35));
+    noise(t, out, { filter: 'highpass', freq: 7000 * p, dur: 0.6, attack: 0.05, gain: 0.2 });
+    return 0.7;
   },
 
   // A wave starts (M2i §4.3): a low drum hit under a short, rough horn call.

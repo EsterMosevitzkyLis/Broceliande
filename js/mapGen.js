@@ -2,7 +2,8 @@
 // node's row is its level's); what varies is the order and x position of the nodes within a row,
 // the roads between adjacent rows and their curves.
 //
-// The run's Trader nodes (M2n §2) are generated here too: ids trader1, trader2…, no level.
+// The run's Trader nodes (M2n §2) and Tinker's Rests (M2p §4.1) are generated here too: ids
+// trader1, trader2…, tinker1…, no level.
 // A map: { nodes: [{ id, levelId, name, type, row, pos: { x, y }, next: [ids] }],
 //          roads: [{ from, to, bend }] (bend: px the curve bows sideways, + to the road's left),
 //          attempts, failed: [check names the chosen map fails], failCounts: { check: attempts it failed } }.
@@ -20,23 +21,29 @@ const CHECKS = ['reachable', 'fellAvoidable', 'variety', 'choice', 'roadsClear',
 const maxIn = (rowIndex, rowCount) => (rowIndex === rowCount - 1 ? C.MAP_BOSS_MAX_ROADS_IN : 3);
 const MAX_OUT = 3;
 
-// The map for a seed. Each Trader's row is picked first, with equal chance among its band's
-// eligible rows (M2n §2.1); then up to MAP_MAX_ATTEMPTS whole maps (order, positions, roads) are
-// tried around that choice, all from one RNG stream, the first passing every check winning. Only
-// if none passes does a Trader move to another row of its band (each tried in turn, MAP_MAX_ATTEMPTS
-// more each). If nothing passes at all: the attempt failing the fewest checks, with a warning.
+// The map for a seed. Each extra node's row (the Traders', M2n §2.1, then the Tinker's Rests',
+// M2p §4.1) is picked first, with equal chance among its band's eligible rows; then up to
+// MAP_MAX_ATTEMPTS whole maps (order, positions, roads) are tried around that choice, all from one
+// RNG stream, the first passing every check winning. Only if none passes does one extra node move
+// to another row of its band (each tried in turn, MAP_MAX_ATTEMPTS more each). If nothing passes at
+// all: the attempt failing the fewest checks, with a warning.
 export function generateMap(seed) {
   const rng = createRng(seed >>> 0);
   const failCounts = Object.fromEntries(CHECKS.map((c) => [c, 0]));
-  const bands = traderBands(levelRows());
-  const chosen = bands.map((band) => band[rng.int(0, band.length - 1)]);
-  const tries = [chosen, ...bands.flatMap((band, k) => band.filter((r) => r !== chosen[k]).map((r) => chosen.map((c, i) => (i === k ? r : c))))];
+  const rows = levelRows();
+  const extras = [
+    ...extraBands(rows, 'trader', C.TRADERS_PER_RUN, 1).map((band) => ({ type: 'trader', band })),
+    ...extraBands(rows, 'tinker', C.TINKERS_PER_RUN, rowIndexFrom(rows, C.TINKER_MIN_ROW)).map((band) => ({ type: 'tinker', band })),
+  ];
+  const chosen = chooseExtraRows(rng, rows, extras);
+  const tries = [chosen, ...extras.flatMap((x, k) => preferredRows(x, extras, chosen, x.band.filter((r) => r !== chosen[k]))
+    .map((r) => chosen.map((c, i) => (i === k ? r : c))).filter((alt) => fitsAll(rows, alt)))];
   let best = null;
   let attempts = 0;
-  for (const traderRows of tries) {
+  for (const extraRows of tries) {
     for (let n = 0; n < C.MAP_MAX_ATTEMPTS; n++) {
       attempts++;
-      const map = attempt(rng, traderRows);
+      const map = attempt(rng, extras, extraRows);
       const failed = CHECKS.filter((c) => !CHECK_FNS[c](map));
       for (const c of failed) failCounts[c]++;
       if (!best || failed.length < best.failed.length) best = { map, failed };
@@ -45,8 +52,8 @@ export function generateMap(seed) {
     if (!best.failed.length) break;
   }
   if (best.failed.length) console.warn(`Map: no attempt passed every check; using one that fails ${best.failed.join(', ')}`);
-  const movedTrader = best.map.traderRows.some((r, k) => r !== chosen[k]);
-  return { ...best.map, attempts, failed: best.failed, failCounts, movedTrader };
+  const movedExtra = best.map.extraRows.some((r, k) => r !== chosen[k]);
+  return { ...best.map, attempts, failed: best.failed, failCounts, movedExtra };
 }
 
 // The seed a run's map uses (§3): from the run seed, or MAP_FIXED_SEED when MAP_RANDOMISE is off.
@@ -65,36 +72,79 @@ function levelRows() {
   return [...byRow.keys()].sort((a, b) => a - b).map((r) => byRow.get(r));
 }
 
-// The rows with the run's Trader nodes added (M2n §2.1): trader k+1 in rows[traderRows[k]].
-function rowsWithTraders(traderRows) {
+// The index of the first row numbered `row` or higher.
+function rowIndexFrom(rows, row) {
+  const i = rows.findIndex((r) => r[0].row >= row);
+  return i < 0 ? rows.length : i;
+}
+
+// The rows with the run's extra nodes added: extras[k] in rows[extraRows[k]] (none if null), with
+// ids trader1, trader2, tinker1… and their type's label as name.
+function rowsWithExtras(extras, extraRows) {
   const rows = levelRows();
-  traderRows.forEach((index, k) => {
-    rows[index].push({ id: `trader${k + 1}`, levelId: null, name: C.NODE_TYPES.trader.label, type: 'trader', row: rows[index][0].row, pos: null, next: [] });
+  const counts = {};
+  extras.forEach((x, k) => {
+    const index = extraRows[k];
+    counts[x.type] = (counts[x.type] ?? 0) + 1;
+    if (index === null) return;
+    rows[index].push({ id: `${x.type}${counts[x.type]}`, levelId: null, name: C.NODE_TYPES[x.type].label, type: x.type, row: rows[index][0].row, pos: null, next: [] });
   });
   return rows;
 }
 
-// M2n §2.1: each Trader's eligible rows (indexes into rows), never the first or last row, one
-// Trader per band: the rows between are split into TRADERS_PER_RUN bands, bottom to top (with 2
-// and 8 rows: rows 2–4 and 5–7). A row is eligible only if it can work at all: with a Trader
-// added, the row below can still give each of its nodes a road up (at most MAX_OUT each) and the
-// row above can take a road from each (at most maxIn each). A band with no eligible row gets no
-// Trader (with a warning).
-function traderBands(rows) {
-  const inner = rows.map((_, i) => i).slice(1, -1);
-  const n = Math.min(C.TRADERS_PER_RUN, inner.length);
-  const fits = (i) => rows[i].length + 1 <= MAX_OUT * rows[i - 1].length && rows[i].length + 1 <= maxIn(i + 1, rows.length) * rows[i + 1].length;
+// Whether every row can still be connected with these extra nodes added (indexes into rows, null
+// for none): each row's nodes can all get a road in from the row below (at most MAX_OUT each) and
+// a road up to the row above (at most maxIn each).
+function fitsAll(rows, extraRows) {
+  const n = rows.map((r) => r.length);
+  for (const i of extraRows) if (i !== null) n[i]++;
+  for (let i = 1; i < n.length; i++) if (n[i] > MAX_OUT * n[i - 1]) return false;
+  for (let i = 0; i + 1 < n.length; i++) if (n[i] > maxIn(i + 1, n.length) * n[i + 1]) return false;
+  return true;
+}
+
+// Each extra node's band, bottom to top (indexes into rows): the rows from `from` to the one under
+// the last (never the first row) split into `count` bands. With 2 Traders and rows 2–7: rows 2–4
+// and 5–7 (M2n §2.1); with 2 Tinker's Rests from row 4: rows 4–5 and 6–7 (M2p §4.1). A row is
+// eligible only if it can take one more node (fitsAll). A band with no eligible row gets none
+// (with a warning).
+function extraBands(rows, type, count, from) {
+  const inner = rows.map((_, i) => i).slice(Math.max(1, from), -1);
+  const n = Math.min(count, inner.length);
   const bands = [];
   for (let k = 0; k < n; k++) {
-    const band = inner.slice(Math.floor((k * inner.length) / n), Math.floor(((k + 1) * inner.length) / n)).filter(fits);
+    const band = inner.slice(Math.floor((k * inner.length) / n), Math.floor(((k + 1) * inner.length) / n))
+      .filter((i) => fitsAll(rows, [i]));
     if (band.length) bands.push(band);
-    else console.warn(`Map: no row in Trader band ${k + 1} can take a Trader`);
+    else console.warn(`Map: no row in ${C.NODE_TYPES[type].label} band ${k + 1} can take one`);
   }
   return bands;
 }
 
-function attempt(rng, traderRows) {
-  const rows = rowsWithTraders(traderRows);
+// A Tinker's Rest prefers rows without a Trader (M2p §4.1): the candidates without one first.
+function preferredRows(x, extras, chosen, candidates) {
+  if (x.type !== 'tinker') return candidates;
+  const traderRows = chosen.filter((r, j) => extras[j].type === 'trader');
+  return [...candidates.filter((r) => !traderRows.includes(r)), ...candidates.filter((r) => traderRows.includes(r))];
+}
+
+// Each extra node's row, in order: equal chances among its band's rows that still fit with the
+// ones already chosen; a Tinker's Rest among those without a Trader if there are any.
+function chooseExtraRows(rng, rows, extras) {
+  const chosen = [];
+  extras.forEach((x) => {
+    const fits = x.band.filter((r) => fitsAll(rows, [...chosen, r]));
+    const traderRows = chosen.filter((r, j) => extras[j].type === 'trader');
+    const free = x.type === 'tinker' ? fits.filter((r) => !traderRows.includes(r)) : fits;
+    const pool = free.length ? free : fits;
+    if (!pool.length) console.warn(`Map: no row left for a ${C.NODE_TYPES[x.type].label}`);
+    chosen.push(pool.length ? pool[rng.int(0, pool.length - 1)] : null);
+  });
+  return chosen;
+}
+
+function attempt(rng, extras, extraRows) {
+  const rows = rowsWithExtras(extras, extraRows);
   rows.forEach((row, i) => {
     shuffle(rng, row);                // §2.1: order within the row
     placeRow(rng, row, i, rows.length, (k) => Math.max(...rows[k].map(nodeRadius))); // x positions, the row's height with a little jitter
@@ -105,7 +155,8 @@ function attempt(rng, traderRows) {
   const nodes = rows.flat();
   const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
   for (const r of roads) byId[r.from].next.push(r.to);
-  const map = { nodes, roads, rows, traderRows };
+  const rowsOf = (type) => extraRows.filter((r, k) => extras[k].type === type && r !== null);
+  const map = { nodes, roads, rows, extraRows, traderRows: rowsOf('trader'), tinkerRows: rowsOf('tinker') };
   for (const r of roads) r.bend = roadBend(rng, map, byId[r.from], byId[r.to]);
   return map;
 }

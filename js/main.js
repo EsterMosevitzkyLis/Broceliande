@@ -21,6 +21,8 @@ import { events } from './events.js';
 import { chosenSpeed, setChosenSpeed, resetChosenSpeed } from './gameSpeed.js';
 import { buildShowcase } from './debug/showcase.js';
 import { createTraderScreen } from './traderScreen.js';
+import { createTinkerScreen } from './tinkerScreen.js';
+import { openDebugTinker, selectTab, selectRecipe, craft, undoCraft, leaveTinker } from './tinker.js';
 import { learnPattern, randomUnknownPattern, knownPatterns, learnAllPatterns, forgetAllPatterns } from './patterns.js';
 import { openDebugTrader, selectResource, stepBundles, maxOutBundles, doTrade, undoVisitTrade, leaveVisit } from './visit.js';
 
@@ -136,6 +138,37 @@ const traderScreen = createTraderScreen({
   onLeave: () => leaveVisit(game),
 });
 
+// The Tinker's Rest's controls (M2p §4).
+const tinkerScreen = createTinkerScreen({
+  onTab: (tab) => selectTab(game, tab),
+  onSelect: (itemId) => selectRecipe(game, itemId),
+  onCraft: () => craft(game),
+  onUndo: () => undoCraft(game),
+  onLeave: () => leaveTinker(game),
+});
+
+// The fade into and out of a place scene (M2n §1): each scene's screen says how dark it should be;
+// back on the map after one, it fades in from black (visual only, wall-clock).
+const sceneFade = document.getElementById('scene-fade');
+let fadeLastState = null;
+let mapFadeFrom = null; // performance.now() when the map came back after a place scene
+function updateSceneFade(opacity) {
+  if (game.state !== fadeLastState) {
+    if (isPlaceScene(fadeLastState) && game.state === GameState.MAP) mapFadeFrom = performance.now();
+    fadeLastState = game.state;
+  }
+  if (game.state === GameState.MAP && mapFadeFrom !== null) {
+    opacity = Math.max(opacity, 1 - (performance.now() - mapFadeFrom) / 1000 / C.TRADER_FADE_TIME);
+  }
+  const value = Math.max(0, Math.min(1, opacity)).toFixed(3);
+  if (sceneFade.style.opacity !== value) sceneFade.style.opacity = value;
+}
+
+// A place scene (M2n §1): the Trader's or the Tinker's Rest's.
+function isPlaceScene(state) {
+  return state === GameState.TRADER || state === GameState.TINKER;
+}
+
 const input = createInput(stage, canvas, () => scale, {
   onPointerDown(world, button) {
     if (button === 0) {
@@ -180,14 +213,16 @@ const input = createInput(stage, canvas, () => scale, {
       case 'c': // debug Shift+C: each normal enemy beside its Grim, standing still mid-stage; again to remove
         if (e.shiftKey && inEncounter()) view.showcase = view.showcase ? null : buildShowcase();
         break;
-      case 'k': killAllEnemies(game); break; // extra debug key (not in §18.1): kill all living enemies
+      case 'k': // extra debug key (not in §18.1): kill all living enemies; Shift+K on the map (M2p §6): a Tinker's Rest scene
+        if (e.shiftKey) openDebugTinker(game); else killAllEnemies(game);
+        break;
       // M1e §6, M2c §4, M2h §6: B / O / S spawn a Bear / an Ogre / a flock of Stirges at a random lane
       // (Combat only); with Shift, their Grim versions (M2l §4).
       case 'b': spawnDebugBear(game, e.shiftKey ? 'grimBear' : 'bear'); break;
       case 'o': spawnDebugOgre(game, e.shiftKey ? 'grimOgre' : 'ogre'); break; // (an error if the corridors are too narrow)
       case 's': spawnDebugStirges(game, e.shiftKey ? 'grimStirge' : 'stirge'); break;
-      case '[': if (game.state !== GameState.TRADER) switchLevel(-1); break; // M2a §8: previous / next level in LEVELS,
-      case ']': if (game.state !== GameState.TRADER) switchLevel(1); break;  //   starting its Prep with the current resources
+      case '[': if (!isPlaceScene(game.state)) switchLevel(-1); break; // M2a §8: previous / next level in LEVELS,
+      case ']': if (!isPlaceScene(game.state)) switchLevel(1); break;  //   starting its Prep with the current resources
       case 'g': if (e.shiftKey) spawnDebugGrimWolves(game); else grantResources(game); break; // Shift+G (M2l §4): 4 Grim Wolves
       case 't': if (e.shiftKey) openDebugTrader(game); break; // M2n §6: Shift+T on the map opens a trader scene
       case 'v': toggleMute(); break;                    // M1g §3.6: mute / unmute sound
@@ -218,7 +253,7 @@ window.broceliande = {
 // In an encounter (Prep to Victory / Defeat), not on the map or in a place scene (M2n §4): the
 // debug keys that restart or switch the encounter only work there.
 function inEncounter() {
-  return game.state !== GameState.MAP && game.state !== GameState.TRADER;
+  return game.state !== GameState.MAP && !isPlaceScene(game.state);
 }
 
 // M2k §1.1: the HUD speed buttons and keys 1 / 2 / 4 choose the game speed, in Combat only.
@@ -281,8 +316,8 @@ function frame(now) {
 
   // Hover is re-picked every frame so it stays correct when objects change under a still cursor.
   view.pointer = input.mouse.inside ? { x: input.mouse.x, y: input.mouse.y } : null;
-  if (game.state === GameState.TRADER) {
-    view.hover = null; // M2n §4: the scene's controls are HTML
+  if (isPlaceScene(game.state)) {
+    view.hover = null; // M2n §4, M2p §4: the scene's controls are HTML
     view.mapHover = null;
     canvas.style.cursor = 'default';
   } else if (game.state === GameState.MAP) {
@@ -306,7 +341,7 @@ function frame(now) {
   renderer.render(game, view);
   ui.update(game, clock, view);
   equipPanel.update(game);
-  traderScreen.update(game);
+  updateSceneFade(Math.max(traderScreen.update(game), tinkerScreen.update(game)));
   requestAnimationFrame(frame);
 }
 
