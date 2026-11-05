@@ -11,7 +11,7 @@ wrightsBelt,belt,1,Wright's Belt,Building and upgrading 25% faster.,work.speed,m
 foragersBelt,belt,2,Forager's Belt,Every search yields 1 more of the spot's main resource.,search.mainBonus,add,1,,,,,,,#6e7a3a,#e8d27a,pouch
 fernstepBoots,shoes,1,Fernstep Boots,Adds 15 steps.,steps.budget,add,15,,,,,,,#3f6a3a,#9fdc7a,fern
 haresShoes,shoes,2,Hare's Shoes,Travel costs 15% fewer steps.,steps.length,mult,1.15,,,,,,,#a08a6e,#f2ece0,ears
-eyrieCrown,crown,3,Eyrie Crown,The Vulture waits 3 s less between jobs.,vulture.wait,add,-3,,,,,,,#5a6e8a,#e8eef6,nest
+eyrieCrown,crown,3,Eyrie Crown,The Vulture can take a new order 3 s sooner.,vulture.wait,add,-3,,,,,,,#5a6e8a,#e8eef6,nest
 stormfeatherCrown,crown,0,Stormfeather Crown,Vultures stay 5 s longer and deal 4 more damage.,vulture.duration,add,5,vulture.damage,add,4,,,,#3e3a6e,#9fd0ff,bolt
 hoardersGrip,grip,3,Hoarder's Grip,Squirrel pickups have a 25% chance to collect the item twice.,squirrel.doublePickupChance,add,0.25,,,,,,,#8a6a2a,#ffe08a,coins
 thornwoodGrip,grip,0,Thornwood Grip,Squirrels have 15 more HP and strike back for 2 more damage.,squirrel.hp,add,15,squirrel.damage,add,2,,,,#4a3a2a,#c8e07a,thorns

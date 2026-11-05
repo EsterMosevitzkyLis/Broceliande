@@ -3,7 +3,7 @@
 // not allowed in the current game state are refused, never merely hidden.
 
 import * as C from '../config.js';
-import { GameState, ActionState, CompanionState, ACTION_ALLOWED_IN } from '../states.js';
+import { GameState, ActionState, ACTION_ALLOWED_IN } from '../states.js';
 import { canAfford, deduct, RESOURCE_KEYS, resourceName } from '../resources.js';
 import { searchTime, completeSearch } from './searchSystem.js';
 import { turretOnSlot, completeBuild } from './buildSystem.js';
@@ -13,7 +13,7 @@ import { createWisp } from '../entities/wisp.js';
 import { canVisit, stepCost, markerPos, legFootprints } from './stepSystem.js';
 import { buildCost, buildTime } from '../entities/turret.js';
 import { doubleAvailability } from './doubleSystem.js';
-import { companionCost, companionSent } from './companionSystem.js';
+import { companionCost, companionSent, endJob } from './companionSystem.js';
 import { events } from '../events.js';
 import { addFloatingText } from '../effects.js';
 
@@ -164,11 +164,10 @@ export function summonCost(game, kind) {
   return SUMMONS[kind].job ? companionCost(game) : SUMMONS[kind].cost;
 }
 
-// A Vulture job (M2r): the Vulture must be free, and paid for if it is not summoned yet.
+// A Vulture job (M2r): the wait must be over, and the Vulture paid for if it is not summoned.
 function jobAvailability(game) {
   const c = game.companion;
-  if (c.state === CompanionState.OUT) return { available: false, reason: `${SUMMONS.vulture.name} is out` };
-  if (c.state === CompanionState.WAITING) return { available: false, reason: `Ready in ${Math.ceil(c.wait)} s` };
+  if (c.wait > 0) return { available: false, reason: `Ready in ${Math.ceil(c.wait)} s` };
   const cost = companionCost(game);
   if (!canAfford(game.resources, cost)) return { available: false, reason: shortfallReason(game.resources, cost) };
   return { available: true, reason: '' };
@@ -218,7 +217,10 @@ export function placeSummon(game, p) {
   game.action = createIdleAction();
   if (!summonAvailability(game, s.kind).available) return false;
   deduct(game.resources, summonCost(game, s.kind));
-  s.active(game).push(s.create(game.nextEntityId++, p.x, p.y, game.stats[`${s.kind}.duration`], game)); // effective duration (M2e)
+  const hpShare = s.job ? endJob(game) : 1;
+  const unit = s.create(game.nextEntityId++, p.x, p.y, game.stats[`${s.kind}.duration`], game); // effective duration (M2e)
+  unit.hp *= hpShare;
+  s.active(game).push(unit);
   if (s.job) companionSent(game);
   events.emit('summonPlaced', { kind: s.kind, x: p.x, y: p.y });
   return true;

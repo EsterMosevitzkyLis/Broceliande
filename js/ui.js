@@ -959,8 +959,8 @@ function menuHeader(game, menu) {
 
 // Effective durations from the stats resolver (M2e §4.5: summon changes show in the summon panel).
 const summonDetail = (game) => ({
-  vulture: `Lasts ${game.stats['vulture.duration']} s · flies to the wolf nearest to it`,
-  squirrel: `Lasts ${game.stats['squirrel.duration']} s · collects the nearest drop`
+  vulture: 'Fights the enemy nearest to it until given a new order',
+  squirrel: 'Collects the nearest drop until given a new order'
     + (C.SQUIRREL_BLOCKS_WOLVES ? ' · blocks wolves while waiting' : ''),
   double: 'Builds or upgrades one turret, then vanishes · plus that job\'s cost',
   slowWisp: `Floats to the point and bursts · slows enemies within ${C.WISP_BURST_RADIUS} px (flyers too) to ×${C.WISP_SLOW_MULT} for ${C.WISP_SLOW_DURATION} s`,
@@ -1043,7 +1043,7 @@ function summonOptions(game) {
       const free = Object.keys(cost).length === 0;
       return {
         title: s.job, portrait: 'vulture', cost: free ? null : cost, costText: free ? 'Free' : null,
-        detail: `${summonDetail(game)[kind]}\nThen waits ${Math.max(0, game.stats['vulture.wait'])} s`,
+        detail: `${summonDetail(game)[kind]}\nNext order after ${Math.max(0, game.stats['vulture.wait'])} s`,
         action: null, disabled: !available, reason, keyBadge,
       };
     }
@@ -1118,7 +1118,8 @@ function updateSummonPanel(el, game, view) {
   Object.keys(SUMMONS).forEach((kind, i) => {
     const node = panel.children[i];
     updateOptionCard(node, options[i], game);
-    node.classList.toggle('selected', kind === placing);
+    const onJob = !placing && SUMMONS[kind].job && SUMMONS[kind].active(game).length > 0; // M2r: its current job
+    node.classList.toggle('selected', kind === placing || onJob);
     node.classList.toggle('flash', kind === flashing); // a denied summon (real time, UI only)
   });
   panel.classList.toggle('pass-through', isDoubleTargeting(game));
@@ -1326,7 +1327,7 @@ function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
     ...bossDebugLines(game),
     ...waveDebugLines(game),
     `Resources: ${resourceLine(game.resources)}`,
-    `Turrets: ${game.turrets.length}  Pebbles in flight: ${game.projectiles.length}  Vulture: ${game.companion.state}${game.companion.state === 'WAITING' ? ` ${game.companion.wait.toFixed(1)}s` : ''}`,
+    `Turrets: ${game.turrets.length}  Pebbles in flight: ${game.projectiles.length}  Vulture: ${game.companion.state} wait ${game.companion.wait.toFixed(1)}s`,
     ...dropDebugLines(game),
     ...doubleDebugLines(game),
     ...turretDebugLines(game),

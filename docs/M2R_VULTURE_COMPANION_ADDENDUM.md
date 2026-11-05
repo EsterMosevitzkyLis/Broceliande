@@ -6,16 +6,18 @@ Replaces the separate Vulture and Squirrel summons. Overrides M1 §15 and M1d §
 - The summon panel shows **Attack** (Q) and **Collect** (W) in place of the Vulture and Squirrel cards. Bough Double and Slow Wisp are unchanged.
 - Choose a job, then click the battlefield. Esc, right-click or the same card cancels.
 - Attack is today's Vulture, with its stats. Collect is today's Squirrel, with its stats, drawn as the Vulture.
-- Vulture items boost Attack and Squirrel items boost Collect.
+- Neither job has a time limit: the Vulture keeps at it until it gets a new order or dies. Items that change the Vulture's or Squirrel's duration do nothing here.
+- Other Vulture items boost Attack and other Squirrel items boost Collect.
 
 ## 2. One Vulture
-- Only one job runs at a time.
-- When the job ends, or the Vulture dies, it waits `VULTURE_WAIT` seconds (`data/globals.csv`), in simulation time.
-- It can't be called back early.
+- Only one job runs at a time. The current job's card is highlighted.
+- Giving an order starts a wait of `VULTURE_WAIT` seconds (`data/globals.csv`), in simulation time. The next order can only be given when it is over.
+- A new order, even the same job, moves the Vulture to the clicked spot at once. The share of HP it has left carries over.
+- If it dies, a full wait starts from that moment.
 
 ## 3. Cost
-- Each battle starts with no Vulture: the first send costs the Vulture's regular cost, whichever job is chosen.
-- Sends after a finished job are free.
+- Each battle starts with no Vulture: the first order costs the Vulture's regular cost, whichever job is chosen.
+- Orders while it is alive are free.
 - If it dies, it must be paid for again after the wait.
 
 ## 4. Eyrie Crown
