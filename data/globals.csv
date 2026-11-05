@@ -26,6 +26,7 @@ CLOUDS_HIT_FLYERS,FALSE,true: Toaders target flyers and their clouds damage them
 BURST_STAGGER,0.6,TUNING - s between enemies in one burst
 FIRST_WAVE_DELAY,3,TUNING - s of countdown before wave 1 (M2i sec. 3.1)
 WAVE_GAP_AFTER_LAST_SPAWN,10,TUNING - s after a wave's last spawn when its gap starts even with enemies alive (not after the last wave)
+VULTURE_WAIT,10,"TUNING - s the Vulture waits after a job ends or it dies, before it can go out again (M2r)"
 # Layout generation,,
 CORRIDOR_WIDTH,110,"TUNING - px, the default for levels without their own corridorWidth (M2b sec. 2)"
 RANDOMISE_LAYOUT,TRUE,"false = the same zone-based layout every run, from FIXED_LAYOUT_SEED (M1j sec. 4.2)"

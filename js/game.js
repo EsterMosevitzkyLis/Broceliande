@@ -16,6 +16,7 @@ import { emptyResources, add, RESOURCE_KEYS } from './resources.js';
 import { updateEffects, addResourceFloaters } from './effects.js';
 import { updateVultures, updateBlocking, expireVultures } from './systems/vultureSystem.js';
 import { updateSquirrels, updateSquirrelStrikes, expireSquirrels } from './systems/squirrelSystem.js';
+import { createCompanion, updateCompanion } from './systems/companionSystem.js';
 import { updateWisps } from './systems/wispSystem.js';
 import { updateStatuses } from './systems/statusSystem.js';
 import { updateBurns } from './systems/burnSystem.js';
@@ -110,6 +111,7 @@ export function createGame(levelId) {
     damageStats: {},   // damage dealt this encounter by source, e.g. "sprinkler:impact", "toader:cloud" (M1f §7)
     vultures: [],
     squirrels: [],                // Squirrel summons (M1d §2)
+    companion: createCompanion(), // the Vulture's job state (M2r)
     wisps: [],                    // Slow Wisps in flight (M2k §3)
     wispBursts: [],               // their bursts fading out { x, y, age, seed } (visual only)
     doubles: [],                  // Bough Doubles at work (M1i §2), each with its job
@@ -192,6 +194,7 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.damageStats = {};
   game.vultures = [];
   game.squirrels = [];
+  game.companion = createCompanion();
   game.wisps = [];
   game.wispBursts = [];
   game.doubles = [];
@@ -505,6 +508,7 @@ export function updateGame(game, dt) {
       updateWindupAttacks(game, dt); // the Ogre's wind-up and blow (M2c §2.5), on the Druid or a blocker
       expireVultures(game, dt);
       expireSquirrels(game, dt);
+      updateCompanion(game, dt);     // M2r: after the expiries, so a job's end starts the wait
       updateAction(game, dt);
       updateDruidMelee(game, dt);   // after updateAction, so a just-finished upgrade restarts the timer
       updateDruidRegen(game, dt);   // M2e: equipment HP regen

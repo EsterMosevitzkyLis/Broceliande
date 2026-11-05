@@ -1792,7 +1792,7 @@ function drawSummonStatus(ctx, x, y, r, hpY, durationFrac, hpFrac) {
 export function drawVultureStatus(ctx, v) {
   const r = C.VULTURE_RADIUS;
   const lift = v.state !== 'LANDED' ? C.VULTURE_FLIGHT_HEIGHT : 0;
-  drawSummonStatus(ctx, v.x, v.y, r, v.y - lift - r * 3.6, v.remaining / v.duration, v.hp / C.VULTURE_HP);
+  drawSummonStatus(ctx, v.x, v.y, r, v.y - lift - r * 3.6, v.remaining / v.duration, v.hp / (v.maxHp ?? C.VULTURE_HP));
 }
 
 // Visual size of the Squirrel sprite relative to SQUIRREL_RADIUS (drawing only).

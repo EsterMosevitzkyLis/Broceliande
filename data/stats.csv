@@ -12,7 +12,7 @@ work.speed,Build speed
 search.mainBonus,Search bonus
 steps.budget,Steps
 steps.length,Step length (px)
-vulture.max,Vultures at a time
+vulture.wait,Vulture wait (s)
 squirrel.hp,Squirrel HP
 squirrel.damage,Squirrel counter-attack damage
 squirrel.doublePickupChance,Squirrel double pickup chance

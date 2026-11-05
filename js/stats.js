@@ -10,7 +10,7 @@ import * as C from './config.js';
 const BASES = {
   'vulture.duration':         () => C.VULTURE_DURATION,
   'vulture.damage':           () => C.VULTURE_DAMAGE,
-  'vulture.max':              () => C.MAX_VULTURES,
+  'vulture.wait':             () => C.VULTURE_WAIT,
   'squirrel.duration':        () => C.SQUIRREL_DURATION,
   'squirrel.speed':           () => C.SQUIRREL_SPEED,
   'squirrel.pickupRange':     () => C.SQUIRREL_PICKUP_RANGE,

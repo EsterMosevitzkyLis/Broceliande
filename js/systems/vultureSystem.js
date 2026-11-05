@@ -117,5 +117,6 @@ export function updateBlocking(game, dt) {
 // Expire Vultures at 0 HP or when their duration runs out (§15.3).
 export function expireVultures(game, dt) {
   for (const v of game.vultures) v.remaining -= dt;
+  if (game.vultures.some((v) => v.hp <= 0)) game.companion.died = true; // M2r
   game.vultures = game.vultures.filter((v) => v.hp > 0 && v.remaining > 0);
 }

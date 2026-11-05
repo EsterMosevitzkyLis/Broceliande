@@ -3,7 +3,7 @@
 // not allowed in the current game state are refused, never merely hidden.
 
 import * as C from '../config.js';
-import { GameState, ActionState, ACTION_ALLOWED_IN } from '../states.js';
+import { GameState, ActionState, CompanionState, ACTION_ALLOWED_IN } from '../states.js';
 import { canAfford, deduct, RESOURCE_KEYS, resourceName } from '../resources.js';
 import { searchTime, completeSearch } from './searchSystem.js';
 import { turretOnSlot, completeBuild } from './buildSystem.js';
@@ -13,6 +13,7 @@ import { createWisp } from '../entities/wisp.js';
 import { canVisit, stepCost, markerPos, legFootprints } from './stepSystem.js';
 import { buildCost, buildTime } from '../entities/turret.js';
 import { doubleAvailability } from './doubleSystem.js';
+import { companionCost, companionSent } from './companionSystem.js';
 import { events } from '../events.js';
 import { addFloatingText } from '../effects.js';
 
@@ -128,9 +129,11 @@ function completeTravel(game, marker, turretType) {
 // The summons (§15, M1d §2, M1i §2.4), in summon panel order. Each has its own cost and its own
 // cap. The Bough Double is `targeted`: instead of being placed anywhere, it is pointed at a
 // turret slot and does a job there (doubleSystem.js); its cost is the Bough, and the job's.
+// `job` marks the Vulture's two jobs (M2r), with their card label: Attack is a Vulture, Collect a
+// Squirrel. They share one cost and one wait (companionSystem.js).
 export const SUMMONS = {
-  vulture: { kind: 'vulture', name: C.SUMMON_TYPES.vulture.name, plural: C.SUMMON_TYPES.vulture.plural, cost: C.VULTURE_COST, max: C.MAX_VULTURES, active: (g) => g.vultures, create: createVulture },
-  squirrel: { kind: 'squirrel', name: C.SUMMON_TYPES.squirrel.name, plural: C.SUMMON_TYPES.squirrel.plural, cost: C.SQUIRREL_COST, max: C.MAX_SQUIRRELS, active: (g) => g.squirrels, create: createSquirrel },
+  vulture: { kind: 'vulture', job: 'Attack', name: C.SUMMON_TYPES.vulture.name, plural: C.SUMMON_TYPES.vulture.plural, cost: C.VULTURE_COST, max: C.MAX_VULTURES, active: (g) => g.vultures, create: createVulture },
+  squirrel: { kind: 'squirrel', job: 'Collect', name: C.SUMMON_TYPES.squirrel.name, plural: C.SUMMON_TYPES.squirrel.plural, cost: C.SQUIRREL_COST, max: C.MAX_SQUIRRELS, active: (g) => g.squirrels, create: createSquirrel },
   // The Bough Double's cap is the effective double.max (M2e), checked in doubleSystem.js.
   double: { kind: 'double', name: C.SUMMON_TYPES.double.name, plural: C.SUMMON_TYPES.double.plural, cost: C.BOUGH_DOUBLE_COST, active: (g) => g.doubles, targeted: true },
   // Slow Wisp (M2k §3.2): placed like the Vulture, but it starts at the Druid and floats to the point.
@@ -144,8 +147,8 @@ export function wispStart(game) {
   return { x: p.x, y: p.y - C.DRUID_RADIUS * 0.8 };
 }
 
-// A summon's cap: its effective <kind>.max where equipment can change it (double.max, M2e;
-// vulture.max, M2p), else its config max.
+// A summon's cap: its effective <kind>.max where equipment can change it (double.max, M2e), else
+// its config max.
 export function summonMax(game, kind) {
   return game.stats[`${kind}.max`] ?? SUMMONS[kind].max;
 }
@@ -156,11 +159,27 @@ function shortfallReason(resources, cost) {
   return `Not enough ${missing.join(', ')}`;
 }
 
+// What sending this summon costs now.
+export function summonCost(game, kind) {
+  return SUMMONS[kind].job ? companionCost(game) : SUMMONS[kind].cost;
+}
+
+// A Vulture job (M2r): the Vulture must be free, and paid for if it is not summoned yet.
+function jobAvailability(game) {
+  const c = game.companion;
+  if (c.state === CompanionState.OUT) return { available: false, reason: `${SUMMONS.vulture.name} is out` };
+  if (c.state === CompanionState.WAITING) return { available: false, reason: `Ready in ${Math.ceil(c.wait)} s` };
+  const cost = companionCost(game);
+  if (!canAfford(game.resources, cost)) return { available: false, reason: shortfallReason(game.resources, cost) };
+  return { available: true, reason: '' };
+}
+
 // Summon panel card (M2q, M1d §2.1): { available, reason }. Needs a free slot under that summon's
 // cap and its cost. In Combat the Druid is only idle or placing, and placing can switch summon.
 export function summonAvailability(game, kind) {
   const s = SUMMONS[kind];
   if (game.state !== GameState.COMBAT) return { available: false, reason: '' };
+  if (s.job) return jobAvailability(game);
   if (s.targeted) return doubleAvailability(game);
   const max = summonMax(game, kind);
   if (s.active(game).length >= max) return { available: false, reason: `${max} ${max === 1 ? s.name : s.plural} ${s.activeLabel ?? 'already active'}` };
@@ -197,9 +216,10 @@ export function placeSummon(game, p) {
   const s = SUMMONS[game.action.target];
   if (s.targeted) return false; // a Bough Double starts a job on a target instead (startDoubleJob)
   game.action = createIdleAction();
-  if (s.active(game).length >= summonMax(game, s.kind) || !canAfford(game.resources, s.cost)) return false;
-  deduct(game.resources, s.cost);
+  if (!summonAvailability(game, s.kind).available) return false;
+  deduct(game.resources, summonCost(game, s.kind));
   s.active(game).push(s.create(game.nextEntityId++, p.x, p.y, game.stats[`${s.kind}.duration`], game)); // effective duration (M2e)
+  if (s.job) companionSent(game);
   events.emit('summonPlaced', { kind: s.kind, x: p.x, y: p.y });
   return true;
 }

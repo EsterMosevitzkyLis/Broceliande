@@ -14,7 +14,7 @@ import { RESOURCE_ICON_SVG } from './icons.js';
 import { costRowsElement, costRowsKey } from './costRows.js';
 import { portraitCanvas } from './render/portraits.js';
 import { canAfford, RESOURCE_KEYS, resourceName, formatCost } from './resources.js';
-import { canStartBuild, summonAvailability, summonMax, isTravelling, SUMMONS } from './systems/actionSystem.js';
+import { canStartBuild, summonAvailability, summonCost, summonMax, isTravelling, SUMMONS } from './systems/actionSystem.js';
 import { isDoubleTargeting, isDoubleTarget, doubleOnSlot, doubleJob } from './systems/doubleSystem.js';
 import { DoubleState } from './entities/boughDouble.js';
 import { AttackState } from './entities/enemy.js';
@@ -381,9 +381,10 @@ export function createUI(callbacks) {
     const placing = game.action.state === ActionState.SUMMON_PLACEMENT;
     el.modeBanner.hidden = !placing;
     if (placing) {
+      const s = SUMMONS[game.action.target];
       setText(el.modeBanner, isDoubleTargeting(game)
         ? 'Bough Double — click a highlighted slot or turret · Esc / right-click to cancel'
-        : `Placing ${SUMMONS[game.action.target].name} — click the battlefield to place · Esc / right-click to cancel`);
+        : `${s.job ? `${SUMMONS.vulture.name}: ${s.job}` : `Placing ${s.name}`} — click the battlefield to place · Esc / right-click to cancel`);
     }
     updateEndOverlay(el, game);
     updateLevelName(el, game);
@@ -1036,12 +1037,21 @@ function menuOptions(game, menu) {
 function summonOptions(game) {
   return Object.entries(SUMMONS).map(([kind, s]) => {
     const { available, reason } = summonAvailability(game, kind);
+    const keyBadge = C.SUMMON_KEYS[kind].toUpperCase(); // its keyboard shortcut
+    if (s.job) { // M2r: a Vulture job, free once the Vulture is summoned
+      const cost = summonCost(game, kind);
+      const free = Object.keys(cost).length === 0;
+      return {
+        title: s.job, portrait: 'vulture', cost: free ? null : cost, costText: free ? 'Free' : null,
+        detail: `${summonDetail(game)[kind]}\nThen waits ${Math.max(0, game.stats['vulture.wait'])} s`,
+        action: null, disabled: !available, reason, keyBadge,
+      };
+    }
     const active = `${s.active(game).length} / ${summonMax(game, kind)}`;
     return {
       title: `${s.name} ${active}`, portrait: kind, cost: s.cost, costText: null,
       detail: `Active: ${active}\n${summonDetail(game)[kind]}`,
-      action: null, disabled: !available, reason,
-      keyBadge: C.SUMMON_KEYS[kind].toUpperCase(), // its keyboard shortcut
+      action: null, disabled: !available, reason, keyBadge,
     };
   });
 }
@@ -1316,7 +1326,7 @@ function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
     ...bossDebugLines(game),
     ...waveDebugLines(game),
     `Resources: ${resourceLine(game.resources)}`,
-    `Turrets: ${game.turrets.length}  Pebbles in flight: ${game.projectiles.length}  Vultures: ${game.vultures.length}/${game.stats['vulture.max']}  Squirrels: ${game.squirrels.length}/${C.MAX_SQUIRRELS}${C.SQUIRREL_BLOCKS_WOLVES ? ' (block wolves)' : ''}`,
+    `Turrets: ${game.turrets.length}  Pebbles in flight: ${game.projectiles.length}  Vulture: ${game.companion.state}${game.companion.state === 'WAITING' ? ` ${game.companion.wait.toFixed(1)}s` : ''}`,
     ...dropDebugLines(game),
     ...doubleDebugLines(game),
     ...turretDebugLines(game),

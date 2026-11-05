@@ -117,6 +117,7 @@ export function expireSquirrels(game, dt) {
   for (const s of game.squirrels) s.remaining -= dt;
   const gone = game.squirrels.filter((s) => s.hp <= 0 || s.remaining <= 0);
   if (gone.length === 0) return;
+  if (gone.some((s) => s.hp <= 0)) game.companion.died = true; // M2r
   for (const s of gone) {
     const drop = game.drops.find((d) => d.id === s.targetId);
     if (drop) drop.claimedBy = null;

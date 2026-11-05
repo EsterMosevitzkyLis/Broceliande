@@ -39,6 +39,15 @@ export const ACTION_ALLOWED_IN = Object.freeze({
   [ActionState.SUMMON_PLACEMENT]: [GameState.COMBAT],
 });
 
+// The Vulture companion (M2r): UNSUMMONED needs paying for, READY can be sent free, OUT is on a job,
+// WAITING is the wait after a job.
+export const CompanionState = Object.freeze({
+  UNSUMMONED: 'UNSUMMONED',
+  READY: 'READY',
+  OUT: 'OUT',
+  WAITING: 'WAITING',
+});
+
 // Wave sub-state within COMBAT (M2i §3.1): COUNTDOWN before wave 1, then WAVE and GAP in turn.
 // Clearing the last wave ends Combat (ENDING → Victory).
 export const WaveState = Object.freeze({
