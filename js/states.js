@@ -39,7 +39,7 @@ export const ACTION_ALLOWED_IN = Object.freeze({
   [ActionState.SUMMON_PLACEMENT]: [GameState.COMBAT],
 });
 
-// The Vulture companion (M2r): UNSUMMONED needs paying for, OUT is on a job. Either way the next
+// The Vulture companion (M2r): UNSUMMONED needs paying for, OUT is alive. Either way the next
 // order must wait for the companion's wait to run out.
 export const CompanionState = Object.freeze({
   UNSUMMONED: 'UNSUMMONED',

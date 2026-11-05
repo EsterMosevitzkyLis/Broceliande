@@ -1886,7 +1886,7 @@ export function drawVultureGhost(ctx, p, t) {
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 5]);
   ctx.beginPath();
-  ctx.arc(p.x, p.y, C.VULTURE_BLOCK_RADIUS, 0, Math.PI * 2);
+  ctx.arc(p.x, p.y, C.VULTURE_SPOT_RADIUS, 0, Math.PI * 2); // M2r: the spot it would be sent to
   ctx.fill();
   ctx.stroke();
   ctx.restore();

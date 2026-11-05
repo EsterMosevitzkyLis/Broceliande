@@ -9,7 +9,7 @@ import { GameState, ActionState } from './states.js';
 import { pick } from './picking.js';
 import {
   startSearch, startBuild, cancelAction, isBuildingSlot,
-  startSummonPlacement, exitSummonPlacement, placeSummon, startTravel, isTravelling,
+  startSummonPlacement, exitSummonPlacement, placeSummon, startTravel, isTravelling, SUMMONS,
   summonAvailability, denySummon,
 } from './systems/actionSystem.js';
 import { isStepMode, canVisit } from './systems/stepSystem.js';
@@ -121,7 +121,7 @@ export function createInteraction(game, view) {
   // is available. Unavailable: no placement, but its reason near the Druid, a soft "denied" sound
   // and a flash of its card.
   function onSummonKey(kind) {
-    if (game.state !== GameState.COMBAT) return;
+    if (game.state !== GameState.COMBAT || !SUMMONS[kind]) return; // M2r: the Squirrel's key does nothing
     const placing = game.action.state === ActionState.SUMMON_PLACEMENT;
     if (placing && game.action.target === kind) {
       exitSummonPlacement(game);

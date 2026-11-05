@@ -146,10 +146,6 @@ export function createRenderer(canvas) {
         y: v.y + C.VULTURE_RADIUS * 0.4,
         draw: () => drawVulture(ctx, v, anim, recent(v.lastHitTime), recent(v.lastPeckTime)),
       })),
-      ...game.squirrels.map((s) => ({
-        y: s.y + C.SQUIRREL_RADIUS * 0.4,
-        draw: () => drawVulture(ctx, collectLook(s), anim, recent(s.lastHitTime), false),
-      })),
     ].sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
     // Flyers (M2h §5): above every ground enemy (not y-sorted with them), below projectiles and UI.
@@ -202,7 +198,6 @@ export function createRenderer(canvas) {
     for (const e of game.enemies) if (isSlowed(e)) drawSlowSpiral(ctx, e.x, enemyBarY(e) - C.SLOW_SPIRAL_SIZE - 6, anim, !!C.ENEMY_TYPES[e.type].slowResist);
     if (view.showcase) drawShowcase(ctx, view.showcase, anim); // debug Shift+C: normal and Grim enemies side by side
     for (const v of game.vultures) drawVultureStatus(ctx, v);
-    for (const s of game.squirrels) drawVultureStatus(ctx, collectLook(s));
     // Nothing can hurt the Druid in Prep, so his world HP bar only appears from Combat on.
     if (!isPrep) drawDruidHpBar(ctx, druidPos.x, druidPos.y, game.druidHp, game.stats['druid.maxHp']); // effective max (M2e)
     drawActionProgress(ctx, game, druidPos);
@@ -356,11 +351,6 @@ function doubleDrawables(ctx, game, anim) {
     list.push({ y: f.y + C.DRUID_RADIUS * 0.6, draw: () => drawDoubleFade(ctx, f, f.age / C.DOUBLE_FADE_TIME) });
   }
   return list;
-}
-
-// The Vulture's Collect job (M2r) is a Squirrel drawn as the Vulture: flying while it moves, else landed.
-function collectLook(s) {
-  return { ...s, state: s.state === 'MOVING' ? 'FLYING' : 'LANDED' };
 }
 
 // Targeting overlay and the Double ghost: beside the hovered valid target, else at the cursor.

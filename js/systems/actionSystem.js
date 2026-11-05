@@ -8,12 +8,11 @@ import { canAfford, deduct, RESOURCE_KEYS, resourceName } from '../resources.js'
 import { searchTime, completeSearch } from './searchSystem.js';
 import { turretOnSlot, completeBuild } from './buildSystem.js';
 import { createVulture } from '../entities/vulture.js';
-import { createSquirrel } from '../entities/squirrel.js';
 import { createWisp } from '../entities/wisp.js';
 import { canVisit, stepCost, markerPos, legFootprints } from './stepSystem.js';
 import { buildCost, buildTime } from '../entities/turret.js';
 import { doubleAvailability } from './doubleSystem.js';
-import { companionCost, companionSent, endJob } from './companionSystem.js';
+import { companionCost, companionSent, orderVulture } from './companionSystem.js';
 import { events } from '../events.js';
 import { addFloatingText } from '../effects.js';
 
@@ -129,11 +128,10 @@ function completeTravel(game, marker, turretType) {
 // The summons (§15, M1d §2, M1i §2.4), in summon panel order. Each has its own cost and its own
 // cap. The Bough Double is `targeted`: instead of being placed anywhere, it is pointed at a
 // turret slot and does a job there (doubleSystem.js); its cost is the Bough, and the job's.
-// `job` marks the Vulture's two jobs (M2r), with their card label: Attack is a Vulture, Collect a
-// Squirrel. They share one cost and one wait (companionSystem.js).
+// `job` marks the Vulture (M2r), with its card label: an order to it, not a new summon. Its cost and
+// wait are in companionSystem.js.
 export const SUMMONS = {
-  vulture: { kind: 'vulture', job: 'Attack', name: C.SUMMON_TYPES.vulture.name, plural: C.SUMMON_TYPES.vulture.plural, cost: C.VULTURE_COST, max: C.MAX_VULTURES, active: (g) => g.vultures, create: createVulture },
-  squirrel: { kind: 'squirrel', job: 'Collect', name: C.SUMMON_TYPES.squirrel.name, plural: C.SUMMON_TYPES.squirrel.plural, cost: C.SQUIRREL_COST, max: C.MAX_SQUIRRELS, active: (g) => g.squirrels, create: createSquirrel },
+  vulture: { kind: 'vulture', job: 'Send Vulture', name: C.SUMMON_TYPES.vulture.name, plural: C.SUMMON_TYPES.vulture.plural, cost: C.VULTURE_COST, max: C.MAX_VULTURES, active: (g) => g.vultures, create: createVulture },
   // The Bough Double's cap is the effective double.max (M2e), checked in doubleSystem.js.
   double: { kind: 'double', name: C.SUMMON_TYPES.double.name, plural: C.SUMMON_TYPES.double.plural, cost: C.BOUGH_DOUBLE_COST, active: (g) => g.doubles, targeted: true },
   // Slow Wisp (M2k §3.2): placed like the Vulture, but it starts at the Druid and floats to the point.
@@ -164,7 +162,7 @@ export function summonCost(game, kind) {
   return SUMMONS[kind].job ? companionCost(game) : SUMMONS[kind].cost;
 }
 
-// A Vulture job (M2r): the wait must be over, and the Vulture paid for if it is not summoned.
+// An order to the Vulture (M2r): the wait must be over, and the Vulture paid for if it is not summoned.
 function jobAvailability(game) {
   const c = game.companion;
   if (c.wait > 0) return { available: false, reason: `Ready in ${Math.ceil(c.wait)} s` };
@@ -217,11 +215,17 @@ export function placeSummon(game, p) {
   game.action = createIdleAction();
   if (!summonAvailability(game, s.kind).available) return false;
   deduct(game.resources, summonCost(game, s.kind));
-  const hpShare = s.job ? endJob(game) : 1;
-  const unit = s.create(game.nextEntityId++, p.x, p.y, game.stats[`${s.kind}.duration`], game); // effective duration (M2e)
-  unit.hp *= hpShare;
-  s.active(game).push(unit);
-  if (s.job) companionSent(game);
+  if (s.job) {
+    // M2r: a new Vulture sets off from the Druid; a living one turns round from where it is.
+    if (game.vultures.length === 0) {
+      const from = wispStart(game);
+      game.vultures.push(s.create(game.nextEntityId++, from.x, from.y, game.stats['vulture.duration']));
+    }
+    orderVulture(game, game.vultures[0], p);
+    companionSent(game);
+  } else {
+    s.active(game).push(s.create(game.nextEntityId++, p.x, p.y, game.stats[`${s.kind}.duration`], game)); // effective duration (M2e)
+  }
   events.emit('summonPlaced', { kind: s.kind, x: p.x, y: p.y });
   return true;
 }

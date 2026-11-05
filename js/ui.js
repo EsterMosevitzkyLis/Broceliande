@@ -384,7 +384,7 @@ export function createUI(callbacks) {
       const s = SUMMONS[game.action.target];
       setText(el.modeBanner, isDoubleTargeting(game)
         ? 'Bough Double — click a highlighted slot or turret · Esc / right-click to cancel'
-        : `${s.job ? `${SUMMONS.vulture.name}: ${s.job}` : `Placing ${s.name}`} — click the battlefield to place · Esc / right-click to cancel`);
+        : `${s.job ?? `Placing ${s.name}`} — click the battlefield to place · Esc / right-click to cancel`);
     }
     updateEndOverlay(el, game);
     updateLevelName(el, game);
@@ -959,9 +959,7 @@ function menuHeader(game, menu) {
 
 // Effective durations from the stats resolver (M2e §4.5: summon changes show in the summon panel).
 const summonDetail = (game) => ({
-  vulture: 'Fights the enemy nearest to it until given a new order',
-  squirrel: 'Collects the nearest drop until given a new order'
-    + (C.SQUIRREL_BLOCKS_WOLVES ? ' · blocks wolves while waiting' : ''),
+  vulture: 'Attacks the enemies in the circle, then collects its drops, then moves on to the nearest target. Guards an empty spot',
   double: 'Builds or upgrades one turret, then vanishes · plus that job\'s cost',
   slowWisp: `Floats to the point and bursts · slows enemies within ${C.WISP_BURST_RADIUS} px (flyers too) to ×${C.WISP_SLOW_MULT} for ${C.WISP_SLOW_DURATION} s`,
 });
@@ -1039,10 +1037,10 @@ function summonOptions(game) {
   return Object.entries(SUMMONS).map(([kind, s]) => {
     const { available, reason } = summonAvailability(game, kind);
     const keyBadge = C.SUMMON_KEYS[kind].toUpperCase(); // its keyboard shortcut
-    if (s.job) { // M2r: a Vulture job shows the Vulture's cost, even while it is free
+    if (s.job) { // M2r: the Vulture shows its cost, even while orders are free
       const free = Object.keys(summonCost(game, kind)).length === 0;
       return {
-        title: s.job, portrait: 'vulture', cost: SUMMONS.vulture.cost, costCovered: free, costText: null,
+        title: s.job, portrait: kind, cost: s.cost, costCovered: free, costText: null,
         status: free && !reason ? 'Free' : '',
         detail: `${summonDetail(game)[kind]}\nNext order after ${Math.max(0, game.stats['vulture.wait'])} s`,
         action: null, disabled: !available, reason, keyBadge,
@@ -1122,8 +1120,7 @@ function updateSummonPanel(el, game, view) {
   Object.keys(SUMMONS).forEach((kind, i) => {
     const node = panel.children[i];
     updateOptionCard(node, options[i], game);
-    const onJob = !placing && !!SUMMONS[kind].job && SUMMONS[kind].active(game).length > 0; // M2r: its current job
-    node.classList.toggle('selected', kind === placing || onJob);
+    node.classList.toggle('selected', kind === placing);
     node.classList.toggle('flash', kind === flashing); // a denied summon (real time, UI only)
   });
   panel.classList.toggle('pass-through', isDoubleTargeting(game));
