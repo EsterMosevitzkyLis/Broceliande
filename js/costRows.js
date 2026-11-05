@@ -32,8 +32,14 @@ export function costRowsElement(cost, resources) {
     icon.style.height = `${C.MENU_COST_ICON_SIZE}px`;
     icon.innerHTML = RESOURCE_ICON_SVG[row.resource];
     const text = document.createElement('span');
-    text.textContent = row.short ? `× ${row.amount} (have ${row.have})` : `× ${row.amount}`;
+    text.textContent = `× ${row.amount}`;
     line.append(icon, text);
+    if (row.short) {
+      const have = document.createElement('span');
+      have.className = 'cost-have';
+      have.textContent = `(have ${row.have})`;
+      line.append(have);
+    }
     box.append(line);
   }
   return box;

@@ -590,6 +590,10 @@ html, body {
   color: #d8d2b8;
 }
 
+.menu-status:empty {
+  display: none;
+}
+
 /* ---------- Cost rows (M1f §3): one row per resource; red with "have N" when short ---------- */
 .cost-rows {
   display: flex;
@@ -1057,8 +1061,11 @@ html, body {
   pointer-events: none;
 }
 
+/* A fixed size and fixed places, so nothing moves whatever a card is showing. */
 #summon-panel .menu-option {
-  width: 215px;
+  box-sizing: border-box;
+  width: 245px;
+  height: 64px;
   margin: 0;
   border: 2px solid transparent;
   border-radius: 6px;
@@ -1075,7 +1082,7 @@ html, body {
 
 #summon-panel .menu-title {
   font-weight: bold;
-  font-size: 18px;
+  font-size: 16px;
   color: #f3e7c0;
   white-space: nowrap;
 }
@@ -1084,13 +1091,39 @@ html, body {
   color: #a9a58f;
 }
 
+/* The cost, in the card's top right corner, opposite the name. */
 #summon-panel .menu-cost {
-  margin: 2px 0 0;
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  margin: 0;
 }
 
+#summon-panel .cost-rows {
+  font-size: 15px;
+}
+
+#summon-panel .cost-row {
+  gap: 4px;
+}
+
+#summon-panel .cost-have {
+  display: none;
+}
+
+/* One line under the name: the reason if there is one, else the status. */
+#summon-panel .menu-status,
 #summon-panel .menu-reason {
   margin-top: 2px;
   font-size: 14px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#summon-panel .menu-status {
+  color: #d8d2b8;
 }
 
 /* The key badge sits on the portrait's lower corner, clear of the title. */

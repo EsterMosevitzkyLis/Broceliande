@@ -1033,23 +1033,25 @@ function menuOptions(game, menu) {
 }
 
 // Summon panel (M2q, M1d §2.1, M1f §2): one card per summon with its image; greyed out with a
-// reason if it is at its own cap or unaffordable. The detail shows above the card on hover.
+// reason if it is at its own cap or unaffordable. Its status line shows the reason, else the status.
+// The detail shows above the card on hover.
 function summonOptions(game) {
   return Object.entries(SUMMONS).map(([kind, s]) => {
     const { available, reason } = summonAvailability(game, kind);
     const keyBadge = C.SUMMON_KEYS[kind].toUpperCase(); // its keyboard shortcut
-    if (s.job) { // M2r: a Vulture job, free once the Vulture is summoned
-      const cost = summonCost(game, kind);
-      const free = Object.keys(cost).length === 0;
+    if (s.job) { // M2r: a Vulture job shows the Vulture's cost, even while it is free
+      const free = Object.keys(summonCost(game, kind)).length === 0;
       return {
-        title: s.job, portrait: 'vulture', cost: free ? null : cost, costText: free ? 'Free' : null,
+        title: s.job, portrait: 'vulture', cost: SUMMONS.vulture.cost, costCovered: free, costText: null,
+        status: free && !reason ? 'Free' : '',
         detail: `${summonDetail(game)[kind]}\nNext order after ${Math.max(0, game.stats['vulture.wait'])} s`,
         action: null, disabled: !available, reason, keyBadge,
       };
     }
     const active = `${s.active(game).length} / ${summonMax(game, kind)}`;
     return {
-      title: `${s.name} ${active}`, portrait: kind, cost: s.cost, costText: null,
+      title: s.name, portrait: kind, cost: s.cost, costText: null,
+      status: reason ? '' : `Active: ${active}`,
       detail: `Active: ${active}\n${summonDetail(game)[kind]}`,
       action: null, disabled: !available, reason, keyBadge,
     };
@@ -1069,7 +1071,7 @@ function createMenuOption(index, option) {
   }
   const body = document.createElement('div');
   body.className = 'menu-body';
-  for (const part of ['title', 'cost', 'detail']) {
+  for (const part of ['title', 'cost', 'status', 'detail']) {
     const div = document.createElement('div');
     div.className = `menu-${part}`;
     body.append(div);
@@ -1089,11 +1091,13 @@ function updateOptionCard(node, o, game) {
   setText(node.querySelector('.menu-title'), o.title);
   // Cost rows are rebuilt only when what they show changes.
   const costBox = node.querySelector('.menu-cost');
-  const costKey = o.cost ? costRowsKey(o.cost, game.resources) : `text:${o.costText}`;
+  const have = o.costCovered ? o.cost : game.resources; // costCovered: shown, but not owed now
+  const costKey = o.cost ? costRowsKey(o.cost, have) : `text:${o.costText}`;
   if (costBox.dataset.key !== costKey) {
     costBox.dataset.key = costKey;
-    costBox.replaceChildren(o.cost ? costRowsElement(o.cost, game.resources) : document.createTextNode(o.costText ?? ''));
+    costBox.replaceChildren(o.cost ? costRowsElement(o.cost, have) : document.createTextNode(o.costText ?? ''));
   }
+  setText(node.querySelector('.menu-status'), o.status ?? '');
   setText(node.querySelector('.menu-detail'), o.detail);
   setText(node.querySelector('.menu-reason'), o.reason);
   const button = node.querySelector('.menu-action');
