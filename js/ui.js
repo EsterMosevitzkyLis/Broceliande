@@ -1118,7 +1118,7 @@ function updateSummonPanel(el, game, view) {
   Object.keys(SUMMONS).forEach((kind, i) => {
     const node = panel.children[i];
     updateOptionCard(node, options[i], game);
-    const onJob = !placing && SUMMONS[kind].job && SUMMONS[kind].active(game).length > 0; // M2r: its current job
+    const onJob = !placing && !!SUMMONS[kind].job && SUMMONS[kind].active(game).length > 0; // M2r: its current job
     node.classList.toggle('selected', kind === placing || onJob);
     node.classList.toggle('flash', kind === flashing); // a denied summon (real time, UI only)
   });
