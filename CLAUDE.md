@@ -25,7 +25,7 @@ Browser prototype of a survival tower-defence roguelite. Current goal: **Milesto
 ## Running
 ES modules need a server. From the project root:
 ```
-python -m http.server 8000
+python tools/serve.py
 ```
 Open http://localhost:8000 in Chrome.
 

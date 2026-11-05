@@ -8,7 +8,7 @@ Spec: `docs/M1_SPEC.md`.
 ES modules don't load from `file://`, so serve the folder locally. From the project root:
 
 ```
-python -m http.server 8000
+python tools/serve.py
 ```
 
 Then open http://localhost:8000 in Chrome.
