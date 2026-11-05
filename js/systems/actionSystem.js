@@ -125,7 +125,7 @@ function completeTravel(game, marker, turretType) {
   }
 }
 
-// The summons (§15, M1d §2, M1i §2.4), in Druid-menu order. Each has its own cost and its own
+// The summons (§15, M1d §2, M1i §2.4), in summon panel order. Each has its own cost and its own
 // cap. The Bough Double is `targeted`: instead of being placed anywhere, it is pointed at a
 // turret slot and does a job there (doubleSystem.js); its cost is the Bough, and the job's.
 export const SUMMONS = {
@@ -156,12 +156,11 @@ function shortfallReason(resources, cost) {
   return `Not enough ${missing.join(', ')}`;
 }
 
-// Druid menu option (§15.1, M1d §2.1): { available, reason }. Needs the Druid idle, a free
-// slot under that summon's cap, and its cost.
+// Summon panel card (M2q, M1d §2.1): { available, reason }. Needs a free slot under that summon's
+// cap and its cost. In Combat the Druid is only idle or placing, and placing can switch summon.
 export function summonAvailability(game, kind) {
   const s = SUMMONS[kind];
   if (game.state !== GameState.COMBAT) return { available: false, reason: '' };
-  if (game.action.state !== ActionState.IDLE) return { available: false, reason: 'Druid is busy' };
   if (s.targeted) return doubleAvailability(game);
   const max = summonMax(game, kind);
   if (s.active(game).length >= max) return { available: false, reason: `${max} ${max === 1 ? s.name : s.plural} ${s.activeLabel ?? 'already active'}` };

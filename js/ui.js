@@ -14,7 +14,7 @@ import { RESOURCE_ICON_SVG } from './icons.js';
 import { costRowsElement, costRowsKey } from './costRows.js';
 import { portraitCanvas } from './render/portraits.js';
 import { canAfford, RESOURCE_KEYS, resourceName, formatCost } from './resources.js';
-import { canStartBuild, summonAvailability, summonMax, druidDisplayPos, isTravelling, SUMMONS } from './systems/actionSystem.js';
+import { canStartBuild, summonAvailability, summonMax, isTravelling, SUMMONS } from './systems/actionSystem.js';
 import { isDoubleTargeting, isDoubleTarget, doubleOnSlot, doubleJob } from './systems/doubleSystem.js';
 import { DoubleState } from './entities/boughDouble.js';
 import { AttackState } from './entities/enemy.js';
@@ -250,7 +250,7 @@ function placeBeside(popup, x, y, halfWidth) {
   popup.style.top = `${top}px`;
 }
 
-// callbacks: { onStartCombat(), onEndButton(), onMenuAction(), onToggleMute(), onCallNextWave() }
+// callbacks: { onStartCombat(), onEndButton(), onMenuAction(), onSummonCard(), onToggleMute(), onCallNextWave() }
 export function createUI(callbacks) {
   // Static layout lines of each level's scene, built once per level.
   const layoutLinesByLevel = {};
@@ -291,6 +291,7 @@ export function createUI(callbacks) {
     menu: document.getElementById('menu'),
     menuHeader: document.getElementById('menu-header'),
     menuOptions: document.getElementById('menu-options'),
+    summonPanel: document.getElementById('summon-panel'),
     modeBanner: document.getElementById('mode-banner'),
     uiLayer: document.getElementById('ui-layer'),
     bossBar: document.getElementById('boss-bar'),
@@ -348,6 +349,11 @@ export function createUI(callbacks) {
     const card = e.target.closest('.menu-option');
     if (card && !card.classList.contains('disabled')) callbacks.onMenuAction(Number(card.dataset.option));
   });
+  // Summon panel (M2q): a card does what its shortcut does, greyed out or not (a denied summon says why).
+  el.summonPanel.addEventListener('click', (e) => {
+    const card = e.target.closest('.menu-option');
+    if (card) callbacks.onSummonCard(Object.keys(SUMMONS)[Number(card.dataset.option)]);
+  });
   // Which option card the pointer is over (build menu range preview, M1f §5.2).
   let menuHoverIndex = null;
   el.menu.addEventListener('mouseover', (e) => {
@@ -371,6 +377,7 @@ export function createUI(callbacks) {
     updateStepBar(el, game, view);
     tooltipKey = updateTooltip(el, game, view, tooltipKey);
     menuKey = updateMenu(el, game, view, menuKey, menuHoverIndex);
+    updateSummonPanel(el, game, view);
     const placing = game.action.state === ActionState.SUMMON_PLACEMENT;
     el.modeBanner.hidden = !placing;
     if (placing) {
@@ -949,7 +956,7 @@ function menuHeader(game, menu) {
   return { text: `Travel: ${steps} ${steps === 1 ? 'step' : 'steps'}`, warn: steps > game.stepsRemaining };
 }
 
-// Effective durations from the stats resolver (M2e §4.5: summon changes show in the Druid's menu).
+// Effective durations from the stats resolver (M2e §4.5: summon changes show in the summon panel).
 const summonDetail = (game) => ({
   vulture: `Lasts ${game.stats['vulture.duration']} s · flies to the wolf nearest to it`,
   squirrel: `Lasts ${game.stats['squirrel.duration']} s · collects the nearest drop`
@@ -1020,21 +1027,23 @@ function turretMenuOptions(game, menu) {
 // card is clickable as a whole while not disabled (M1f §2).
 function menuOptions(game, menu) {
   if (menu.kind === 'build') return buildOptions(game, menu);
-  if (menu.kind === 'summon') {
-    // Druid menu (§15.1, M1d §2.1, M1f §2): one card per summon with its image; greyed out with a
-    // reason if the Druid is not idle, it is at its own cap, or it is unaffordable.
-    return Object.entries(SUMMONS).map(([kind, s]) => {
-      const { available, reason } = summonAvailability(game, kind);
-      return {
-        title: `Summon ${s.name}`, portrait: kind, cost: s.cost, costText: null,
-        detail: `Active: ${s.active(game).length} / ${summonMax(game, kind)}\n${summonDetail(game)[kind]}`,
-        action: null, disabled: !available, reason,
-        keyBadge: C.SUMMON_KEYS[kind].toUpperCase(), // its keyboard shortcut
-      };
-    });
-  }
   if (menu.kind === 'doubleBuild') return doubleBuildOptions(game, menu);
   return turretMenuOptions(game, menu);
+}
+
+// Summon panel (M2q, M1d §2.1, M1f §2): one card per summon with its image; greyed out with a
+// reason if it is at its own cap or unaffordable. The detail shows above the card on hover.
+function summonOptions(game) {
+  return Object.entries(SUMMONS).map(([kind, s]) => {
+    const { available, reason } = summonAvailability(game, kind);
+    const active = `${s.active(game).length} / ${summonMax(game, kind)}`;
+    return {
+      title: `${s.name} ${active}`, portrait: kind, cost: s.cost, costText: null,
+      detail: `Active: ${active}\n${summonDetail(game)[kind]}`,
+      action: null, disabled: !available, reason,
+      keyBadge: C.SUMMON_KEYS[kind].toUpperCase(), // its keyboard shortcut
+    };
+  });
 }
 
 function createMenuOption(index, option) {
@@ -1065,8 +1074,47 @@ function createMenuOption(index, option) {
   return card;
 }
 
-// Contextual menu (§9.2, §11.1, §15.1, §16.2): build menu in Prep; turret and Druid menus in
-// Combat. Each option is greyed out with its cost and a reason when it cannot be confirmed.
+// Fills an option card built by createMenuOption with its current values.
+function updateOptionCard(node, o, game) {
+  setText(node.querySelector('.menu-title'), o.title);
+  // Cost rows are rebuilt only when what they show changes.
+  const costBox = node.querySelector('.menu-cost');
+  const costKey = o.cost ? costRowsKey(o.cost, game.resources) : `text:${o.costText}`;
+  if (costBox.dataset.key !== costKey) {
+    costBox.dataset.key = costKey;
+    costBox.replaceChildren(o.cost ? costRowsElement(o.cost, game.resources) : document.createTextNode(o.costText ?? ''));
+  }
+  setText(node.querySelector('.menu-detail'), o.detail);
+  setText(node.querySelector('.menu-reason'), o.reason);
+  const button = node.querySelector('.menu-action');
+  setText(button, o.action ?? '');
+  button.hidden = !o.action;
+  button.disabled = o.disabled;
+  node.classList.toggle('disabled', o.disabled && !o.info);
+  node.classList.toggle('clickable', !o.disabled);
+}
+
+// Summon panel (M2q). While a Bough Double is being aimed it fades and lets clicks through, so a
+// target under it can still be chosen.
+function updateSummonPanel(el, game, view) {
+  const panel = el.summonPanel;
+  panel.hidden = game.state !== GameState.COMBAT;
+  if (panel.hidden) return;
+  const options = summonOptions(game);
+  if (panel.children.length === 0) panel.replaceChildren(...options.map((o, i) => createMenuOption(i, o)));
+  const placing = game.action.state === ActionState.SUMMON_PLACEMENT ? game.action.target : null;
+  const flash = view.flashSummon;
+  const flashing = flash && performance.now() < flash.until ? flash.kind : null;
+  Object.keys(SUMMONS).forEach((kind, i) => {
+    const node = panel.children[i];
+    updateOptionCard(node, options[i], game);
+    node.classList.toggle('selected', kind === placing);
+    node.classList.toggle('flash', kind === flashing); // a denied summon (real time, UI only)
+  });
+  panel.classList.toggle('pass-through', isDoubleTargeting(game));
+}
+
+// Contextual menu (§9.2, §11.1, §16.2): build menu in Prep; turret menu in Combat. Each option is greyed out with its cost and a reason when it cannot be confirmed.
 function updateMenu(el, game, view, prevKey, hoverIndex) {
   const menu = view.menu;
   el.menu.hidden = !menu;
@@ -1090,37 +1138,11 @@ function updateMenu(el, game, view, prevKey, hoverIndex) {
   if (key !== prevKey || el.menuOptions.children.length !== options.length) {
     el.menuOptions.replaceChildren(...options.map((o, i) => createMenuOption(i, o)));
   }
-  options.forEach((o, i) => {
-    const node = el.menuOptions.children[i];
-    setText(node.querySelector('.menu-title'), o.title);
-    // Cost rows are rebuilt only when what they show changes.
-    const costBox = node.querySelector('.menu-cost');
-    const costKey = o.cost ? costRowsKey(o.cost, game.resources) : `text:${o.costText}`;
-    if (costBox.dataset.key !== costKey) {
-      costBox.dataset.key = costKey;
-      costBox.replaceChildren(o.cost ? costRowsElement(o.cost, game.resources) : document.createTextNode(o.costText ?? ''));
-    }
-    setText(node.querySelector('.menu-detail'), o.detail);
-    setText(node.querySelector('.menu-reason'), o.reason);
-    const button = node.querySelector('.menu-action');
-    setText(button, o.action ?? '');
-    button.hidden = !o.action;
-    button.disabled = o.disabled;
-    node.classList.toggle('disabled', o.disabled && !o.info);
-    node.classList.toggle('clickable', !o.disabled);
-    // A summon shortcut pressed while unavailable flashes its option (real time, UI only).
-    const flash = view.flashSummon;
-    node.classList.toggle('flash', menu.kind === 'summon' && !!flash && flash.kind === Object.keys(SUMMONS)[i] && performance.now() < flash.until);
-  });
+  options.forEach((o, i) => updateOptionCard(el.menuOptions.children[i], o, game));
 
   if (key !== prevKey) {
-    if (menu.kind === 'summon') {
-      const d = druidDisplayPos(game);
-      placeBeside(el.menu, d.x, d.y - C.DRUID_RADIUS * 0.6, C.DRUID_RADIUS);
-    } else {
-      const slot = game.slots[menu.index];
-      placeBeside(el.menu, slot.x, slot.y, C.LOCATION_RADIUS);
-    }
+    const slot = game.slots[menu.index];
+    placeBeside(el.menu, slot.x, slot.y, C.LOCATION_RADIUS);
   }
   return key;
 }

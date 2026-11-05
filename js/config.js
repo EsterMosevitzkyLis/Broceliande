@@ -166,8 +166,8 @@ export const WAVE_ICON_SIZE = 30;       // px, enemy images in the wave preview 
 // Summons — UI and visual only (their stats are in data/summons.csv)
 // ---------------------------------------------------------------------------
 
-// Summon shortcuts in Combat (same as choosing the summon in the Druid's menu), shown as key badges there.
-export const SUMMON_DENIED_FLASH_TIME = 0.45; // s an unavailable summon's option flashes in the open Druid menu
+// Summon shortcuts in Combat (same as clicking the summon's card in the summon panel), shown as key badges there.
+export const SUMMON_DENIED_FLASH_TIME = 0.45; // s an unavailable summon's card flashes in the summon panel
 
 // Slow Wisp (M2k §3.5), visual only; its stats are in data/summons.csv.
 export const WISP_COLOR = '#c8dcf0';          // pale silver-blue: the orb, its trail, the burst and the slowed tint

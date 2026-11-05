@@ -9,7 +9,7 @@ import { GameState, ActionState } from './states.js';
 import { pick } from './picking.js';
 import {
   startSearch, startBuild, cancelAction, isBuildingSlot,
-  startSummonPlacement, exitSummonPlacement, placeSummon, startTravel, isTravelling, SUMMONS,
+  startSummonPlacement, exitSummonPlacement, placeSummon, startTravel, isTravelling,
   summonAvailability, denySummon,
 } from './systems/actionSystem.js';
 import { isStepMode, canVisit } from './systems/stepSystem.js';
@@ -84,11 +84,6 @@ export function createInteraction(game, view) {
       view.menu = { kind: 'turret', index: hit.index };
       return;
     }
-    if (hit?.kind === 'druid') {
-      // Druid menu (§15.1): opens whenever he is clicked; greyed out with a reason if he is busy.
-      view.menu = { kind: 'summon', index: 0 };
-      return;
-    }
     // Empty ground, or something not interactive in this phase.
     closeMenu();
   }
@@ -103,7 +98,7 @@ export function createInteraction(game, view) {
     cancelAction(game);
   }
 
-  // option: which of the menu's options was clicked (the Druid menu has one per summon).
+  // option: which of the menu's options was clicked.
   function onMenuAction(option = 0) {
     const menu = view.menu;
     if (!menu) return;
@@ -119,13 +114,12 @@ export function createInteraction(game, view) {
     if (menu.kind === 'doubleBuild' && startDoubleJob(game, menu.index, TURRET_TYPE_KEYS[option])) closeMenu();
     // M1i §2.6: the turret menu's first card is "Cancel job" while a Double works there.
     if (menu.kind === 'turret' && option === 0 && cancelDoubleJob(game, menu.index)) closeMenu();
-    if (menu.kind === 'summon' && startSummonPlacement(game, Object.keys(SUMMONS)[option])) closeMenu();
   }
 
-  // Summon shortcuts (Q / W / E): exactly what choosing that summon in the Druid's menu does,
-  // Combat only. The same key again while placing it cancels placement (like Esc); another
-  // summon's key switches to it if it is available. Unavailable: no placement, but its reason
-  // near the Druid, a soft "denied" sound and, if the Druid's menu is open, a flash of its option.
+  // A summon's card in the summon panel (M2q) or its shortcut (Q / W / E / R), Combat only. The same
+  // summon again while placing it cancels placement (like Esc); another summon switches to it if it
+  // is available. Unavailable: no placement, but its reason near the Druid, a soft "denied" sound
+  // and a flash of its card.
   function onSummonKey(kind) {
     if (game.state !== GameState.COMBAT) return;
     const placing = game.action.state === ActionState.SUMMON_PLACEMENT;
@@ -134,14 +128,10 @@ export function createInteraction(game, view) {
       closeMenu();
       return;
     }
-    // While placing another summon the Druid counts as idle for the switch.
-    const previous = game.action;
-    if (placing) exitSummonPlacement(game);
     const { available, reason } = summonAvailability(game, kind);
     if (!available) {
-      if (placing) game.action = previous;
       denySummon(game, kind, reason || 'Not now');
-      if (view.menu?.kind === 'summon') view.flashSummon = { kind, until: performance.now() + SUMMON_FLASH_MS };
+      view.flashSummon = { kind, until: performance.now() + SUMMON_FLASH_MS };
       return;
     }
     closeMenu();
@@ -161,7 +151,7 @@ export function isInteractive(game, hover) {
   if (!hover) return false;
   if (game.state === GameState.COMBAT) {
     if (isDoubleTargeting(game)) return (hover.kind === 'turret' || hover.kind === 'slot') && isDoubleTarget(game, hover.index);
-    if (hover.kind === 'druid' || hover.kind === 'turret') return true;
+    if (hover.kind === 'turret') return true;
     return hover.kind === 'slot' && doubleOnSlot(game, hover.index) !== null;
   }
   if (game.state !== GameState.PREP) return false;

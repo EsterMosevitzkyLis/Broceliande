@@ -111,6 +111,7 @@ const ui = createUI({
   onStartCombat: () => interaction.onStartCombat(),
   onEndButton: endButton,
   onMenuAction: (option) => interaction.onMenuAction(option),
+  onSummonCard: (kind) => interaction.onSummonKey(kind),
   onToggleMute: toggleMute,
   onCallNextWave: () => callNextWave(game), // M2i §3.2
   onSetSpeed: setSpeed,                     // M2k §1.1

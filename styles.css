@@ -1028,6 +1028,98 @@ html, body {
   background: rgba(224, 85, 58, 0.35);
 }
 
+/* ---------- Summon panel (M2q) ---------- */
+/* See-through, over the bottom centre of the field; it stops clicks reaching the field under it. */
+#summon-panel {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(20, 26, 16, 0.62);
+  border: 2px solid rgba(110, 127, 78, 0.75);
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.25;
+  pointer-events: auto;
+  transition: opacity 0.15s;
+}
+
+#summon-panel[hidden] {
+  display: none;
+}
+
+/* Aiming a Bough Double: clicks go through to the slots and turrets under the panel. */
+#summon-panel.pass-through {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+#summon-panel .menu-option {
+  width: 215px;
+  margin: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+}
+
+#summon-panel .menu-option.selected {
+  border-color: #e8c547;
+  background: rgba(232, 197, 71, 0.16);
+}
+
+#summon-panel .menu-option.flash {
+  background: rgba(224, 85, 58, 0.35);
+}
+
+#summon-panel .menu-title {
+  font-weight: bold;
+  font-size: 18px;
+  color: #f3e7c0;
+  white-space: nowrap;
+}
+
+#summon-panel .menu-option.disabled .menu-title {
+  color: #a9a58f;
+}
+
+#summon-panel .menu-cost {
+  margin: 2px 0 0;
+}
+
+#summon-panel .menu-reason {
+  margin-top: 2px;
+  font-size: 14px;
+}
+
+/* The key badge sits on the portrait's lower corner, clear of the title. */
+#summon-panel .menu-key {
+  top: 38px;
+  left: 6px;
+  right: auto;
+}
+
+/* The summon's description, above its card on hover. */
+#summon-panel .menu-detail {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  margin: 0;
+  width: 300px;
+  padding: 8px 12px;
+  background: rgba(20, 26, 16, 0.94);
+  border: 2px solid #6e7f4e;
+  border-radius: 8px;
+  font-size: 17px;
+  white-space: pre-line;
+}
+
+#summon-panel .menu-option:hover .menu-detail {
+  display: block;
+}
+
 /* ---------- Wave preview (M2i §4.2) ---------- */
 /* One row in the HUD strip's centre, in place of the wave label and clock. */
 #wave-preview {
