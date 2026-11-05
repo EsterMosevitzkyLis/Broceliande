@@ -508,7 +508,7 @@ export function updateGame(game, dt) {
       updateWindupAttacks(game, dt); // the Ogre's wind-up and blow (M2c §2.5), on the Druid or a blocker
       expireVultures(game);
       expireSquirrels(game);
-      updateCompanion(game, dt);     // M2r: after the expiries, so a death starts the wait
+      updateCompanion(game, dt);     // M2r: after the expiries, so it sees a death
       updateAction(game, dt);
       updateDruidMelee(game, dt);   // after updateAction, so a just-finished upgrade restarts the timer
       updateDruidRegen(game, dt);   // M2e: equipment HP regen

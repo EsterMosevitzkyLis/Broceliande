@@ -9,8 +9,6 @@ export function createCompanion() {
   return { state: CompanionState.UNSUMMONED, wait: 0 };
 }
 
-const fullWait = (game) => Math.max(0, game.stats['vulture.wait']); // effective (Eyrie Crown)
-
 // What the next order costs: the Vulture's cost to summon it, nothing while it is alive.
 export function companionCost(game) {
   return game.companion.state === CompanionState.OUT ? {} : C.VULTURE_COST;
@@ -33,18 +31,12 @@ export function endJob(game) {
 // An order was given: the Vulture is on its job and the wait starts now.
 export function companionSent(game) {
   game.companion.state = CompanionState.OUT;
-  game.companion.wait = fullWait(game);
+  game.companion.wait = Math.max(0, game.stats['vulture.wait']); // effective (Eyrie Crown)
 }
 
-// The wait counts down. If the Vulture died a full wait starts, after which it must be summoned again.
+// The wait counts down, whatever happens to the Vulture. If it died it must be summoned again.
 export function updateCompanion(game, dt) {
   const c = game.companion;
-  if (c.state === CompanionState.UNSUMMONED) return;
   c.wait = Math.max(0, c.wait - dt);
-  if (c.state === CompanionState.OUT && game.vultures.length + game.squirrels.length === 0) {
-    c.state = CompanionState.DEAD;
-    c.wait = fullWait(game);
-  } else if (c.state === CompanionState.DEAD && c.wait === 0) {
-    c.state = CompanionState.UNSUMMONED;
-  }
+  if (game.vultures.length + game.squirrels.length === 0) c.state = CompanionState.UNSUMMONED;
 }

@@ -39,12 +39,11 @@ export const ACTION_ALLOWED_IN = Object.freeze({
   [ActionState.SUMMON_PLACEMENT]: [GameState.COMBAT],
 });
 
-// The Vulture companion (M2r): UNSUMMONED needs paying for, OUT is on a job (a new order is free once
-// its wait is over), DEAD is the wait after it died.
+// The Vulture companion (M2r): UNSUMMONED needs paying for, OUT is on a job. Either way the next
+// order must wait for the companion's wait to run out.
 export const CompanionState = Object.freeze({
   UNSUMMONED: 'UNSUMMONED',
   OUT: 'OUT',
-  DEAD: 'DEAD',
 });
 
 // Wave sub-state within COMBAT (M2i §3.1): COUNTDOWN before wave 1, then WAVE and GAP in turn.
