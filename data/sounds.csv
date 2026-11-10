@@ -52,3 +52,13 @@ patternFound,0.55,1,0.3,1,TRUE
 regionCrossing,0.6,1,1,1,TRUE
 mapAmbienceCinderwood,0.1,1,0.3,2,TRUE
 mapAmbienceHags,0.12,1,0.3,2,TRUE
+thrallAttack,0.45,1,0.08,3,TRUE
+thrallDie,0.45,1,0.08,3,TRUE
+bruteAttack,0.8,1,0.12,2,TRUE
+bruteDie,0.8,1,0.2,2,TRUE
+knightSpawns,0.9,1,1,1,TRUE
+knightStep,0.3,1,0.3,2,TRUE
+knightWindup,0.55,1,0.3,1,TRUE
+knightBlow,1,1,0.3,2,TRUE
+knightDies,0.9,1,1,1,TRUE
+riseAgain,0.6,1,0.15,3,TRUE

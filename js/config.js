@@ -72,7 +72,20 @@ export const ARMOR_SPARK_TIME = 0.18;       // s the grey spark shows where armo
 export const HEAL_SPARKLE_TIME = 0.4;       // s the red sparkle shows on a biter that healed
 export const DOGGED_SPIRAL_SPEED = 3;       // × the slow spiral's turn rate on a slow-resistant enemy
 export const DOGGED_SPIRAL_ALPHA = 0.5;     // its opacity
-export const DEBUG_GRIM_WOLVES = 4;         // debug Shift+G: Grim Wolves spawned at once
+export const DEBUG_GRIM_WOLVES = 4;         // debug Shift+G: Grim Wolves (the region's swarm Grims, M3b §1) spawned at once
+// Undead Grims (M3b §2): the same look rules in cold green, with pale mist instead of ash smoke.
+export const UNDEAD_OUTLINE_COLOR = '#7fe0a8'; // TUNING — cold green outline
+export const UNDEAD_CRACK_COLOR = '#8af0b4';   // glowing crack lines
+export const UNDEAD_MIST_RGB = '200, 226, 214'; // pale mist
+
+// Rising dead (M3b §3.3) and sinking drops (§4). Visual only; the timings are in data/globals.csv.
+export const RISE_ANIM_TIME = 0.6;          // s a risen enemy takes to pull itself up (drawing)
+export const RISEN_TINT = 'rgba(70, 96, 46, 0.42)'; // the muddy green tint risen enemies keep
+export const BODY_GLOW_RGB = '120, 230, 150'; // the faint green glow round a body waiting to rise
+export const ASH_TIME = 1.2;                // s a body burnt to ash smoulders before it is gone
+export const DROP_SINK_BLINK_TIME = 3;      // s: in its last this-many s a sinking drop blinks
+export const DROP_SINK_DEPTH = 0.45;        // × icon size a drop settles into the mire by the end
+export const DROP_SINK_SHRINK = 0.45;       // how much smaller it is by the end
 export const SHOWCASE_GAP = 28;             // debug Shift+C: px between the figures in the comparison row
 export const SHOWCASE_PAIR_GAP = 70;        // px between one normal / Grim pair and the next
 
@@ -1239,6 +1252,7 @@ export let ENEMY_WANDER_SPEED, ENEMY_WANDER_INTERVAL, ENEMY_SIDESTEP_SPEED, ENEM
 export let STIRGE_DRUID_RING, STIRGE_WANDER_SPEED, STIRGE_WANDER_INTERVAL, STIRGE_SEPARATION,
   STIRGE_SEPARATION_SPEED, CLOUDS_HIT_FLYERS;
 export let BURST_STAGGER, FIRST_WAVE_DELAY, WAVE_GAP_AFTER_LAST_SPAWN;
+export let RISE_DELAY, RISE_HP_FRAC, DROP_SINK_TIME; // M3b §3–§4
 export let SPOT_SCALE; // LOCATION_RADIUS / SPOT_ART_RADIUS, set in applyData
 export let CORRIDOR_WIDTH, RANDOMISE_LAYOUT, FIXED_LAYOUT_SEED, LOCATION_RADIUS, LOCATION_JITTER, LOCATION_GAP,
   LANE_MIN_TURRET_SLOTS, FEATURE_ROUTE_MIN_FACTOR, FEATURE_ROUTE_MAX_FACTOR, MAX_LAYOUT_ATTEMPTS;
@@ -1316,6 +1330,7 @@ export function applyData(t) {
     DRUID_APPROACH_RADIUS, ENEMY_DIRECT_APPROACH_ANGLE, STUCK_TIME, STUCK_DECAY_RATE, SIDE_KEEP_MARGIN,
     STIRGE_DRUID_RING, STIRGE_WANDER_SPEED, STIRGE_WANDER_INTERVAL, STIRGE_SEPARATION, STIRGE_SEPARATION_SPEED, CLOUDS_HIT_FLYERS,
     BURST_STAGGER, FIRST_WAVE_DELAY, WAVE_GAP_AFTER_LAST_SPAWN,
+    RISE_DELAY, RISE_HP_FRAC, DROP_SINK_TIME,
     CORRIDOR_WIDTH, RANDOMISE_LAYOUT, FIXED_LAYOUT_SEED, LOCATION_RADIUS, LOCATION_JITTER, LOCATION_GAP,
     LANE_MIN_TURRET_SLOTS, FEATURE_ROUTE_MIN_FACTOR, FEATURE_ROUTE_MAX_FACTOR, MAX_LAYOUT_ATTEMPTS,
     ZONE_NEAR_TURRET, ZONE_NEAR_FEATURE, ZONE_FAR_TURRET, ZONE_FAR_FEATURE,
@@ -1350,6 +1365,12 @@ export function applyData(t) {
     opt(e, 'collisionRadius', r.collisionRadius);
     opt(e, 'windupTime', r.windup);
     for (const k of ['flying', 'flyHeight', 'burstStagger', 'dropSpacing', 'keepSide', 'sideWander', 'boss', 'stepSoundInterval']) opt(e, k, r[k]);
+    // M3b §1–§3: its role, whether it rises again (rising dead), its region (blank: every region) and
+    // a boss's arrival banner.
+    e.role = r.role;
+    e.rises = r.rises ?? false;
+    e.region = r.region ?? null;
+    opt(e, 'banner', r.banner);
     // Traits (M2l §1.3) and look; absent = none / ×1.
     for (const k of ['slowResist', 'armor', 'splashRatio', 'splashRadius', 'lifesteal', 'drawScale', 'soundPitch']) opt(e, k, r[k]);
     e.drops = t.drops.filter((d) => d.enemy === r.id).map((d) => ({ resource: d.resource, chance: d.chance, min: d.min, max: d.max }));
@@ -1411,7 +1432,8 @@ export function applyData(t) {
     level.candidateLocations = t.candidates.filter((c) => c.level === src).sort((a, b) => a.index - b.index).map((c) => ({ x: c.x, y: c.y, zone: c.zone }));
     level.palette = unflatten(t.palettes.find((p) => p.level === src) ?? {}, ['level', '_row']);
     level.waves = t.waves.filter((w) => w.level === src).map((w) => {
-      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === src && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: sp.type, count: sp.count })) };
+      // M3b §1: each spawn is its region's enemy for the role (a wolf in Hag's Causeway is a Drowned Thrall).
+      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === src && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
       return opt(wave, 'tolls', w.tolls);
     });
     return level;
@@ -1425,6 +1447,18 @@ export function applyData(t) {
   TRADE = byId(t.trade, (r) => ({ baseValue: r.baseValue, stockMin: r.stockMin, stockMax: r.stockMax }), 'resource');
   TRADER_TEXT = Object.fromEntries(TRADER_LINE_KINDS.map((kind) => [kind, t.traders.filter((r) => r.kind === kind).map((r) => r.text)]));
   PLACE_PALETTE = Object.fromEntries(PLACE_PALETTES.map((id) => [id, unflatten(t.palettes.find((p) => p.level === id) ?? {}, ['level', '_row'])]));
+}
+
+// M3b §1: the enemy a region uses in the place of `type`: the type itself if it belongs to that
+// region (or to every region, like the Stirge), else that region's enemy with the same role and
+// variant (a Grim Wolf in Hag's Causeway is a Grim Drowned Thrall). The type itself if there is none.
+export function regionalEnemy(type, regionId) {
+  const t = ENEMY_TYPES[type];
+  if (!t || !t.region || t.region === regionId) return type;
+  return Object.keys(ENEMY_TYPES).find((id) => {
+    const o = ENEMY_TYPES[id];
+    return o.region === regionId && o.role === t.role && o.variant === t.variant;
+  }) ?? type;
 }
 
 // A palette row's flattened columns ("treeDark_canopy_0") back into nested objects and arrays.

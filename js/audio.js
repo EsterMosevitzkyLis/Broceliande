@@ -75,12 +75,14 @@ export function toggleMute() {
 // Events → sounds
 // ---------------------------------------------------------------------------
 const TURRET_FIRE_SOUND = { sprinkler: 'sprinklerFire', toader: 'toaderFire', cinderjaw: 'cinderjawFires' };
-const ENEMY_ATTACK_SOUND = { wolf: 'wolfBite', bear: 'bearAttack', ogre: 'ogreBlow', stirge: 'stirgeBite' };
-const ENEMY_DEATH_SOUND = { wolf: 'wolfDie', bear: 'bearDie', ogre: 'ogreDies', stirge: 'stirgeDies' };
+// M3b §2.2: Hag's Causeway's undead: wet groans (Thrall), a deep creaking groan (Brute), a metallic,
+// sloshing roar (the Drowned Knight).
+const ENEMY_ATTACK_SOUND = { wolf: 'wolfBite', bear: 'bearAttack', ogre: 'ogreBlow', stirge: 'stirgeBite', thrall: 'thrallAttack', brute: 'bruteAttack', knight: 'knightBlow' };
+const ENEMY_DEATH_SOUND = { wolf: 'wolfDie', bear: 'bearDie', ogre: 'ogreDies', stirge: 'stirgeDies', thrall: 'thrallDie', brute: 'bruteDie', knight: 'knightDies' };
 // M2c §2.9: a mini-boss's arrival, footsteps and wind-up (none for wolves and Bears).
-const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns' }; // M2h: once per flock (its first Stirge)
-const ENEMY_STEP_SOUND = { ogre: 'ogreStep' };
-const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup' };
+const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns', knight: 'knightSpawns' }; // M2h: once per flock (its first Stirge)
+const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep' };
+const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup' };
 
 function subscribe() {
   events.on('turretFired', (e) => play(TURRET_FIRE_SOUND[e.type], e));
@@ -95,6 +97,7 @@ function subscribe() {
   events.on('vulturePecked', (e) => play('vulturePeck', e));
   events.on('squirrelStrikes', (e) => play('squirrelScratch', e));
   events.on('enemyDied', (e) => playEnemy(ENEMY_DEATH_SOUND, e));
+  events.on('enemyRose', (e) => play('riseAgain', e)); // M3b §3.3
   events.on('enemySpawned', (e) => { if (e.first !== false) playEnemy(ENEMY_SPAWN_SOUND, e); });
   events.on('enemyStep', (e) => playEnemy(ENEMY_STEP_SOUND, e));
   events.on('enemyWindup', (e) => playEnemy(ENEMY_WINDUP_SOUND, e));
@@ -558,6 +561,81 @@ const RECIPES = {
     tone(t, out, { freq: 70 * p, to: 26 * p, dur: 0.5, gain: 1.5, delay: 1.35 });
     noise(t, out, { filter: 'lowpass', freq: 400 * p, dur: 0.35, gain: 1, delay: 1.35 });
     return 1.9;
+  },
+
+  // M3b §2.2: the Drowned Thrall's bite: a short wet groan over a soft slap.
+  thrallAttack(t, out, p) {
+    growl(t, out, { freq: 170 * p, to: 120 * p, dur: 0.22, attack: 0.03, cutoff: 900, trem: 26, gain: 0.55 });
+    noise(t, out, { filter: 'lowpass', freq: 700 * p, dur: 0.08, gain: 0.7, delay: 0.04 });
+    return 0.24;
+  },
+
+  // A Thrall falls: a gurgling, sinking groan.
+  thrallDie(t, out, p) {
+    growl(t, out, { freq: 190 * p, to: 80 * p, dur: 0.45, attack: 0.02, cutoff: 800, trem: 30, gain: 0.6 });
+    noise(t, out, { filter: 'bandpass', freq: 500 * p, to: 250 * p, q: 3, dur: 0.3, gain: 0.4, delay: 0.15 });
+    return 0.5;
+  },
+
+  // The Mirebound Brute's blow: a deep creaking groan and a heavy, wet thump.
+  bruteAttack(t, out, p) {
+    creak(t, out, 32 * p, 46 * p, 0.25, 0.7);
+    tone(t, out, { freq: 100 * p, to: 40 * p, dur: 0.26, gain: 1.1, delay: 0.08 });
+    noise(t, out, { filter: 'lowpass', freq: 700 * p, dur: 0.14, gain: 0.8, delay: 0.1 });
+    return 0.36;
+  },
+
+  // A Brute falls: a long creaking groan, roots giving way.
+  bruteDie(t, out, p) {
+    creak(t, out, 44 * p, 26 * p, 0.7, 0.9);
+    growl(t, out, { freq: 120 * p, to: 50 * p, dur: 0.75, attack: 0.05, cutoff: 600, trem: 16, gain: 0.6 });
+    return 0.8;
+  },
+
+  // The Drowned Knight wades out: a metallic, sloshing roar.
+  knightSpawns(t, out, p) {
+    growl(t, out, { freq: 90 * p, to: 55 * p, dur: 1.5, attack: 0.25, cutoff: 700, trem: 12, gain: 0.9 });
+    bell(t, out, 330 * p, 0.1, 1.2, 0.25);
+    bell(t, out, 349 * p, 0.14, 1.1, 0.2); // a dissonant, rusty ring
+    noise(t, out, { filter: 'bandpass', freq: 600 * p, to: 300 * p, q: 1.5, dur: 1.3, attack: 0.2, gain: 0.45 });
+    return 1.55;
+  },
+
+  // Its heavy, sloshing step: a clank in a splash.
+  knightStep(t, out, p) {
+    tone(t, out, { freq: 66 * p, to: 36 * p, dur: 0.15, gain: 0.9 });
+    bell(t, out, 520 * p, 0, 0.12, 0.15);
+    return noise(t, out, { filter: 'bandpass', freq: 800 * p, to: 400 * p, q: 2, dur: 0.12, gain: 0.45 });
+  },
+
+  // The blade scraping up for the wind-up.
+  knightWindup(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 1800 * p, to: 3200 * p, q: 6, dur: 0.4, attack: 0.05, gain: 0.5 });
+    growl(t, out, { freq: 80 * p, to: 105 * p, dur: 0.4, attack: 0.08, cutoff: 500, trem: 16, gain: 0.45 });
+    return 0.42;
+  },
+
+  // The blade comes down: a heavy thump, a metallic clang and a splash.
+  knightBlow(t, out, p) {
+    tone(t, out, { freq: 85 * p, to: 28 * p, dur: 0.42, gain: 1.3 });
+    bell(t, out, 410 * p, 0.02, 0.45, 0.4);
+    noise(t, out, { filter: 'bandpass', freq: 900 * p, to: 350 * p, q: 1.2, dur: 0.3, gain: 0.8, delay: 0.04 });
+    return 0.47;
+  },
+
+  // It falls: a long, bubbling roar, then plate crashing into the water.
+  knightDies(t, out, p) {
+    growl(t, out, { freq: 115 * p, to: 38 * p, dur: 1.4, attack: 0.06, cutoff: 650, trem: 22, gain: 0.9 });
+    bell(t, out, 300 * p, 1.25, 0.6, 0.35);
+    noise(t, out, { filter: 'bandpass', freq: 700 * p, to: 250 * p, q: 1.2, dur: 0.5, gain: 0.9, delay: 1.25 });
+    return 1.8;
+  },
+
+  // M3b §3.3: a body rises again: a wet, gurgling groan.
+  riseAgain(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 300 * p, to: 700 * p, q: 3, dur: 0.5, attack: 0.1, gain: 0.6 });
+    growl(t, out, { freq: 95 * p, to: 140 * p, dur: 0.7, attack: 0.15, cutoff: 700, trem: 28, gain: 0.6, delay: 0.15 });
+    return 0.85;
   },
 
   // Bright chime per resource gained, pitched by resource; several resources ring in turn.

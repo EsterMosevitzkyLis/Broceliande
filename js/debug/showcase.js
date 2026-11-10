@@ -6,7 +6,7 @@ import * as C from '../config.js';
 import { AttackState } from '../entities/enemy.js';
 import { drawEnemyLook } from '../render/enemyLook.js';
 
-const PAIRS = ['wolf', 'stirge', 'bear', 'ogre']; // each followed by its Grim
+const PAIRS = ['wolf', 'stirge', 'bear', 'ogre']; // each followed by its Grim; M3b: as the region's own enemies
 const FIRST_ID = 9000; // figure ids (smoke and pulse phases only), clear of real enemy ids
 
 const figure = (type, x, y, id) => ({
@@ -15,8 +15,8 @@ const figure = (type, x, y, id) => ({
 });
 
 // The row: [{ figure, label }], centred on the stage, feet on one line.
-export function buildShowcase() {
-  const types = PAIRS.flatMap((base) => [base, ...Object.keys(C.ENEMY_TYPES).filter((t) => t !== base && C.ENEMY_TYPES[t].baseType === base)]);
+export function buildShowcase(regionId) {
+  const types = PAIRS.map((base) => C.regionalEnemy(base, regionId)).flatMap((base) => [base, ...Object.keys(C.ENEMY_TYPES).filter((t) => t !== base && C.ENEMY_TYPES[t].baseType === base)]);
   const halfWidth = (type) => C.ENEMY_TYPES[type].radius * (C.ENEMY_TYPES[type].drawScale ?? 1) * 1.3;
   let width = 0;
   types.forEach((type, i) => {

@@ -147,7 +147,7 @@ function validateWaves(scene) {
 
 // Per-wave totals, e.g. "Tornville Haunt W2: 14W 1B", to compare with each wave's comment by eye
 // (M2i §2). Logged once, the first time the debug view is on.
-const TOTAL_LETTERS = [['wolf', 'W'], ['grimWolf', 'GW'], ['stirge', 'S'], ['grimStirge', 'GS'], ['bear', 'B'], ['grimBear', 'GB'], ['ogre', 'O'], ['grimOgre', 'GO']];
+const TOTAL_LETTERS = [['wolf', 'W'], ['grimWolf', 'GW'], ['thrall', 'T'], ['grimThrall', 'GT'], ['stirge', 'S'], ['grimStirge', 'GS'], ['bear', 'B'], ['grimBear', 'GB'], ['brute', 'MB'], ['grimBrute', 'GMB'], ['ogre', 'O'], ['grimOgre', 'GO'], ['knight', 'K'], ['grimKnight', 'GK']];
 export function logWaveTotals() {
   for (const id of LEVEL_IDS) {
     const level = C.LEVELS[id];

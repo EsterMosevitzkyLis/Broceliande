@@ -13,6 +13,7 @@ import * as C from '../config.js';
 import { GameState, WaveState } from '../states.js';
 import { levelWaves } from '../levelSettings.js';
 import { killEnemy } from './combatSystem.js';
+import { finishBodies } from './riseSystem.js';
 import { events } from '../events.js';
 
 export function waveCount(game) {
@@ -46,7 +47,7 @@ export function checkWaveCleared(game) {
   const w = game.wave;
   if (w.state !== WaveState.WAVE) return false;
   if (game.spawnQueues.some((q) => q.spawns.length > 0)) return false;
-  const cleared = game.enemies.length === 0;
+  const cleared = game.enemies.length === 0 && game.bodies.length === 0; // M3b §3.1: bodies waiting to rise too
   const last = w.index + 1 >= waveCount(game);
   if (!cleared && (last || game.waveTime - w.lastSpawnAt < C.WAVE_GAP_AFTER_LAST_SPAWN)) return false;
   w.cleared++; // waves done (Victory overlay)
@@ -72,11 +73,13 @@ export function skipWave(game) {
   if (game.state !== GameState.COMBAT || game.wave.state !== WaveState.WAVE) return;
   for (const q of game.spawnQueues) q.spawns = [];
   for (const enemy of [...game.enemies]) killEnemy(game, enemy);
+  finishBodies(game); // M3b §3: bodies left by those kills, and any already waiting, stay down
 }
 
-// Enemies still to deal with: every one alive (from any wave) plus this wave's not yet spawned (HUD).
+// Enemies still to deal with: every one alive (from any wave), every body waiting to rise (M3b §3.1),
+// plus this wave's not yet spawned (HUD).
 export function waveEnemiesLeft(game) {
-  return game.enemies.length + game.spawnQueues.reduce((a, q) => a + q.spawns.length, 0);
+  return game.enemies.length + game.bodies.length + game.spawnQueues.reduce((a, q) => a + q.spawns.length, 0);
 }
 
 // The wave at w.index starts on its own clock. Spawns still queued (debug enemies queued in the

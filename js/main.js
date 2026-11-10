@@ -239,7 +239,7 @@ const input = createInput(stage, canvas, () => scale, {
         break;
       case 'u': undoLastMove(game); break;              // M1b §8: undo last step-mode move
       case 'c': // debug Shift+C: each normal enemy beside its Grim, standing still mid-stage; again to remove
-        if (e.shiftKey && inEncounter()) view.showcase = view.showcase ? null : buildShowcase();
+        if (e.shiftKey && inEncounter()) view.showcase = view.showcase ? null : buildShowcase(game.scene.level.region);
         break;
       case 'k': // extra debug key (not in §18.1): kill all living enemies; Shift+K on the map (M2p §6): a Tinker's Rest scene
         if (e.shiftKey) openDebugTinker(game); else killAllEnemies(game);

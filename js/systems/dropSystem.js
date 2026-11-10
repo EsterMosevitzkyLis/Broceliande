@@ -5,13 +5,14 @@
 import * as C from '../config.js';
 import { laneWorldPos, enemyType } from '../entities/enemy.js';
 import { emptyResources } from '../resources.js';
+import { regionTwist } from '../levelSettings.js';
 
 // Furthest an item's centre may sit from its lane's centreline, so everything drawn for it
 // (icon, bob and glow, which reaches 0.6 × icon size; see drawDrop) stays inside its lane's corridor (§1.2, M2b §2).
 const maxDropOffset = (lane) => lane.corridorWidth / 2 - C.RESOURCE_ICON_SIZE * C.DROP_ICON_SCALE * 0.6;
 
 export function emptyDropStats() {
-  return { dropped: emptyResources(), collected: emptyResources() };
+  return { dropped: emptyResources(), collected: emptyResources(), lost: emptyResources() }; // lost: to the mire (M3b §4)
 }
 
 // Roll each resource independently with the seeded RNG (§1.1). Chances are multiplied by the
@@ -100,9 +101,25 @@ export function isLanded(drop) {
 }
 
 // Drops age in simulation time during Combat only, so they respect pause and speed and freeze
-// in the air during ENDING (M1g §1.3).
+// in the air during ENDING (M1g §1.3). M3b §4: in a region with sinkingDrops, a landed drop sinks
+// into the mire (drop.sunk: s since it landed) and is gone after DROP_SINK_TIME; sinking pauses
+// in ENDING with everything else, and the Victory sweep takes only what is left.
 export function updateDrops(game, dt) {
-  for (const drop of game.drops) drop.age += dt;
+  const sinking = regionTwist(game.scene.level, 'sinkingDrops');
+  for (const drop of game.drops) {
+    drop.age += dt;
+    if (sinking && isLanded(drop)) drop.sunk = (drop.sunk ?? 0) + dt;
+  }
+  if (!sinking) return;
+  const lost = game.drops.filter((d) => d.sunk >= C.DROP_SINK_TIME);
+  if (!lost.length) return;
+  for (const d of lost) game.dropStats.lost[d.resource]++;
+  game.drops = game.drops.filter((d) => !lost.includes(d)); // a Squirrel heading for one picks another
+}
+
+// How far a drop has sunk, 0 → 1 (drawing).
+export function sinkFraction(drop) {
+  return Math.min(1, (drop.sunk ?? 0) / C.DROP_SINK_TIME);
 }
 
 // Debug key X (§3): drop chances ×1 ↔ ×DEBUG_DROP_MULT. Kept across restarts.

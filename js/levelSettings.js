@@ -17,6 +17,11 @@ export function stuckTime(level) {
   return level.stuckTime ?? C.STUCK_TIME;
 }
 
+// M3b §3–§4: whether the level's region has a twist ('risingDead', 'sinkingDrops', 'mireGround').
+export function regionTwist(level, twist) {
+  return !!C.REGIONS[level.region]?.[twist];
+}
+
 // M2i §2: the level's waves, each { gapAfter, spawns: [{ t, lane, type, count }], tolls? }.
 export function levelWaves(level) {
   return level.waves;

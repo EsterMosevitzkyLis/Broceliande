@@ -19,6 +19,7 @@ import { updateSquirrels, updateSquirrelStrikes, expireSquirrels } from './syste
 import { updateWisps } from './systems/wispSystem.js';
 import { updateStatuses } from './systems/statusSystem.js';
 import { updateBurns } from './systems/burnSystem.js';
+import { updateBodies } from './systems/riseSystem.js';
 import { isStepMode } from './systems/stepSystem.js';
 import { GameState, PrepMode, ActionState } from './states.js';
 import { sceneFor } from './scene.js';
@@ -130,6 +131,8 @@ export function createGame(levelId) {
     hudPulses: {},               // resource → endElapsed when a swept item landed on its counter
     nextEntityId: 1,
     enemies: [],       // all living enemies, every type (M1e §3.4)
+    bodies: [],        // M3b §3: bodies waiting to rise
+    ashes: [],         // M3b §3.1: risers burnt to ash (visual only)
     meleeSlots: createMeleeSlots(scene.level.druidPos),
     spawnQueues: [],   // the current wave's spawns per lane (M2i §2)
     wavePlans: [],     // every wave's spawns per lane, lanes resolved at encounter start
@@ -215,10 +218,12 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.coneBursts = [];         // M2o §4.2: Cinderjaw breaths { x, y, aim, half, range, level, age } (visual only)
   game.emberJumps = [];         // M2o §4.2: Wildfire embers { from, toId, to, age } (visual only)
   game.healSparkles = [];       // M2l §2.2: { enemyId, age } when a bite healed its biter (visual only)
-  game.traitStats = { armorBlocked: 0, splashDamage: 0, lifestealHealed: 0, twinShotDamage: 0, corrosionExtra: 0, wildfireSpreads: 0 }; // M2l §4, M2m §3, M2o §5: this battle's figures
+  game.traitStats = { armorBlocked: 0, splashDamage: 0, lifestealHealed: 0, twinShotDamage: 0, corrosionExtra: 0, wildfireSpreads: 0, rises: 0, burnedToAsh: 0 }; // M2l §4, M2m §3, M2o §5, M3b §6: this battle's figures
   game.shake = null;            // M2c §2.5: { age } of the screen shake after a blow (drawing only)
   game.nextEntityId = 1;
   game.enemies = [];
+  game.bodies = [];  // M3b §3: bodies waiting to rise (riseSystem.js)
+  game.ashes = [];   // M3b §3.1: risers burnt to ash (visual only)
   game.meleeSlots = createMeleeSlots(level.druidPos);
   game.wavePlans = buildWavePlans(level, game.lanes, game.rng);
   game.spawnQueues = [];
@@ -488,6 +493,7 @@ export function spawnDebugBear(game, type = 'bear') {
 // error if the level's corridors are too narrow for it. Shift+O: a Grim Ogre (M2l §4).
 export function spawnDebugOgre(game, type = 'ogre') {
   if (game.state !== GameState.COMBAT) return false;
+  type = C.regionalEnemy(type, game.scene.level.region); // M3b §1: the Drowned Knight in Hag's Causeway
   const width = corridorWidth(game.scene.level);
   if (!fitsCorridor(type, width)) {
     console.error(`${game.levelId}: corridors are ${width} px, too narrow for the ${C.ENEMY_TYPES[type].name} (needs ${2 * C.ENEMY_TYPES[type].radius + 2})`);
@@ -564,6 +570,7 @@ export function updateGame(game, dt) {
       updateSquirrels(game, dt);
       updateWisps(game, dt);         // M2k §3.3: Slow Wisps fly and burst
       updateBurns(game);             // M2o §2.2: burn ticks (before burns run out)
+      updateBodies(game, dt);        // M3b §3: bodies waiting to rise stand up
       updateStatuses(game);          // M2k §3.4: timed statuses (slowed) run out
       updateDoubles(game, dt);       // Bough Double jobs (M1i §2)
       updateMelee(game, dt);

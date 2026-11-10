@@ -67,6 +67,7 @@ export function drawDebugOverlay(ctx, game, scene, revealItem = false) {
   drawCandidates(ctx, game, scene);
 
   drawEnemies(ctx, game);
+  drawRisingAndSinking(ctx, game);
   drawTurretTargets(ctx, game);
   drawCinderjawCones(ctx, game); // M2o §5
   drawVultureTargets(ctx, game);
@@ -425,7 +426,7 @@ function drawEnemies(ctx, game) {
         ctx.stroke();
       }
     }
-    const tag = w.type === 'wolf' ? '' : `${C.ENEMY_TYPES[w.type].name} `;
+    const tag = (w.type === 'wolf' ? '' : `${C.ENEMY_TYPES[w.type].name} `) + (w.risen ? 'RISEN ' : ''); // M3b §6: risen enemies marked
     const slots = w.slots.length ? ` s${w.slots.join('+')}` : '';
     label(ctx, `${tag}#${w.id} ${w.blockedBy !== null ? 'blocked' : STATE_TAGS[w.state]}${slots}`, w.x - 14, w.y + w.radius + 14);
     // Wind-up attackers (the Ogre, M2c §4): a line to each claimed melee slot and the wind-up timer.
@@ -444,6 +445,12 @@ function drawEnemies(ctx, game) {
       label(ctx, timer, w.x - 14, w.y + w.radius + 30);
     }
   }
+}
+
+// M3b §6: bodies waiting to rise, with their countdown; drops sinking into the mire, with theirs.
+function drawRisingAndSinking(ctx, game) {
+  for (const b of game.bodies) label(ctx, `body #${b.enemy.id} rises in ${Math.max(0, b.timer).toFixed(1)}s`, b.enemy.x - 30, b.enemy.y + b.enemy.radius + 14);
+  for (const d of game.drops) if (d.sunk) label(ctx, `${Math.max(0, C.DROP_SINK_TIME - d.sunk).toFixed(1)}`, d.x - 8, d.y + 16);
 }
 
 function drawDruid(ctx, game) {

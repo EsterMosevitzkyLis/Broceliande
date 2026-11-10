@@ -5,6 +5,8 @@
 
 import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, LEVEL_GEOMETRY, PLACE_PALETTES, TRADER_LINE_KINDS, PLACEHOLDER_LEVELS } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
+
+const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss']; // M3b §1
 import { STAT_KEYS } from '../stats.js';
 
 export function validateTables(t, problems) {
@@ -73,9 +75,10 @@ export function validateTables(t, problems) {
       else if (base.baseType !== undefined) err('enemies', r, 'baseType', `"${r.baseType}" is itself a variant; name its base row`);
       continue;
     }
-    for (const c of ['hp', 'speed', 'radius', 'damage', 'attackInterval', 'meleeSlots', 'hitHeight']) {
+    for (const c of ['hp', 'speed', 'radius', 'damage', 'attackInterval', 'meleeSlots', 'hitHeight', 'role']) {
       if (r[c] === undefined) err('enemies', r, c, 'a value is required (only variant rows with a baseType may leave it blank)');
     }
+    if (r.role !== undefined && !ENEMY_ROLES.includes(r.role)) err('enemies', r, 'role', `role must be one of ${ENEMY_ROLES.join(', ')}`);
   }
   for (const r of t.enemies) {
     const m = { ...enemyRows[r.baseType], ...r };
@@ -150,6 +153,7 @@ export function validateTables(t, problems) {
     for (const col of ['traders', 'tinkers']) if (r[col] < 0) err('regions', r, col, `${col} must be 0 or more`);
   }
   if (!t.regions.length) err('regions', '', 'id', 'no regions');
+  for (const r of t.enemies) known('enemies', r, 'region', regions, 'region'); // M3b §1: blank = every region
 
   // levels: each has its geometry in code, and vice versa; candidates, a palette, waves.
   // A placeholder level (M3a §1.3, config.js PLACEHOLDER_LEVELS) uses another level's.

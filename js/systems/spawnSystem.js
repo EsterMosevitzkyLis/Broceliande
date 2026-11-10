@@ -77,7 +77,8 @@ function trySpawn(game, lane, type, first = true) {
   if (game.wave) { game.wave.spawned++; game.wave.lastSpawnAt = game.waveTime; } // this wave's figures (M2i §7); its gap timer
   // A mini-boss arrives (M2c §2.6): banner, its lane's entrance pulses red, roar (audio).
   if (t.boss) {
-    game.bossAnnouncement = { text: `${/^[AEIOU]/.test(t.name) ? 'An' : 'A'} ${t.name} approaches!`, age: 0 }; // "A Grim Ogre approaches!" (M2l §1.1)
+    // Its banner (M3b: enemies tab), else "A Grim Ogre approaches!" (M2l §1.1).
+    game.bossAnnouncement = { text: t.banner ?? `${/^[AEIOU]/.test(t.name) ? 'An' : 'A'} ${t.name} approaches!`, age: 0 };
     game.lanePulses.push({ laneId: lane.id, age: 0 });
   }
   events.emit('enemySpawned', { type, lane: lane.id, first }); // first: of its burst (one flock sound)
@@ -86,8 +87,10 @@ function trySpawn(game, lane, type, first = true) {
 
 // Debug keys B (M1e §6), O (M2c §4) and S (M2h §6): queue `count` enemies of the type at the
 // start of a random lane, from now, spaced by its burst stagger. They spawn as soon as the entry
-// point is clear. Uses the seeded RNG.
+// point is clear. Uses the seeded RNG. M3b §1: the type is the level's region's enemy for that
+// role (B in Hag's Causeway queues a Mirebound Brute).
 export function queueDebugEnemy(game, type, count = 1) {
+  type = C.regionalEnemy(type, game.scene.level.region);
   const queue = game.spawnQueues[game.rng.int(0, game.spawnQueues.length - 1)];
   const stagger = C.ENEMY_TYPES[type].burstStagger ?? C.BURST_STAGGER;
   for (let k = 0; k < count; k++) queue.spawns.push({ time: game.waveTime + k * stagger, type, first: k === 0 });

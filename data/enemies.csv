@@ -1,9 +1,15 @@
-id,name,plural,hp,speed,radius,collisionRadius,damage,attackInterval,windup,meleeSlots,flying,flyHeight,hitHeight,burstStagger,dropSpacing,keepSide,sideWander,boss,stepSoundInterval,baseType,variant,slowResist,armor,splashRatio,splashRadius,lifesteal,drawScale,soundPitch
-wolf,Wolf,Wolves,17,82,16,,2,1.4,,1,,,10,,,,,,,,,,,,,,,
-bear,Bear,Bears,90,48,26,,8,2,,2,,,20,,,,,,,,,,,,,,,
-ogre,Ogre,Ogres,450,30,52,30,25,3.5,0.8,3,,,46,,24,TRUE,4,TRUE,0.8,,,,,,,,,
-stirge,Stirge,Stirges,6,144,12,,0.5,0.6,,0,TRUE,18,24,0.3,,,,,,,,,,,,,,
-grimWolf,Grim Wolf,Grim Wolves,25,,,,4,,,,,,,,,,,,,wolf,grim,0.5,,,,,1.1,0.85
-grimBear,Grim Bear,Grim Bears,125,,,,10,,,,,,,,,,,,,bear,grim,,1,,,,1.1,0.85
-grimOgre,Grim Ogre,Grim Ogres,630,,,,32,,,,,,,,,,,,,ogre,grim,,,0.5,50,,1,0.85
-grimStirge,Grim Stirge,Grim Stirges,8,,,,,0.45,,,,,,,,,,,,stirge,grim,,,,,0.25,1.1,0.85
+id,name,plural,hp,speed,radius,collisionRadius,damage,attackInterval,windup,meleeSlots,flying,flyHeight,hitHeight,burstStagger,dropSpacing,keepSide,sideWander,boss,stepSoundInterval,baseType,variant,slowResist,armor,splashRatio,splashRadius,lifesteal,drawScale,soundPitch,role,rises,region,banner
+wolf,Wolf,Wolves,17,82,16,,2,1.4,,1,,,10,,,,,,,,,,,,,,,,swarm,,cinderwood,
+bear,Bear,Bears,90,48,26,,8,2,,2,,,20,,,,,,,,,,,,,,,,brute,,cinderwood,
+ogre,Ogre,Ogres,450,30,52,30,25,3.5,0.8,3,,,46,,24,TRUE,4,TRUE,0.8,,,,,,,,,,miniboss,,cinderwood,An Ogre approaches!
+stirge,Stirge,Stirges,6,144,12,,0.5,0.6,,0,TRUE,18,24,0.3,,,,,,,,,,,,,,,flyer,,,
+grimWolf,Grim Wolf,Grim Wolves,25,,,,4,,,,,,,,,,,,,wolf,grim,0.5,,,,,1.1,0.85,,,,
+grimBear,Grim Bear,Grim Bears,125,,,,10,,,,,,,,,,,,,bear,grim,,1,,,,1.1,0.85,,,,
+grimOgre,Grim Ogre,Grim Ogres,630,,,,32,,,,,,,,,,,,,ogre,grim,,,0.5,50,,1,0.85,,,,A Grim Ogre approaches!
+grimStirge,Grim Stirge,Grim Stirges,8,,,,,0.45,,,,,,,,,,,,stirge,grim,,,,,0.25,1.1,0.85,,,,
+thrall,Drowned Thrall,Drowned Thralls,22,62,16,,2.5,1.4,,1,,,10,,,,,,,,,,,,,,,,swarm,TRUE,hags,
+brute,Mirebound Brute,Mirebound Brutes,110,44,27,,9,2,,2,,,20,,,,,,,,,,,,,,,,brute,TRUE,hags,
+knight,The Drowned Knight,Drowned Knights,520,28,52,30,28,3.5,0.8,3,,,46,,24,TRUE,4,TRUE,0.8,,,,2,,,,,,miniboss,TRUE,hags,The Drowned Knight wades out of the water!
+grimThrall,Grim Drowned Thrall,Grim Drowned Thralls,30,,,,3.2,,,,,,,,,,,,,thrall,grim,0.5,,,,,1.1,0.85,,,,
+grimBrute,Grim Mirebound Brute,Grim Mirebound Brutes,150,,,,11,,,,,,,,,,,,,brute,grim,,1,,,,1.1,0.85,,,,
+grimKnight,Grim Drowned Knight,Grim Drowned Knights,700,,,,34,,,,,,,,,,,,,knight,grim,,,0.5,50,,1,0.85,,,,A Grim Drowned Knight wades out of the water!

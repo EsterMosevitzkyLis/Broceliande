@@ -12,6 +12,7 @@ import { corrodeMult, applyBurn } from './statusSystem.js';
 import { spreadWildfire } from './burnSystem.js';
 import { isBeingUpgraded } from './doubleSystem.js';
 import { events } from '../events.js';
+import { willRise, layBody, burnToAsh } from './riseSystem.js';
 
 const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
 
@@ -333,6 +334,16 @@ export function killEnemy(game, enemy) {
   if (i === -1) return;
   game.enemies.splice(i, 1);
   for (const s of enemy.slots) game.meleeSlots[s].enemyId = null;
+  enemy.slots = [];
+  // M3b §3: rising dead. A first death leaves a body that rises again (no drops yet); dying while
+  // burning instead burns it to ash, and it stays dead.
+  if (willRise(game, enemy)) {
+    if (!enemy.statuses.burning) {
+      layBody(game, enemy);
+      return;
+    }
+    burnToAsh(game, enemy);
+  }
   game.enemyCounts[enemy.type].alive--;
   game.enemyCounts[enemy.type].killed++;
   events.emit('enemyDied', { type: enemy.type, x: enemy.x, y: enemy.y });

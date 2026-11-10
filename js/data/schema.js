@@ -18,6 +18,7 @@ export const GLOBAL_TYPES = {
   STIRGE_DRUID_RING: 'number', STIRGE_WANDER_SPEED: 'number', STIRGE_WANDER_INTERVAL: 'list',
   STIRGE_SEPARATION: 'number', STIRGE_SEPARATION_SPEED: 'number', CLOUDS_HIT_FLYERS: 'bool',
   BURST_STAGGER: 'number', FIRST_WAVE_DELAY: 'number', WAVE_GAP_AFTER_LAST_SPAWN: 'number',
+  RISE_DELAY: 'number', RISE_HP_FRAC: 'number', DROP_SINK_TIME: 'number',
   CORRIDOR_WIDTH: 'number', RANDOMISE_LAYOUT: 'bool', FIXED_LAYOUT_SEED: 'int',
   LOCATION_RADIUS: 'number', LOCATION_JITTER: 'number', LOCATION_GAP: 'number', LANE_MIN_TURRET_SLOTS: 'int',
   FEATURE_ROUTE_MIN_FACTOR: 'number', FEATURE_ROUTE_MAX_FACTOR: 'number', MAX_LAYOUT_ATTEMPTS: 'int',
@@ -64,6 +65,9 @@ export const TABS = {
       slowResist: { type: 'number' }, armor: { type: 'number' }, splashRatio: { type: 'number' }, splashRadius: { type: 'number' },
       lifesteal: { type: 'number' },
       drawScale: { type: 'number' }, soundPitch: { type: 'number' }, // drawing size only; its sounds' pitch multiplier
+      // M3b §1–§3: role (swarm, brute, miniboss, flyer, boss), rises again (rising dead), region
+      // (blank: every region) and a boss's arrival banner.
+      role: { type: 'id' }, rises: { type: 'bool' }, region: { type: 'id' }, banner: { type: 'text' },
     },
   },
   drops: { columns: { enemy: { type: 'id', required: true }, resource: { type: 'id', required: true }, chance: { type: 'number', required: true }, min: { type: 'int', required: true }, max: { type: 'int', required: true } } },

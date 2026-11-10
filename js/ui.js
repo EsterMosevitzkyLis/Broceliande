@@ -7,7 +7,7 @@ import { GameState, ActionState, WaveState } from './states.js';
 import { laneStats, expectedResources, candidateProblems } from './scene.js';
 import { routeBand, generateLayout } from './layout.js';
 import { zoneIds, zoneQuota, zoneCandidates, quotaTotals } from './zones.js';
-import { corridorWidth, featureMix, stuckTime, levelWaves, waveTotals, levelTotals } from './levelSettings.js';
+import { corridorWidth, featureMix, stuckTime, levelWaves, waveTotals, levelTotals, regionTwist } from './levelSettings.js';
 import { waveCount, waveEnemiesLeft } from './systems/waveSystem.js';
 import { createRng } from './rng.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
@@ -78,7 +78,8 @@ function traitDebugLine(game) {
   if (!s) return 'Grim traits: —';
   const n = (v) => (Number.isInteger(v) ? v : v.toFixed(2));
   return `Grim traits: armor blocked ${n(s.armorBlocked)}  splash ${n(s.splashDamage)}  lifesteal healed ${n(s.lifestealHealed)}\n`
-    + `Level 5:     Twin shot 2nd pebbles ${n(s.twinShotDamage)}  Corrosion extra ${n(s.corrosionExtra)}`; // M2m §3
+    + `Level 5:     Twin shot 2nd pebbles ${n(s.twinShotDamage)}  Corrosion extra ${n(s.corrosionExtra)}\n` // M2m §3
+    + `Rising dead: ${regionTwist(game.scene.level, 'risingDead') ? 'on' : 'off'}  rises ${s.rises}  burned to ash ${s.burnedToAsh}  bodies waiting ${game.bodies.length}`; // M3b §6
 }
 
 // Waves (M2i §7): the wave and its sub-state, this wave's spawned / alive / left, and the countdown.
@@ -153,11 +154,12 @@ function turretDebugLines(game) {
 
 // Enemy drop figures for this encounter (M1d §3).
 function dropDebugLines(game) {
-  const { dropped, collected } = game.dropStats;
+  const { dropped, collected, lost } = game.dropStats;
   const sum = (o) => RESOURCE_KEYS.reduce((a, k) => a + o[k], 0);
   const per = resourceLine;
+  const mire = regionTwist(game.scene.level, 'sinkingDrops') ? `  lost to the mire ${sum(lost)}` : ''; // M3b §6
   return [
-    `Drops (×${game.dropMult}, X toggles): dropped ${sum(dropped)}  collected ${sum(collected)}  on field ${game.drops.length}`,
+    `Drops (×${game.dropMult}, X toggles): dropped ${sum(dropped)}  collected ${sum(collected)}  on field ${game.drops.length}${mire}`,
     `  dropped:   ${per(dropped)}`,
     `  collected: ${per(collected)}`,
   ];
@@ -496,7 +498,7 @@ function livingBoss(game) {
 // Wave preview (M2i §4.2): during the countdown and gaps, the next wave's number, countdown and
 // enemies (icons with counts, an Ogre outlined in red), with Call next wave.
 // Enemy types in display order: by base type, each followed by its variants (a Grim, M2l §2.1).
-const PREVIEW_ORDER = ['wolf', 'stirge', 'bear', 'ogre'];
+const PREVIEW_ORDER = ['wolf', 'thrall', 'stirge', 'bear', 'brute', 'ogre', 'knight'];
 function enemyDisplayOrder() {
   const rank = (type) => {
     const base = C.ENEMY_TYPES[type].baseType;

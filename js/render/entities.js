@@ -147,6 +147,11 @@ export function drawDrop(ctx, drop, t) {
     return;
   }
 
+  if (drop.sunk) { // M3b §4: sinking into the mire
+    drawSinkingDrop(ctx, drop, img, size, t);
+    ctx.restore();
+    return;
+  }
   // Squash on touchdown, settling back to shape over DROP_SETTLE_TIME.
   const settle = Math.min(1, (flight - C.DROP_POP_TIME) / C.DROP_SETTLE_TIME);
   const squash = 0.28 * (1 - settle);
@@ -554,6 +559,38 @@ function drawDruidBody(ctx, x, y, r, feet, hurt, staffAngle) {
   }
 }
 
+// M3b §4: a landed drop sinking into the mire: it settles lower (its bottom hidden under the mire
+// line), darkens and shrinks, with a few bubbles; in its last DROP_SINK_BLINK_TIME s it blinks.
+function drawSinkingDrop(ctx, drop, img, size, t) {
+  const f = Math.min(1, drop.sunk / C.DROP_SINK_TIME);
+  const left = C.DROP_SINK_TIME - drop.sunk;
+  const scale = 1 - C.DROP_SINK_SHRINK * f;
+  const w = size * scale;
+  const line = drop.y + size * 0.42; // the mire's surface: the drop's resting bottom
+  const bottom = line + size * C.DROP_SINK_DEPTH * f;
+  ctx.fillStyle = `rgba(20, 30, 22, ${0.35 + 0.3 * f})`; // a dark ring of mire round it
+  ctx.beginPath();
+  ctx.ellipse(drop.x, line, w * 0.5, w * 0.14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (left < C.DROP_SINK_BLINK_TIME) ctx.globalAlpha *= 0.55 + 0.45 * Math.cos(t * Math.PI * 4 + drop.id);
+  if (img.complete) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(drop.x - size, line - size * 2, size * 2, size * 2); // nothing below the surface
+    ctx.clip();
+    ctx.filter = `brightness(${1 - 0.55 * f})`;
+    ctx.drawImage(img, drop.x - w / 2, bottom - w, w, w);
+    ctx.restore();
+  }
+  ctx.fillStyle = 'rgba(190, 220, 200, 0.55)'; // bubbles
+  for (let i = 0; i < 3; i++) {
+    const k = (t * 0.8 + i / 3 + drop.id * 0.13) % 1;
+    ctx.beginPath();
+    ctx.arc(drop.x + (i - 1) * w * 0.3, line - k * size * 0.5, 1.2 + (1 - k) * 1.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 // Grim variants (M2l §2.1, reworked): base colours, plus glowing ember cracks across the body, one
 // silhouette feature per type (mane, back spikes, barbed wings, horns and spiked club) and ember
 // eyes. The pulsing ember outline and the smoke are added around the drawing by enemyLook.js.
@@ -565,14 +602,15 @@ const WOLF_LOOK = { body: COLORS.wolf, dark: COLORS.wolfDark, hit: COLORS.wolfHi
 const GRIM_BONE = '#ddd2b8';      // spikes and horns
 const GRIM_BONE_EDGE = '#7d705a';
 
-// Glowing ember crack lines, each a polyline [[x, y], …] in the draw function's own units.
-function drawCracks(ctx, lines, width) {
+// Glowing ember crack lines, each a polyline [[x, y], …] in the draw function's own units
+// (M3b: the undead's in cold green, color UNDEAD_CRACK_COLOR).
+export function drawCracks(ctx, lines, width, color = C.GRIM_CRACK_COLOR) {
   ctx.save();
-  ctx.strokeStyle = C.GRIM_CRACK_COLOR;
+  ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.shadowColor = C.GRIM_CRACK_COLOR;
+  ctx.shadowColor = color;
   ctx.shadowBlur = 4;
   ctx.beginPath();
   for (const line of lines) {
@@ -583,7 +621,7 @@ function drawCracks(ctx, lines, width) {
 }
 
 // A filled polygon from [[x, y], …].
-function fillPoly(ctx, points, fill, edge = null, edgeWidth = 1) {
+export function fillPoly(ctx, points, fill, edge = null, edgeWidth = 1) {
   ctx.beginPath();
   points.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
   ctx.closePath();
@@ -597,32 +635,37 @@ function fillPoly(ctx, points, fill, edge = null, edgeWidth = 1) {
 }
 
 // An enemy's eye at (x, y), size its radius: the usual red eye with a faint glow, or a Grim's
-// brighter ember eye with a soft halo and a hot centre.
-function drawEyes(ctx, x, y, size, grim) {
+// brighter ember eye with a soft halo and a hot centre. cold (M3b §2, the undead): pale, cold green.
+const EYES = {
+  warm: { glow: null, eye: null, halo: ['255, 110, 30', '255, 70, 20', '255, 60, 20'], ring: '#ff5a1a', core: '#ffd890' },
+  cold: { glow: 'rgba(150, 255, 190, 0.35)', eye: '#b8ffd2', halo: ['150, 255, 190', '90, 230, 150', '80, 220, 140'], ring: '#5ae894', core: '#e8fff0' },
+};
+export function drawEyes(ctx, x, y, size, grim, cold = false) {
+  const E = cold ? EYES.cold : EYES.warm;
   if (!grim) {
-    ctx.fillStyle = COLORS.wolfEyeGlow;
+    ctx.fillStyle = E.glow ?? COLORS.wolfEyeGlow;
     ctx.beginPath();
     ctx.arc(x, y, size * 2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = COLORS.wolfEye;
+    ctx.fillStyle = E.eye ?? COLORS.wolfEye;
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.fill();
     return;
   }
   const halo = ctx.createRadialGradient(x, y, 0, x, y, size * 3.6);
-  halo.addColorStop(0, 'rgba(255, 110, 30, 0.75)');
-  halo.addColorStop(0.45, 'rgba(255, 70, 20, 0.3)');
-  halo.addColorStop(1, 'rgba(255, 60, 20, 0)');
+  halo.addColorStop(0, `rgba(${E.halo[0]}, 0.75)`);
+  halo.addColorStop(0.45, `rgba(${E.halo[1]}, 0.3)`);
+  halo.addColorStop(1, `rgba(${E.halo[2]}, 0)`);
   ctx.fillStyle = halo;
   ctx.beginPath();
   ctx.arc(x, y, size * 3.6, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#ff5a1a';
+  ctx.fillStyle = E.ring;
   ctx.beginPath();
   ctx.arc(x, y, size * 1.15, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#ffd890';
+  ctx.fillStyle = E.core;
   ctx.beginPath();
   ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
   ctx.fill();
@@ -632,18 +675,19 @@ function drawEyes(ctx, x, y, size, grim) {
 // rising and fading over its cycle, with a few tiny ember sparks rising faster through them.
 // Drawn from the animation clock alone (no particles to update). top: y of the top of its body;
 // width: how far apart the puffs start; r: puff scale.
-export function drawGrimSmoke(ctx, x, top, width, r, anim, seed) {
+export function drawGrimSmoke(ctx, x, top, width, r, anim, seed, mist = false) {
   ctx.save();
+  const rgb = mist ? C.UNDEAD_MIST_RGB : C.GRIM_SMOKE_RGB; // M3b §2: the undead's pale mist, no sparks
   for (let i = 0; i < C.GRIM_SMOKE_PUFFS; i++) {
     const k = (anim * C.GRIM_SMOKE_RATE + i / C.GRIM_SMOKE_PUFFS + seed * 0.37) % 1;
     const px = x + (((i * 0.618 + seed * 0.29) % 1) - 0.5) * width + Math.sin(k * 5 + i) * r * 0.15;
     const py = top - k * r * C.GRIM_SMOKE_RISE;
-    ctx.fillStyle = `rgba(${C.GRIM_SMOKE_RGB}, ${C.GRIM_SMOKE_ALPHA * Math.sin(k * Math.PI)})`;
+    ctx.fillStyle = `rgba(${rgb}, ${C.GRIM_SMOKE_ALPHA * (mist ? 0.7 : 1) * Math.sin(k * Math.PI)})`;
     ctx.beginPath();
     ctx.arc(px, py, r * (0.2 + 0.26 * k), 0, Math.PI * 2);
     ctx.fill();
   }
-  for (let i = 0; i < C.GRIM_SPARKS; i++) {
+  for (let i = 0; i < (mist ? 0 : C.GRIM_SPARKS); i++) {
     const k = (anim * C.GRIM_SPARK_RATE + i / C.GRIM_SPARKS + seed * 0.53) % 1;
     const px = x + (((i * 0.41 + seed * 0.17) % 1) - 0.5) * width * 0.8 + Math.sin(k * 9 + i * 2) * r * 0.12;
     const py = top + r * 0.2 - k * r * C.GRIM_SMOKE_RISE * 1.1;
@@ -776,7 +820,10 @@ export function drawDruidHpBar(ctx, x, y, hp, maxHp = C.DRUID_HP) {
 
 // Enemy HP bars (§13, M1e §3.4): hidden until first damage; sized to the sprite.
 // lift: bar height above the collision centre, × radius; width in px.
-const HP_BAR = { wolf: { lift: 2.9, width: 30 }, bear: { lift: 1.75, width: 48 }, ogre: { lift: 2.15, width: 90 }, stirge: { lift: 3.1, width: 22 } }; // stirge: above its flying body
+const HP_BAR = {
+  wolf: { lift: 2.9, width: 30 }, bear: { lift: 1.75, width: 48 }, ogre: { lift: 2.15, width: 90 }, stirge: { lift: 3.1, width: 22 }, // stirge: above its flying body
+  thrall: { lift: 3.3, width: 30 }, brute: { lift: 2.2, width: 48 }, knight: { lift: 2.35, width: 90 }, // M3b §2
+};
 
 // Mini-bosses (M2c §2.7) keep theirs visible all the time.
 export function drawEnemyHpBar(ctx, enemy) {

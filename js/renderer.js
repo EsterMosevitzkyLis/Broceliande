@@ -26,6 +26,7 @@ import { drawSlotFloater } from './render/items.js';
 import { drawWisp, drawWispTarget, drawWispGhost, drawWispBurst, drawSlowSpiral } from './render/wisp.js';
 import { isSlowed, isCorroded, isBurning } from './systems/statusSystem.js';
 import { drawEnemyLook } from './render/enemyLook.js'; // an enemy's look, Grims included (M2l §2.1)
+import { drawBody, drawAsh } from './render/undead.js';   // M3b §3.3: the rising dead
 import { drawShowcase } from './debug/showcase.js';
 
 const HIT_FLASH_TIME = 0.15; // s of hit flash on the Druid (bite) or an enemy (pebble); visual only
@@ -106,6 +107,9 @@ export function createRenderer(canvas) {
     for (const cloud of game.clouds) drawCloud(ctx, cloud, cloud.spec.radius, cloud.spec.duration);
     // Dust rings where Ogre blows land (M2c §2.5), on the ground.
     for (const d of game.dustRings) drawDustRing(ctx, d, d.age / C.OGRE_DUST_TIME);
+    // M3b §3.3: bodies slumped in the mire waiting to rise, and risers burnt to ash, on the ground.
+    for (const b of game.bodies) drawBody(ctx, b, b.age / (b.age + Math.max(0, b.timer)), animationTime(game), (fig) => drawEnemyLook(ctx, fig, false, false, animationTime(game), { smoke: false }));
+    for (const a of game.ashes) drawAsh(ctx, a, a.age / C.ASH_TIME);
     drawRanges(ctx, game, view);
     // Committed route trail (M1h §1): the footprints of every leg so far, under anything upright.
     if (isPrep && isStepMode(game)) drawTrail(ctx, game.trail);
