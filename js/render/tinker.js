@@ -5,7 +5,7 @@
 // (§4.3): the forge flares, the hammer strikes the anvil, and the item bursts out in sparks.
 
 import * as C from '../config.js';
-import { drawPlaceScene } from './placeScene.js';
+import { drawPlaceScene, placePaletteId } from './placeScene.js';
 import { drawShadow } from './environment.js';
 import { drawFramedItemIcon } from './items.js';
 
@@ -25,13 +25,14 @@ const COLORS = {
   spark: '255, 210, 120',
 };
 
-// The whole scene for the visit (game.tinker). t: the visit's clock, s.
-export function drawTinkerScene(ctx, visit, t) {
-  const P = C.PLACE_PALETTE.tinker;
+// The whole scene for the visit (game.tinker). t: the visit's clock, s. regionId: the run's region (M3a §5.3).
+export function drawTinkerScene(ctx, visit, t, regionId) {
+  const id = placePaletteId('tinker', regionId);
+  const P = C.PLACE_PALETTE[id];
   const age = t - visit.craftAt; // s since the last Craft
   const flare = age >= 0 && age < C.CRAFT_ANIM.end ? Math.sin(Math.min(1, age / C.CRAFT_ANIM.end) * Math.PI) : 0;
   drawPlaceScene(ctx, {
-    id: 'tinker',
+    id,
     drawProps: (c) => {
       drawRuins(c, P);
       drawForge(c, C.TINKER_SCENE.forge, P, t, flare);

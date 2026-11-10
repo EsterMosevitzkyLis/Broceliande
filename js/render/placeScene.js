@@ -15,6 +15,13 @@ import { drawDruid, DRUID_REST_POSE } from './entities.js';
 
 const backdrops = new Map(); // place id → its decoration list, built once (visual only)
 
+// M3a §5.3: the palette id of a place in a region: its region's own version (trader + 'Hags' =
+// 'traderHags', a cooler, damper clearing) if the palettes tab has one, else the place's.
+export function placePaletteId(placeId, regionId) {
+  const own = `${placeId}${regionId ? regionId[0].toUpperCase() + regionId.slice(1) : ''}`;
+  return C.PLACE_PALETTE[own] ? own : placeId;
+}
+
 // The background decoration: big trees along the clearing's back edge and bushes on its sides,
 // from a fixed seed so the place looks the same every visit.
 function backdropOf(placeId) {

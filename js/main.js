@@ -1,7 +1,7 @@
 // Bootstrap, stage scaling and the fixed-timestep loop (spec §3.4, §3.5).
 
 import * as C from './config.js';
-import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow } from './game.js';
+import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion } from './game.js';
 import { createInput } from './input.js';
 import { createRenderer } from './renderer.js';
 import { createUI, checkLevelNameLabel, checkBossBar, checkWavePreview } from './ui.js';
@@ -13,7 +13,7 @@ import { ActionState } from './states.js';
 import { undoLastMove } from './systems/actionSystem.js';
 import { toggleDropMult } from './systems/dropSystem.js';
 import { initAudio, toggleMute } from './audio.js';
-import { isRunComplete, availableNodeAt, validateMap, regenerateMap, addItem, equipItem, unequipSlot, randomUnownedItem, markSlotSeen } from './run.js';
+import { isRunComplete, availableNodeAt, validateMap, regenerateMap, addItem, equipItem, unequipSlot, randomUnownedItem, markSlotSeen, regionStartNode } from './run.js';
 import { createEquipmentPanel } from './equipmentPanel.js';
 import { validateItems } from './stats.js';
 import { createRng, makeRandomSeed } from './rng.js';
@@ -52,10 +52,10 @@ fitStage();
 validateConfig();
 
 validateLevels(); // every level's scene checks (M2a §5.1)
-validateMap();    // MAP_NODES levels, types and rows (M2a §4.1, M2g §1)
+validateMap();    // MAP_NODES levels, types and rows, per region (M2a §4.1, M2g §1, M3a §1.2)
 validateItems();  // ITEMS slots, stats and ops (M2e §2)
 
-const game = createGame(C.MAP_NODES.find((n) => n.id === C.MAP_START_NODE).levelId);
+const game = createGame(regionStartNode(C.REGION_ORDER[0]));
 // Acts on simulation time only. speed: the speed in effect this frame, the player's chosen speed in
 // Combat and ×1 everywhere else (M2k §1.2); paused: debug P.
 const clock = { speed: 1, paused: false };
@@ -84,13 +84,22 @@ function startNewRun() {
   afterRestart();
 }
 
-// The Victory / Defeat overlay's button (M2a §4.4): Continue back to the map while the run goes
-// on, otherwise Start again.
+// The Victory / Defeat overlay's button (M2a §4.4): Continue back to the map (or, after a region's
+// boss, to the crossing, M3a §3) while the run goes on; after a death in a region that keeps part of
+// what the player had, Return to it (M3a §4); otherwise Start again.
 function endButton() {
   const goOn = game.state === GameState.VICTORY && !isRunComplete(game.run);
   if (goOn) continueRun(game);
+  else if (game.state === GameState.DEFEAT && game.deathLoss) returnToRegion(game);
   else startNewRun();
   afterRestart();
+}
+
+// M3a §3: the crossing dialog's button fades to black (CROSSING_FADE_TIME / 2), then the next
+// region's map fades in. Visual timing only (wall-clock); the crossing itself is one step.
+let crossingFadeFrom = null;
+function startCrossing() {
+  crossingFadeFrom = performance.now();
 }
 
 // Debug [ / ] (M2a §8): jump to the previous / next level in LEVELS, starting its Prep with the
@@ -110,6 +119,8 @@ const renderer = createRenderer(canvas);
 const ui = createUI({
   onStartCombat: () => interaction.onStartCombat(),
   onEndButton: endButton,
+  onAbandon: () => { startNewRun(); },          // M3a §4: Abandon the run
+  onCross: startCrossing,                       // M3a §3: Enter the next region
   onMenuAction: (option) => interaction.onMenuAction(option),
   onSummonCard: (kind) => interaction.onSummonKey(kind),
   onToggleMute: toggleMute,
@@ -153,13 +164,29 @@ const tinkerScreen = createTinkerScreen({
 const sceneFade = document.getElementById('scene-fade');
 let fadeLastState = null;
 let mapFadeFrom = null; // performance.now() when the map came back after a place scene
+let mapFadeTime = C.TRADER_FADE_TIME;
 function updateSceneFade(opacity) {
+  if (game.state === GameState.CROSSING && crossingFadeFrom !== null) {
+    const k = (performance.now() - crossingFadeFrom) / 1000 / (C.CROSSING_FADE_TIME / 2);
+    opacity = Math.max(opacity, k);
+    if (k >= 1) {
+      crossingFadeFrom = null;
+      crossRegion(game);
+      afterRestart();
+      mapFadeFrom = performance.now();
+      mapFadeTime = C.CROSSING_FADE_TIME / 2;
+      fadeLastState = game.state;
+    }
+  }
   if (game.state !== fadeLastState) {
-    if (isPlaceScene(fadeLastState) && game.state === GameState.MAP) mapFadeFrom = performance.now();
+    if (isPlaceScene(fadeLastState) && game.state === GameState.MAP) {
+      mapFadeFrom = performance.now();
+      mapFadeTime = C.TRADER_FADE_TIME;
+    }
     fadeLastState = game.state;
   }
   if (game.state === GameState.MAP && mapFadeFrom !== null) {
-    opacity = Math.max(opacity, 1 - (performance.now() - mapFadeFrom) / 1000 / C.TRADER_FADE_TIME);
+    opacity = Math.max(opacity, 1 - (performance.now() - mapFadeFrom) / 1000 / mapFadeTime);
   }
   const value = Math.max(0, Math.min(1, opacity)).toFixed(3);
   if (sceneFade.style.opacity !== value) sceneFade.style.opacity = value;
@@ -222,9 +249,10 @@ const input = createInput(stage, canvas, () => scale, {
       case 'b': spawnDebugBear(game, e.shiftKey ? 'grimBear' : 'bear'); break;
       case 'o': spawnDebugOgre(game, e.shiftKey ? 'grimOgre' : 'ogre'); break; // (an error if the corridors are too narrow)
       case 's': spawnDebugStirges(game, e.shiftKey ? 'grimStirge' : 'stirge'); break;
-      case '[': if (!isPlaceScene(game.state)) switchLevel(-1); break; // M2a §8: previous / next level in LEVELS,
-      case ']': if (!isPlaceScene(game.state)) switchLevel(1); break;  //   starting its Prep with the current resources
+      case '[': if (!isPlaceScene(game.state) && game.state !== GameState.CROSSING) switchLevel(-1); break; // M2a §8: previous / next level in LEVELS (both regions, M3a §7),
+      case ']': if (!isPlaceScene(game.state) && game.state !== GameState.CROSSING) switchLevel(1); break;  //   starting its Prep with the current resources
       case 'g': if (e.shiftKey) spawnDebugGrimWolves(game); else grantResources(game); break; // Shift+G (M2l §4): 4 Grim Wolves
+      case 'h': if (e.shiftKey && debugNextRegion(game)) afterRestart(); break; // M3a §7: Shift+H on the map, the next region's map
       case 't': if (e.shiftKey) openDebugTrader(game); break; // M2n §6: Shift+T on the map opens a trader scene
       case 'v': toggleMute(); break;                    // M1g §3.6: mute / unmute sound
       case 'x': toggleDropMult(game); break;            // M1d §3: enemy drop chances ×1 / ×DEBUG_DROP_MULT
@@ -254,7 +282,7 @@ window.broceliande = {
 // In an encounter (Prep to Victory / Defeat), not on the map or in a place scene (M2n §4): the
 // debug keys that restart or switch the encounter only work there.
 function inEncounter() {
-  return game.state !== GameState.MAP && !isPlaceScene(game.state);
+  return game.state !== GameState.MAP && game.state !== GameState.CROSSING && !isPlaceScene(game.state);
 }
 
 // M2k §1.1: the HUD speed buttons and keys 1 / 2 / 4 choose the game speed, in Combat only.
@@ -317,8 +345,8 @@ function frame(now) {
 
   // Hover is re-picked every frame so it stays correct when objects change under a still cursor.
   view.pointer = input.mouse.inside ? { x: input.mouse.x, y: input.mouse.y } : null;
-  if (isPlaceScene(game.state)) {
-    view.hover = null; // M2n §4, M2p §4: the scene's controls are HTML
+  if (isPlaceScene(game.state) || game.state === GameState.CROSSING) {
+    view.hover = null; // M2n §4, M2p §4: the scene's controls are HTML (M3a §3: and the crossing dialog's)
     view.mapHover = null;
     canvas.style.cursor = 'default';
   } else if (game.state === GameState.MAP) {

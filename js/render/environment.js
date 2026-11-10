@@ -66,21 +66,24 @@ export function drawShadow(ctx, x, y, rx, ry) {
 }
 
 // level: its palette, thornBushes (M2a §5.3) for spiky thorn bushes instead of round ones, and
-// gnarledTrees (M2b §3.3) for twisted trees, bareTrees (M2f §4.8) for pale leafless ones.
+// gnarledTrees (M2b §3.3) for twisted trees, bareTrees (M2f §4.8) for pale leafless ones,
+// charredTrees (M3a §2) for burnt, leafless orchard trees.
 export function drawDecor(ctx, item, level) {
   const palette = level.palette;
-  if (item.kind === 'tree') (level.bareTrees ? drawBareTree : level.gnarledTrees ? drawGnarledTree : drawTree)(ctx, item, palette);
+  if (item.kind === 'tree') (level.bareTrees ? drawBareTree : level.charredTrees ? drawCharredTree : level.gnarledTrees ? drawGnarledTree : drawTree)(ctx, item, palette);
   else if (item.kind === 'bush') (level.thornBushes ? drawThornBush : drawBush)(ctx, item, palette);
   else if (item.kind === 'rock') drawRock(ctx, item, palette);
   else THEMED[item.kind](ctx, item, palette);
 }
 
-// Flat ground decoration (M2b §3): water and mist patches, drawn over the floor and under the
-// corridors. Each avoids corridors and candidates (scene.js).
+// Flat ground decoration (M2b §3): water and mist patches (M3a §2: and ash pits), drawn over the
+// floor and under the corridors. Each avoids corridors and candidates (scene.js).
 export function drawFlats(ctx, scene) {
   const P = scene.level.palette;
   for (const f of scene.flats) {
-    if (f.kind === 'water') {
+    if (f.kind === 'ash') {
+      drawAshPit(ctx, f, P);
+    } else if (f.kind === 'water') {
       ctx.fillStyle = P.water.rim;
       ctx.beginPath();
       ctx.ellipse(f.x, f.y, f.rx + 6, f.ry + 5, f.rot, 0, Math.PI * 2);
@@ -114,6 +117,41 @@ export function drawFlats(ctx, scene) {
   }
 }
 
+// M3a §2: an ash pit: a sooty rim, a dark hollow, pale ash drifts and, on The Ember Road, a faint
+// ember glow at its heart.
+function drawAshPit(ctx, f, P) {
+  ctx.fillStyle = P.pit.rim;
+  ctx.beginPath();
+  ctx.ellipse(f.x, f.y, f.rx + 6, f.ry + 5, f.rot, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = P.pit.deep;
+  ctx.beginPath();
+  ctx.ellipse(f.x, f.y, f.rx, f.ry, f.rot, 0, Math.PI * 2);
+  ctx.fill();
+  if (f.glow) {
+    const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.rx * 0.7);
+    g.addColorStop(0, P.ember);
+    g.addColorStop(1, 'rgba(255, 120, 40, 0)');
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.scale(1, f.ry / f.rx);
+    ctx.translate(-f.x, -f.y);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, f.rx * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.strokeStyle = P.ash;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  for (const [dx, dy, w] of [[-0.4, -0.2, 0.25], [0.15, 0.25, 0.3], [0.3, -0.35, 0.15]]) {
+    ctx.beginPath();
+    ctx.ellipse(f.x + dx * f.rx, f.y + dy * f.ry, w * f.rx, w * f.ry * 0.3, f.rot, Math.PI * 0.1, Math.PI * 0.9);
+    ctx.stroke();
+  }
+}
+
 // Themed decoration kinds (M2b §3). Each fits its DECOR.extent entry.
 const THEMED = {
   sunkenRoof: drawSunkenRoof,
@@ -132,7 +170,115 @@ const THEMED = {
   stump: drawStump,
   weepingStone: drawWeepingStone,
   root: drawRoot,
+  charredRoof: drawCharredRoof,
+  charredBeams: drawCharredBeams,
+  scorchedStones: drawScorchedStones,
 };
+
+// M3a §2 (The Burnt Hamlet): a cottage roof fallen into its ash pit, charred black, its rafters
+// showing through the burnt thatch.
+function drawCharredRoof(ctx, { x, y, size: s, variant }, P) {
+  const tilt = (variant - 1) * 0.2;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  ctx.fillStyle = P.roof.dark;
+  ctx.beginPath();
+  ctx.moveTo(-32 * s, 0);
+  ctx.lineTo(-10 * s, -24 * s);
+  ctx.lineTo(4 * s, -18 * s);   // a burnt gap in the ridge
+  ctx.lineTo(20 * s, -26 * s);
+  ctx.lineTo(34 * s, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = P.roof.light; // bare rafters
+  ctx.lineWidth = 2.2 * s;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-24 * s + i * 14 * s, -2 * s);
+    ctx.lineTo(-14 * s + i * 10 * s, -20 * s + (i % 2) * 4 * s);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = P.ash;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x + 2 * s, y, 36 * s, 6 * s, 0, 0, Math.PI);
+  ctx.stroke();
+}
+
+// M3a §2 (The Burnt Hamlet): blackened beams fallen across each other.
+function drawCharredBeams(ctx, { x, y, size: s, variant }, P) {
+  ctx.lineCap = 'round';
+  for (const [dx, rot, len] of [[-6, -0.35 + variant * 0.1, 30], [8, 0.4, 26], [0, 0.05, 34]]) {
+    ctx.save();
+    ctx.translate(x + dx * s, y - 6 * s);
+    ctx.rotate(rot);
+    ctx.strokeStyle = P.roof.dark;
+    ctx.lineWidth = 6 * s;
+    ctx.beginPath();
+    ctx.moveTo(-len * s * 0.5, 0);
+    ctx.lineTo(len * s * 0.5, 0);
+    ctx.stroke();
+    ctx.strokeStyle = P.roof.light; // a scorched edge
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath();
+    ctx.moveTo(-len * s * 0.45, -2 * s);
+    ctx.lineTo(len * s * 0.3, -2 * s);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// M3a §2 (The Ember Road): scorched road stones tumbled at a pit's edge, ash at their feet.
+function drawScorchedStones(ctx, { x, y, size: s, variant }, P) {
+  for (const [dx, dy, rot] of [[-20, 2, -0.2], [0, -2, 0.1], [20, 3, 0.3]]) {
+    ctx.save();
+    ctx.translate(x + dx * s, y + dy * s);
+    ctx.rotate(rot + (variant - 1) * 0.1);
+    ctx.fillStyle = P.rock.dark;
+    ctx.fillRect(-9 * s, -12 * s, 18 * s, 12 * s);
+    ctx.fillStyle = P.rock.base;
+    ctx.fillRect(-8 * s, -12 * s, 16 * s, 4 * s);
+    ctx.fillStyle = P.treeDark.trunk; // soot on the stone's face
+    ctx.fillRect(-8 * s, -6 * s, 10 * s, 5 * s);
+    ctx.restore();
+  }
+  ctx.strokeStyle = P.ash;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 34 * s, 5 * s, 0, 0, Math.PI);
+  ctx.stroke();
+}
+
+// M3a §2 (Blackbark Orchard): a fruit tree burnt to its bones: a dark, twisted, leafless trunk with
+// crooked charred branches and a few dull ochre leaves still clinging on.
+function drawCharredTree(ctx, { x, y, size: s, variant }, P) {
+  drawShadow(ctx, x, y, 22 * s, 7 * s);
+  const bend = (variant - 1) * 8;
+  ctx.strokeStyle = P.treeDark.trunk;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 9 * s;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.bezierCurveTo(x + (10 + bend) * s, y - 14 * s, x - (12 - bend) * s, y - 26 * s, x + bend * 0.5 * s, y - 40 * s);
+  ctx.stroke();
+  const tips = [[-26, -58], [24, -60], [4, -72], [-12, -48], [14, -46]];
+  for (const [i, [ex, ey]] of tips.entries()) {
+    ctx.lineWidth = (i < 3 ? 4 : 2.5) * s;
+    ctx.beginPath();
+    ctx.moveTo(x + bend * 0.5 * s, y - 40 * s);
+    ctx.quadraticCurveTo(x + ex * 0.3 * s, y + (ey + 12) * s, x + ex * s, y + ey * s);
+    ctx.stroke();
+  }
+  ctx.fillStyle = P.treeLight[variant];
+  for (const [ex, ey] of tips.slice(0, 2 + variant)) {
+    ctx.beginPath();
+    ctx.ellipse(x + ex * s, y + ey * s, 4 * s, 2.5 * s, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
 
 // M2f §4.8: a pale, leafless tree: a bleached trunk with bare forking branches (Bone Orchard).
 function drawBareTree(ctx, { x, y, size: s, variant }, P) {

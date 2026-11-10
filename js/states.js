@@ -10,6 +10,7 @@ export const GameState = Object.freeze({
   DEFEAT: 'DEFEAT',
   TRADER: 'TRADER', // M2n §4.1: a Wandering Trader's scene, between map nodes (MAP → TRADER → MAP)
   TINKER: 'TINKER', // M2p §4.2: a Tinker's Rest scene, between map nodes (MAP → TINKER → MAP)
+  CROSSING: 'CROSSING', // M3a §3: the crossing dialog over the darkened map, after a region's boss (VICTORY → CROSSING → MAP)
 });
 
 // Prep variants (M1b addendum §2). Combat and everything after are identical in both.

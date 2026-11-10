@@ -152,6 +152,9 @@ export const DECOR = {
     stump: { lift: 6, r: 18 },         // M2f §4.7
     weepingStone: { lift: 30, r: 28 }, // M2f §4.9
     root: { lift: 6, r: 44 },          // M2f §4.11 (ring round the Druid)
+    charredRoof: { lift: 15, r: 40 },  // M3a §2: The Burnt Hamlet's ash pits
+    charredBeams: { lift: 10, r: 32 },
+    scorchedStones: { lift: 8, r: 36 }, // M3a §2: The Ember Road's ash pits
   },
   clearingRadius: 120,        // px, open dirt clearing around the Druid
   groundPatches: 70,          // subtle floor colour blobs
@@ -484,11 +487,11 @@ export const LEVEL_GEOMETRY = {
     nearRadius: 460,                      // TUNING
     zoneQuotaOverrides: {},
     decorSeed: 3131,
-    decorDensity: 0.8,                    // TUNING — the water patches take much of the ground
-    // Dark water patches (outside corridors and candidates), each with a sunken roof or broken
-    // fence and reeds round its edge (M2b §3.2). edge: extra px kept clear round each patch.
-    flats: { kind: 'water', count: 12, rx: [42, 80], ry: [24, 42], edge: 8 }, // TUNING
-    decorProps: { reeds: 0.2 },           // TUNING — extra reed tufts, per cell
+    decorDensity: 0.8,                    // TUNING — the ash pits take much of the ground
+    // M3a §2 (The Burnt Hamlet, was M2b §3.2's water): ash pits (outside corridors and candidates),
+    // each with a charred, collapsed roof or fallen beams. edge: extra px kept clear round each pit.
+    flats: { kind: 'ash', count: 12, rx: [42, 80], ry: [24, 42], edge: 8, props: ['charredRoof', 'charredBeams'] }, // TUNING
+    decorProps: { stump: 0.12 },          // TUNING — burnt stumps, per cell
   },
   // Level 3 (M2b §3.3): huge wolf surges down wide corridors. Lanes enter from the top, the left
   // and the right; the Druid stands right of centre inside a ring of standing stones.
@@ -761,9 +764,9 @@ export const LEVEL_GEOMETRY = {
     zoneQuotaOverrides: {},
     decorSeed: 7004,
     decorDensity: 0.8,                    // TUNING
-    // Signature: broken causeway stones half under water, in the water patches.
-    flats: { kind: 'water', count: 12, rx: [42, 80], ry: [24, 42], edge: 8, props: ['sunkenStones'] }, // TUNING
-    decorProps: { reeds: 0.15 },          // TUNING
+    // M3a §2 (The Ember Road): ash pits with a faint ember glow, scorched road stones at their edge.
+    flats: { kind: 'ash', count: 12, rx: [42, 80], ry: [24, 42], edge: 8, glow: true, props: ['scorchedStones'] }, // TUNING
+    decorProps: { stump: 0.1 },           // TUNING
   },
   // widows: geometry mirrored from wychwood (horizontally).
   widows: {
@@ -803,7 +806,7 @@ export const LEVEL_GEOMETRY = {
     zoneQuotaOverrides: {},
     decorSeed: 7005,
     decorDensity: 1.15,                   // TUNING
-    gnarledTrees: true,                   // signature: gnarled orchard trees
+    charredTrees: true,                   // M3a §2 (Blackbark Orchard): charred, leafless orchard trees
   },
   // Rows 6–8 (M2f §4.6–4.11). Geometry mirrored from earlier levels for speed, as rows 4–5.
   // mossbound: geometry mirrored from barrow (horizontally).
@@ -1066,9 +1069,23 @@ export const LEVEL_GEOMETRY = {
   },
 };
 
+// M3a §1.3: Hag's Causeway's placeholder levels until M3d. Each borrows an existing level's
+// geometry, decoration, candidates, palette and waves (its name, row, type and HP multiplier are
+// its own, in the levels tab).
+export const PLACEHOLDER_LEVELS = {
+  tallowFen: 'tornville', lanternFen: 'gallows', rottingFord: 'blackthorn', bonewhiteWillows: 'gallows',
+  corpseReedbeds: 'drowned', drownedGallows: 'barrow',
+  leechwaterPools: 'charcoal', wormwoodHollow: 'stags', sallowMere: 'wychwood',
+  drownedTannery: 'stags', sunkenOssuary: 'ashen',
+  widowsMire: 'widows', plagueCarts: 'causeway', weepingSluice: 'mossbound',
+  carrionOrchard: 'bone', drownedBellTower: 'ashen', blackwaterShrine: 'weeping',
+  bogKingsRest: 'heartwood',
+};
+for (const [id, src] of Object.entries(PLACEHOLDER_LEVELS)) LEVEL_GEOMETRY[id] = LEVEL_GEOMETRY[src];
+
 // ---------------------------------------------------------------------------
-// Level map and run (M2a §2–§4). A run is a path through its map from MAP_START_NODE; winning a
-// node with no `next` completes it. Each run's map is generated (M2g, js/mapGen.js): the nodes stay
+// Level map and run (M2a §2–§4, M3a). A run crosses the regions in order; in each, a path through
+// the region's map from its row 1 node to its boss. Each region's map is generated (M2g, js/mapGen.js): the nodes stay
 // in their rows, at fixed row heights on the 1920×1080 stage, the start at the bottom; their order,
 // x positions and roads vary. Nothing in the code is tied to these particular nodes.
 // ---------------------------------------------------------------------------
@@ -1078,9 +1095,9 @@ export const LEVEL_GEOMETRY = {
 export const NODE_TYPES = {
   wilds: { label: 'Wilds',      icon: 'wolfHead', redEyes: false },
   fell:  { label: 'Fell Wilds', icon: 'wolfHead', redEyes: true  },
-  // M2f §2: the final node, drawn MAP_BOSS_SCALE × as large with a dark red rim and a slow red
-  // pulse; winning it completes the run with finalLine.
-  boss:  { label: 'Boss', icon: 'wolfHead', redEyes: true, large: true, finalLine: 'The Heartwood is cleansed. Broceliande breathes again.' },
+  // M2f §2: a region's final node, drawn MAP_BOSS_SCALE × as large with a dark red rim and a slow
+  // red pulse; winning the last region's completes the run with that region's finalLine (M3a §3).
+  boss:  { label: 'Boss', icon: 'wolfHead', redEyes: true, large: true },
   // M2n §2.2: a Wandering Trader (no battle): a warm amber rim, a lantern, and a gold coin mark
   // instead of the red V once visited. Generated with the map, not listed in MAP_NODES.
   trader: { label: 'Wandering Trader', icon: 'lantern', rim: '#e0a63c', fill: '#5a3c1e', completedMark: 'coin' },
@@ -1094,40 +1111,33 @@ export const NODE_TYPES = {
 // The rows are spread evenly over the map's height (mapGen.js rowY): the top row's node, rim
 // included, MAP_TOP_MARGIN below the HUD strip; the bottom row's label MAP_BOTTOM_MARGIN above the
 // screen's bottom edge. Positions within a row are generated (M2g).
-export const MAP_TOP_MARGIN = 35;         // px from the HUD strip's bottom to the top row's node (the boss, with its rim)
+export const MAP_TOP_MARGIN = 95;         // px from the HUD strip's bottom to the top row's node (the boss, with its rim); room for the region title (M3a §5.1)
+export const MAP_TITLE = { y: 44, fontPx: 46, letterSpacing: 6 }; // M3a §5.1: the region's name, centred over the map area, its middle y px below the HUD strip
 export const MAP_BOTTOM_MARGIN = 25;      // px from the bottom row's label (the start node's) to the screen's bottom edge
 export const MAP_LABEL_PILL = { padX: 7, padY: 2, radius: 8, color: 'rgba(12, 16, 10, 0.6)' }; // the soft backing behind node names
 export const MAP_LABEL_FONT_PX = 18;      // node names; a name wider than MAP_LABEL_MAX_WIDTH wraps onto two lines
 export const MAP_LABEL_MAX_WIDTH = 170;   // px
-// M2g §1: the map's nodes. Each sits in its level's row (levels tab, `row`): row 1 the start, the
-// last row the boss. Their order within a row, their positions and the roads between rows are
-// generated per run (js/mapGen.js), so none are listed here.
-export const MAP_NODES = [
-  { id: 'tornville',  levelId: 'tornville' },
-  { id: 'gallows',    levelId: 'gallows' },
-  { id: 'blackthorn', levelId: 'blackthorn' },
-  { id: 'wychwood',   levelId: 'wychwood' },
-  { id: 'barrow',     levelId: 'barrow' },
-  { id: 'drowned',    levelId: 'drowned' },
-  { id: 'charcoal',   levelId: 'charcoal' },
-  { id: 'stags',      levelId: 'stags' },
-  { id: 'briar',      levelId: 'briar' },
-  { id: 'causeway',   levelId: 'causeway' },
-  { id: 'widows',     levelId: 'widows' },
-  { id: 'mossbound',  levelId: 'mossbound' },
-  { id: 'ashen',      levelId: 'ashen' },
-  { id: 'bone',       levelId: 'bone' },
-  { id: 'weeping',    levelId: 'weeping' },
-  { id: 'bells',      levelId: 'bells' },
-  { id: 'heartwood',  levelId: 'heartwood' },
-];
-export const MAP_START_NODE = 'tornville';
+// M2g §1, M3a §1.2: the map's nodes, one per level (built in applyData from the levels tab), each
+// in its level's region and row: row 1 the region's start, its last row the boss. Their order
+// within a row, their positions and the roads between rows are generated per region map
+// (js/mapGen.js). { id (= levelId), levelId, name, type, region }.
+export let MAP_NODES;
 export const MAP_NODE_RADIUS = 30;        // px (M2e §4.6, was 44)
 export const MAP_BOSS_SCALE = 1.5;        // M2f §2: a large node (the Boss) is drawn and hit-tested this much bigger
 export const MAP_BOSS_PULSE_HZ = 0.35;    // its slow, faint red pulse
 export const MAP_HOVER_SCALE = 1.08;      // an available node under the pointer grows this much
 export const MAP_PULSE_HZ = 0.8;          // gentle glow pulse of available nodes
-export const MAP_DECOR_SEED = 909;        // the map's procedural tree clusters, identical every run
+export const MAP_DECOR_SEED = 909;        // the map's procedural background shapes, identical every run
+// M3a §5.2: each region's map background, drawn in its palette (palettes rows map<Region>). Counts
+// of each kind of shape, scattered with MAP_DECOR_SEED and kept clear of the nodes and the equipment.
+export const MAP_BACKGROUNDS = {
+  cinderwood: { clusters: 120, embers: 14, ashMotes: 40 },          // charred tree clusters, faint ember glows, drifting ash
+  hags: { pools: 22, reeds: 40, willows: 12, stones: 10, mist: 9 }, // still pools, reed clumps, dead willows, causeway fragments, mist wisps
+};
+export const MAP_ASH_DRIFT = { speed: 14, sway: 10 };       // px/s the ash motes fall, px they sway (wall-clock, visual only)
+export const MAP_MIST_DRIFT = { speed: 9, wobble: 12 };     // px/s the mist wisps drift sideways, px they bob
+export const MAP_AMBIENCE_GAPS = [3.2, 4.5, 2.6, 5.1, 3.8]; // s between the map's quiet ambience sounds, in turn (M3a §6)
+export const CROSSING_FADE_TIME = 1.2;    // s, the fade into the next region's map after the crossing dialog (M3a §3)
 
 // Generated map (M2g §2–§5): node order and x positions within each row, the roads between
 // adjacent rows (never crossing) and their curves, from the run seed. Rows stay at fixed heights.
@@ -1216,7 +1226,9 @@ export const EQUIP_CLEARING_RAGGED = 0.2;
 export const RESOURCE_IDS = ['pits', 'reeds', 'feathers', 'boughs', 'shells'];
 export const SUMMON_KINDS = ['vulture', 'squirrel', 'double', 'slowWisp'];
 // Palettes of non-combat places (M2n §1): rows of the palettes tab that aren't levels.
-export const PLACE_PALETTES = ['trader', 'tinker'];
+// M3a §5: a region's own version of a place (trader + 'Hags' = 'traderHags') is used there if it
+// exists; and each region's map background (map + 'Cinderwood').
+export const PLACE_PALETTES = ['trader', 'tinker', 'traderHags', 'tinkerHags', 'mapCinderwood', 'mapHags'];
 // The traders tab's kinds (M2n §4.5): the name pool and the lines for each moment.
 export const TRADER_LINE_KINDS = ['name', 'greet', 'trade', 'soldout', 'leave'];
 
@@ -1236,8 +1248,7 @@ export let FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX;
 export let SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME;
 export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
 export let MASTER_VOLUME, SOUND_PITCH_JITTER;
-export let TINKERS_PER_RUN, TINKER_MIN_ROW;
-export let TRADERS_PER_RUN, TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY;
+export let TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY;
 
 // druid tab
 export let DRUID_HP, DRUID_RADIUS, DRUID_MELEE_RADIUS, DRUID_MELEE_SLOTS, DRUID_MELEE_DAMAGE, DRUID_MELEE_INTERVAL,
@@ -1272,7 +1283,10 @@ export let ITEMS;
 export let RECIPES;
 // stats: stat → description (labels; the stats themselves are in js/stats.js)
 export let STATS;
-// levels: id → LEVEL_GEOMETRY[id] plus name, description, row, nodeType, stepBudget, featureMix,
+// regions (M3a §1.1): id → { name, order, deathLossPct, traders, tinkers, tinkerMinRow, risingDead,
+// sinkingDrops, mireGround, introTitle, introText, finalLine }; REGION_ORDER: ids in order
+export let REGIONS, REGION_ORDER;
+// levels: id → LEVEL_GEOMETRY[id] plus name, description, region, row, nodeType, stepBudget, featureMix,
 // zoneQuotas, candidateLocations, palette, waves, and optional enemyHpMult, corridorWidth, stuckTime
 export let LEVELS;
 // sounds: id → { volume, pitch, minGap, maxVoices, enabled }
@@ -1310,8 +1324,7 @@ export function applyData(t) {
     SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME,
     CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
     MASTER_VOLUME, SOUND_PITCH_JITTER,
-    TRADERS_PER_RUN, TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY,
-    TINKERS_PER_RUN, TINKER_MIN_ROW,
+    TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY,
   } = keyed(t.globals));
   SPOT_SCALE = LOCATION_RADIUS / SPOT_ART_RADIUS;
 
@@ -1381,25 +1394,31 @@ export function applyData(t) {
   STATS = byId(t.stats, (r) => r.description, 'stat');
   RECIPES = byId(t.recipes, (r) => ({ cost: cost(r), patternWeight: r.patternWeight }), 'item');
 
+  REGIONS = byId(t.regions, (r) => ({
+    name: r.name, order: r.order, deathLossPct: r.deathLossPct, traders: r.traders, tinkers: r.tinkers, tinkerMinRow: r.tinkerMinRow,
+    risingDead: r.risingDead ?? false, sinkingDrops: r.sinkingDrops ?? false, mireGround: r.mireGround ?? false,
+    introTitle: r.introTitle ?? r.name, introText: r.introText ?? '', finalLine: r.finalLine ?? null,
+  }));
+  REGION_ORDER = [...t.regions].sort((a, b) => a.order - b.order).map((r) => r.id);
+
   const featureIds = Object.keys(FEATURE_TYPES);
   LEVELS = byId(t.levels, (r) => {
-    const level = { ...LEVEL_GEOMETRY[r.id], name: r.name, description: r.description, row: r.row, nodeType: r.nodeType, stepBudget: r.stepBudget };
+    const src = PLACEHOLDER_LEVELS[r.id] ?? r.id; // M3a §1.3: a placeholder's candidates, palette and waves
+    const level = { ...LEVEL_GEOMETRY[r.id], name: r.name, description: r.description, region: r.region, row: r.row, nodeType: r.nodeType, stepBudget: r.stepBudget };
     for (const k of ['enemyHpMult', 'corridorWidth', 'stuckTime']) opt(level, k, r[k]);
     level.featureMix = Object.fromEntries(featureIds.map((f) => [f, r[`mix_${f}`] ?? 0]));
     level.zoneQuotas = { near: { turret: ZONE_NEAR_TURRET, feature: ZONE_NEAR_FEATURE }, far: { turret: ZONE_FAR_TURRET, feature: ZONE_FAR_FEATURE } };
-    level.candidateLocations = t.candidates.filter((c) => c.level === r.id).sort((a, b) => a.index - b.index).map((c) => ({ x: c.x, y: c.y, zone: c.zone }));
-    level.palette = unflatten(t.palettes.find((p) => p.level === r.id) ?? {}, ['level', '_row']);
-    level.waves = t.waves.filter((w) => w.level === r.id).map((w) => {
-      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === r.id && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: sp.type, count: sp.count })) };
+    level.candidateLocations = t.candidates.filter((c) => c.level === src).sort((a, b) => a.index - b.index).map((c) => ({ x: c.x, y: c.y, zone: c.zone }));
+    level.palette = unflatten(t.palettes.find((p) => p.level === src) ?? {}, ['level', '_row']);
+    level.waves = t.waves.filter((w) => w.level === src).map((w) => {
+      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === src && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: sp.type, count: sp.count })) };
       return opt(wave, 'tolls', w.tolls);
     });
     return level;
   });
-  // Map nodes take their name and type from their level (and their row, M2g §1: mapGen.js reads it there).
-  for (const node of MAP_NODES) {
-    node.name = LEVELS[node.levelId]?.name ?? node.id;
-    node.type = LEVELS[node.levelId]?.nodeType;
-  }
+  // Map nodes (M3a §1.2): one per level, with its name, type and region (and its row, M2g §1:
+  // mapGen.js reads it there).
+  MAP_NODES = Object.entries(LEVELS).map(([id, l]) => ({ id, levelId: id, name: l.name, type: l.nodeType, region: l.region }));
 
   SOUNDS = byId(t.sounds, (r) => ({ volume: r.volume, pitch: r.pitch, minGap: r.minGap, maxVoices: r.maxVoices, enabled: r.enabled }));
 

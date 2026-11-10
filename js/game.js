@@ -22,7 +22,7 @@ import { updateBurns } from './systems/burnSystem.js';
 import { isStepMode } from './systems/stepSystem.js';
 import { GameState, PrepMode, ActionState } from './states.js';
 import { sceneFor } from './scene.js';
-import { createRun, mapNode, nodeState, encounterSeed, recordVictory, isRunComplete, startingDruidHp, randomUnownedItem, addItem } from './run.js';
+import { createRun, mapNode, nodeState, encounterSeed, recordVictory, isRunComplete, isRegionComplete, startingDruidHp, randomUnownedItem, addItem, enterRegion, nextRegionId, regionStartNode, deathLoss, applyDeathLoss } from './run.js';
 import { resolveStats } from './stats.js';
 import { events } from './events.js';
 import { updateDruidMelee } from './systems/druidMeleeSystem.js';
@@ -42,10 +42,11 @@ const TRANSITIONS = {
   [GameState.MAP]: [GameState.PREP, GameState.MAP, GameState.TRADER, GameState.TINKER],
   [GameState.TRADER]: [GameState.MAP], // M2n §4.1
   [GameState.TINKER]: [GameState.MAP], // M2p §4.2
+  [GameState.CROSSING]: [GameState.MAP], // M3a §3: Enter the next region
   [GameState.PREP]: [GameState.COMBAT, GameState.PREP, GameState.MAP],
   [GameState.COMBAT]: [GameState.ENDING, GameState.PREP, GameState.MAP],
   [GameState.ENDING]: [GameState.VICTORY, GameState.DEFEAT, GameState.PREP, GameState.MAP],
-  [GameState.VICTORY]: [GameState.MAP, GameState.PREP],
+  [GameState.VICTORY]: [GameState.MAP, GameState.PREP, GameState.CROSSING],
   [GameState.DEFEAT]: [GameState.MAP, GameState.PREP],
 };
 
@@ -74,6 +75,8 @@ export function createGame(levelId) {
     prepMode: C.PREP_MODE, // PrepMode; kept across restarts, toggled by debug M (M1b §2)
     run: null,             // M2a §2.2: the run (map progress, inventory), kept apart from the encounter state
     mapMessage: null,      // M2p §3.3: { text, age } shown on the map, e.g. "Pattern learned: …"
+    deathLoss: null,       // M3a §4: what the last death took ({ resources, kept, items }), shown on its Defeat overlay; null if it ended the run
+    mapAmbience: { at: C.MAP_AMBIENCE_GAPS[0], count: 0 }, // M3a §6: s on the map until the next quiet ambience sound
     encounterStart: null,  // how the current encounter started { levelId, seed, resources, druidHp } (debug R)
     stats: resolveStats(null, scene.level), // M2e §2.2: effective stats, resolved again when each battle starts
     levelId,
@@ -278,6 +281,13 @@ function finishEnding(game) {
     recordVictory(game.run, game.resources, game.druidHp);
     if (isRunComplete(game.run)) events.emit('runComplete', {});
   }
+  // M3a §4: a death where deathLossPct < 1 takes its share now (listed on the Defeat overlay); the
+  // run goes on from the region's start (Return) unless the player abandons it.
+  game.deathLoss = null;
+  if (game.state === GameState.DEFEAT && game.run) {
+    game.deathLoss = deathLoss(game.run);
+    if (game.deathLoss) applyDeathLoss(game.run, game.deathLoss);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -289,9 +299,18 @@ function finishEnding(game) {
 export function newRun(game) {
   game.run = createRun();
   game.encounterStart = null;
-  game.resources = { ...game.run.inventory };
-  game.druidHp = game.run.druidHp;
+  game.deathLoss = null;
+  showRunOnHud(game);
   setState(game, GameState.MAP);
+}
+
+// On the map the HUD shows the run (M3a: after a crossing or a return too): its carried resources and
+// the HP the next battle would start with.
+function showRunOnHud(game) {
+  const run = game.run;
+  game.stats = resolveStats(run.equipped, C.LEVELS[regionStartNode(run.regionId)]);
+  game.resources = { ...run.inventory };
+  game.druidHp = startingDruidHp(run, game.stats['druid.maxHp']);
 }
 
 // Clicking an available map node: its encounter's Prep, with the carried resources, the node's
@@ -321,10 +340,45 @@ export function restartEncounter(game) {
   else startEncounter(game);
 }
 
-// Victory with more nodes reachable: Continue, back to the map (§4.4).
+// Victory with more nodes reachable: Continue, back to the map (§4.4); after a region's boss with
+// another region to come, the crossing dialog (M3a §3).
 export function continueRun(game) {
   if (game.state !== GameState.VICTORY || isRunComplete(game.run)) return false;
+  return setState(game, isRegionComplete(game.run) ? GameState.CROSSING : GameState.MAP);
+}
+
+// The crossing dialog's button (M3a §3): the next region's map, newly generated, the Druid at its
+// first node with everything carried over and full HP.
+export function crossRegion(game) {
+  if (game.state !== GameState.CROSSING) return false;
+  arriveInNextRegion(game);
   return setState(game, GameState.MAP);
+}
+
+function arriveInNextRegion(game) {
+  enterRegion(game.run, nextRegionId(game.run));
+  game.encounterStart = null;
+  game.mapAmbience = { at: C.MAP_AMBIENCE_GAPS[0], count: 0 };
+  showRunOnHud(game);
+  events.emit('regionCrossing', { regionId: game.run.regionId });
+}
+
+// Defeat in a region that keeps part of what the player had (M3a §4): Return starts the region
+// again, on a newly generated map, with what was kept.
+export function returnToRegion(game) {
+  if (game.state !== GameState.DEFEAT || !game.deathLoss) return false;
+  enterRegion(game.run, game.run.regionId);
+  game.encounterStart = null;
+  showRunOnHud(game);
+  return setState(game, GameState.MAP);
+}
+
+// Debug Shift+H on the map (M3a §7): straight to the next region's map (Hag's Causeway from the
+// Cinderwood), as if its boss had just been won, keeping resources and items.
+export function debugNextRegion(game) {
+  if (game.state !== GameState.MAP || !nextRegionId(game.run)) return false;
+  arriveInNextRegion(game);
+  return true;
 }
 
 // Debug W (M2a §8): win the battle now (Combat only), through ENDING to Victory.
@@ -357,6 +411,16 @@ function hideFind(game) {
   }
   if (!itemId) return null;
   return { featureIndex: game.rng.int(0, game.features.length - 1), kind, itemId, found: false };
+}
+
+// M3a §6: the region's quiet map ambience, one sound every MAP_AMBIENCE_GAPS s (in turn) on the map.
+function updateMapAmbience(game, dt) {
+  const a = game.mapAmbience;
+  a.at -= dt;
+  if (a.at > 0) return;
+  a.count++;
+  a.at += C.MAP_AMBIENCE_GAPS[a.count % C.MAP_AMBIENCE_GAPS.length];
+  events.emit('mapAmbience', { regionId: game.run.regionId });
 }
 
 // Bell tolls (M2f §4.10): at each of the level's toll times in Combat, a bellToll event (heard as a
@@ -475,6 +539,7 @@ export function updateGame(game, dt) {
         game.mapMessage.age += dt;
         if (game.mapMessage.age >= C.MAP_MESSAGE_TIME) game.mapMessage = null;
       }
+      updateMapAmbience(game, dt);
       break;
     case GameState.PREP:
       // Step mode has no countdown: Prep ends only via Start Battle (M1b §5.6).

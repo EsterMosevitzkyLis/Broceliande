@@ -52,8 +52,8 @@ export function createRenderer(canvas) {
   };
 
   function render(game, view) {
-    if (game.state === GameState.MAP) {
-      // The level map (M2a §4) instead of an encounter scene.
+    if (game.state === GameState.MAP || game.state === GameState.CROSSING) {
+      // The level map (M2a §4) instead of an encounter scene (M3a §3: under the crossing dialog too).
       drawMap(ctx, game.run, view.mapHover, performance.now() / 1000, view.debug);
       ctx.fillStyle = COLORS.hudBackdrop;
       ctx.fillRect(0, 0, C.STAGE_WIDTH, C.HUD_STRIP_HEIGHT);
@@ -61,14 +61,14 @@ export function createRenderer(canvas) {
     }
     if (game.state === GameState.TRADER) {
       // M2n §4.2: the trader's scene; its text and controls are HTML (traderScreen.js).
-      drawTraderScene(ctx, game.visit, game.visit.time);
+      drawTraderScene(ctx, game.visit, game.visit.time, game.run?.regionId);
       ctx.fillStyle = COLORS.hudBackdrop;
       ctx.fillRect(0, 0, C.STAGE_WIDTH, C.HUD_STRIP_HEIGHT);
       return;
     }
     if (game.state === GameState.TINKER) {
       // M2p §4.2: the Tinker's Rest; the book's text and controls are HTML (tinkerScreen.js).
-      drawTinkerScene(ctx, game.tinker, game.tinker.time);
+      drawTinkerScene(ctx, game.tinker, game.tinker.time, game.run?.regionId);
       ctx.fillStyle = COLORS.hudBackdrop;
       ctx.fillRect(0, 0, C.STAGE_WIDTH, C.HUD_STRIP_HEIGHT);
       return;

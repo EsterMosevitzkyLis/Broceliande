@@ -185,9 +185,10 @@ export function validateLevel(scene) {
   }
 }
 
-// Start-up: every level's checks (M2a §5.1).
+// Start-up: every level's checks (M2a §5.1). A placeholder level (M3a §1.3) shares its source
+// level's geometry, candidates and waves, so it is checked through that level (no repeated warnings).
 export function validateLevels() {
-  for (const id of LEVEL_IDS) validateLevel(sceneFor(id));
+  for (const id of LEVEL_IDS) if (!C.PLACEHOLDER_LEVELS[id]) validateLevel(sceneFor(id));
 }
 
 // ---------------------------------------------------------------------------
@@ -307,9 +308,10 @@ function themedDecor(scene) {
     }
   }
 
-  // Water patches, each with a sunken roof or broken fence in it and reeds round its edge: placed
-  // at random until `count` fit, clear of corridors, candidates, each other and the above.
-  if (level.flats?.kind === 'water') {
+  // Water patches, each with a sunken roof or broken fence in it and reeds round its edge (M3a §2:
+  // or ash pits, each with its burnt prop and no reeds): placed at random until `count` fit, clear
+  // of corridors, candidates, each other and the above.
+  if (level.flats?.kind === 'water' || level.flats?.kind === 'ash') {
     const F = level.flats;
     for (let tries = 0; tries < F.count * 40 && flats.length < F.count; tries++) {
       const rx = rng.range(F.rx[0], F.rx[1]);
@@ -320,14 +322,14 @@ function themedDecor(scene) {
       const variant = rng.int(0, 2);
       if (!ellipseFits(scene, x, y, rx + F.edge, ry + F.edge, rot)) continue;
       if (blocked.some((b) => Math.hypot(b.x - x, b.y - y) < b.r + rx)) continue;
-      flats.push({ kind: F.kind, x, y, rx, ry, rot });
+      flats.push({ kind: F.kind, x, y, rx, ry, rot, glow: !!F.glow });
       blocked.push({ x, y, r: rx });
       const s = Math.min(1, rx / 70);
       // The water's prop: flats.props cycles through its own list (M2f: sunken causeway stones), else
       // a sunken roof or broken fence, alternating.
       const kinds = F.props ?? ['brokenFence', 'sunkenRoof'];
       items.push({ kind: kinds[flats.length % kinds.length], x: x + rx * 0.1, y: y + ry * 0.3, size: s, variant });
-      for (const t of [0.1, 0.42, 0.62, 0.85]) {
+      if (F.kind === 'water') for (const t of [0.1, 0.42, 0.62, 0.85]) {
         const a = t * Math.PI * 2;
         items.push({ kind: 'reeds', x: x + Math.cos(a) * rx * 0.92, y: y + Math.sin(a) * ry * 0.92 + 4, size: 0.9, variant });
       }

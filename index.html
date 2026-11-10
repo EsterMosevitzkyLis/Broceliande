@@ -92,10 +92,25 @@
           <div id="end-gathered" hidden><div class="end-carry-title">Gathered from the field:</div><div id="end-gathered-rows"></div></div>
           <div id="end-carry" hidden><div class="end-carry-title">Carried to the next Wilds:</div><div id="end-carry-rows"></div></div>
           <div id="end-message" hidden></div>
-          <button id="btn-restart" type="button">Restart</button>
+          <!-- M3a §4: a death in a region that keeps part of what the player had: what was lost. -->
+          <div id="end-loss" hidden><div class="end-carry-title">Lost:</div><div id="end-loss-rows"></div><div id="end-loss-items"></div></div>
+          <div class="end-buttons">
+            <button id="btn-restart" type="button">Restart</button>
+            <button id="btn-abandon" type="button" class="secondary" hidden>Abandon the run</button>
+          </div>
         </div>
       </div>
 
+
+      <!-- M3a §3: the crossing dialog over the darkened map after a region's boss; its one button is
+           the only way on. -->
+      <div id="crossing-dialog" hidden>
+        <div class="crossing-panel">
+          <div id="crossing-title"></div>
+          <div id="crossing-text"></div>
+          <button id="btn-cross" type="button"></button>
+        </div>
+      </div>
 
       <!-- Mini-boss (M2c §2.6–2.7): HP bar just below the HUD strip while one is alive, and the
            centred arrival banner. Neither blocks clicks. -->

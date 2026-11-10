@@ -4,7 +4,7 @@
 // the Druid's satchel, and the balance scale in the centre.
 
 import * as C from '../config.js';
-import { drawPlaceScene } from './placeScene.js';
+import { drawPlaceScene, placePaletteId } from './placeScene.js';
 import { drawShadow } from './environment.js';
 
 const COLORS = {
@@ -31,12 +31,12 @@ const COLORS = {
   brassDark: '#8a6d24',
 };
 
-// The whole scene for the visit (game.visit). t: the visit's clock, s.
-export function drawTraderScene(ctx, visit, t) {
+// The whole scene for the visit (game.visit). t: the visit's clock, s. regionId: the run's region (M3a §5.3).
+export function drawTraderScene(ctx, visit, t, regionId) {
   const look = C.TRADER_LOOKS[visit.trader.look % C.TRADER_LOOKS.length];
   const tip = scaleTip(visit);
   drawPlaceScene(ctx, {
-    id: 'trader',
+    id: placePaletteId('trader', regionId),
     drawProps: (c) => {
       drawCampfire(c, C.TRADER_SCENE.campfire.x, C.TRADER_SCENE.campfire.y, t);
       drawCart(c, C.TRADER_SCENE.cart.x, C.TRADER_SCENE.cart.y, t);

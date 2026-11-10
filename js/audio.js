@@ -110,6 +110,9 @@ function subscribe() {
   events.on('mapNodeHover', (e) => play('mapNodeHover', e));
   events.on('mapNodeChosen', (e) => play('mapNodeChosen', e));
   events.on('runComplete', (e) => play('runComplete', e));
+  // M3a §6: entering a new region, and each region's quiet map ambience (mapAmbience<Region>).
+  events.on('regionCrossing', (e) => play('regionCrossing', e));
+  events.on('mapAmbience', (e) => play(`mapAmbience${e.regionId[0].toUpperCase()}${e.regionId.slice(1)}`, e));
   events.on('magicFound', (e) => play(e.pattern ? 'patternFound' : 'magicFound', e)); // M2p §4.4: a pattern has its own sound
   // M2p §4.4: the Tinker's Rest.
   for (const name of ['forgeAmbience', 'craftHammer', 'craftComplete']) events.on(name, (e) => play(name, e));
@@ -629,6 +632,33 @@ const RECIPES = {
     bell(t, out, 659 * p, 0.16, 0.3, 0.7);
     tone(t, out, { type: 'triangle', freq: 784 * p, dur: 0.8, gain: 0.5, delay: 0.32, attack: 0.01 });
     return bell(t, out, 784 * p, 0.32, 0.8, 0.8);
+  },
+
+  // Entering Hag's Causeway (M3a §6): a low, wet, rising chord: a slow swell of three low tones
+  // gliding up, under a soft, muddy noise like water closing over.
+  regionCrossing(t, out, p) {
+    [[98, 147], [123, 185], [147, 220]].forEach(([f, to], i) => tone(t, out, { type: 'triangle', freq: f * p, to: to * p, dur: 2.4, attack: 0.9, gain: 0.32, delay: i * 0.12 }));
+    tone(t, out, { freq: 49 * p, to: 73 * p, dur: 2.6, attack: 1.0, gain: 0.5 });
+    noise(t, out, { filter: 'lowpass', freq: 260 * p, to: 900 * p, q: 2, dur: 1.4, attack: 0.5, gain: 0.35 });
+    noise(t, out, { filter: 'bandpass', freq: 700 * p, to: 300 * p, q: 3, dur: 0.5, attack: 0.05, gain: 0.25, delay: 1.2 }); // a wet gulp
+    return 2.7;
+  },
+
+  // The Cinderwood's map ambience (M3a §6): a faint gust of wind and a crackle or two.
+  mapAmbienceCinderwood(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 500 * p, to: 800 * p, q: 0.7, dur: 1.6, attack: 0.6, gain: 0.5 });
+    [0.5, 0.74].forEach((d) => noise(t, out, { filter: 'highpass', freq: 3200 * p, dur: 0.02, gain: 0.5, delay: d }));
+    return 1.6;
+  },
+
+  // Hag's Causeway's map ambience (M3a §6): a water drip and, now and then, a low frog croak.
+  mapAmbienceHags(t, out, p) {
+    tone(t, out, { freq: 1400 * p, to: 700 * p, dur: 0.08, attack: 0.002, gain: 0.5 });
+    tone(t, out, { freq: 1100 * p, to: 600 * p, dur: 0.06, attack: 0.002, gain: 0.25, delay: 0.9 });
+    if (rng.next() < 0.5) {
+      for (let i = 0; i < 3; i++) growl(t, out, { freq: 110 * p, to: 95 * p, dur: 0.09, attack: 0.01, cutoff: 600, trem: 40, gain: 0.35, delay: 0.3 + i * 0.13 });
+    }
+    return 1.0;
   },
 
   // Bough Double arrives (M1i §2.8): a soft woody creak with a low shimmer under it.

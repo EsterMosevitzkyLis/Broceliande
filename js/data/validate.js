@@ -3,7 +3,7 @@
 // per-level start-up checks (candidates, corridors, zones, Ogre widths…) run later, on the applied
 // data, as before.
 
-import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, LEVEL_GEOMETRY, PLACE_PALETTES, TRADER_LINE_KINDS } from '../config.js';
+import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, LEVEL_GEOMETRY, PLACE_PALETTES, TRADER_LINE_KINDS, PLACEHOLDER_LEVELS } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 import { STAT_KEYS } from '../stats.js';
 
@@ -140,9 +140,22 @@ export function validateTables(t, problems) {
     }
   }
 
+  // regions (M3a §1.1): unique orders, a loss between 0 and 1, counts of 0 or more.
+  const regions = ids('regions');
+  const orders = new Set();
+  for (const r of t.regions) {
+    if (orders.has(r.order)) err('regions', r, 'order', `two regions with order ${r.order}`);
+    orders.add(r.order);
+    if (!(r.deathLossPct >= 0 && r.deathLossPct <= 1)) err('regions', r, 'deathLossPct', 'deathLossPct must be between 0 and 1');
+    for (const col of ['traders', 'tinkers']) if (r[col] < 0) err('regions', r, col, `${col} must be 0 or more`);
+  }
+  if (!t.regions.length) err('regions', '', 'id', 'no regions');
+
   // levels: each has its geometry in code, and vice versa; candidates, a palette, waves.
+  // A placeholder level (M3a §1.3, config.js PLACEHOLDER_LEVELS) uses another level's.
   const levels = ids('levels');
   for (const r of t.levels) {
+    known('levels', r, 'region', regions, 'region');
     if (!LEVEL_GEOMETRY[r.id]) err('levels', r, 'id', `no level "${r.id}" in the code (lanes and decoration live in config.js LEVEL_GEOMETRY)`);
     if (!NODE_TYPES[r.nodeType]) err('levels', r, 'nodeType', `unknown node type "${r.nodeType}" (${Object.keys(NODE_TYPES).join(', ')})`);
     for (const col of Object.keys(r)) {
@@ -150,6 +163,7 @@ export function validateTables(t, problems) {
       if (m && !features.has(m[1])) err('levels', r, col, `unknown feature "${m[1]}" in the column name`);
     }
   }
+  for (const reg of regions) if (!t.levels.some((l) => l.region === reg)) err('levels', '', 'region', `region ${reg} has no levels`);
   for (const id of Object.keys(LEVEL_GEOMETRY)) if (!levels.has(id)) err('levels', '', 'id', `missing level ${id}`);
   const laneIds = (level) => new Set((LEVEL_GEOMETRY[level]?.lanes ?? []).map((l) => l.id));
 
@@ -204,8 +218,8 @@ export function validateTables(t, problems) {
   // traders (M2n §4.5): known kinds; enough names for every Trader in a run, and a line of each kind.
   for (const r of t.traders) if (!TRADER_LINE_KINDS.includes(r.kind)) err('traders', r, 'kind', `kind must be one of ${TRADER_LINE_KINDS.join(', ')}`);
   for (const kind of TRADER_LINE_KINDS) if (!t.traders.some((r) => r.kind === kind)) err('traders', '', 'kind', `no ${kind} rows`);
-  const traderCount = t.globals.find((r) => r.key === 'TRADERS_PER_RUN')?.value ?? 0;
-  if (t.traders.filter((r) => r.kind === 'name').length < traderCount) err('traders', '', 'kind', `fewer names than TRADERS_PER_RUN (${traderCount})`);
+  const traderCount = Math.max(0, ...t.regions.map((r) => r.traders ?? 0)); // M3a: traders are rolled per region map
+  if (t.traders.filter((r) => r.kind === 'name').length < traderCount) err('traders', '', 'kind', `fewer names than a region's traders (${traderCount})`);
 
   // recipes (M2p §5.1): one per item, known item IDs, known cost resources, a positive pattern weight.
   const itemIds = new Set(t.items.map((r) => r.id));
@@ -220,9 +234,10 @@ export function validateTables(t, problems) {
   ids('sounds');
 
   for (const r of t.levels) {
-    if (!waveCounts[r.id]) err('levels', r, 'id', `${r.id} has no waves`);
-    if (!candidateCounts[r.id]) err('levels', r, 'id', `${r.id} has no candidates`);
-    if (!palettes.has(r.id)) err('levels', r, 'id', `${r.id} has no palette`);
+    const src = PLACEHOLDER_LEVELS[r.id] ?? r.id;
+    if (!waveCounts[src]) err('levels', r, 'id', `${r.id} has no waves`);
+    if (!candidateCounts[src]) err('levels', r, 'id', `${r.id} has no candidates`);
+    if (!palettes.has(src)) err('levels', r, 'id', `${r.id} has no palette`);
   }
   return problems;
 }

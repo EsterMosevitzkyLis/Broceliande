@@ -11,6 +11,7 @@ import { drawSlotIcon, drawFramedItemIcon } from './render/items.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
 import { RESOURCE_KEYS, resourceName } from './resources.js';
 import { knownPatterns, newPatterns, totalPatterns, markPatternsSeen } from './patterns.js';
+import { regionStartNode } from './run.js';
 
 const SLOTS = Object.keys(C.SLOT_TYPES);
 const ICON_PX = 60;     // item / slot icon inside a slot circle
@@ -190,7 +191,7 @@ export function createEquipmentPanel(callbacks) {
   // Stats strip (M2e §4.5): the stats equipment can change, changed ones highlighted with the
   // base value on hover. Steps vary by Wilds, so the strip shows the change to every Wilds' budget.
   function renderStats() {
-    const level = C.LEVELS[C.MAP_NODES.find((n) => n.id === C.MAP_START_NODE).levelId];
+    const level = C.LEVELS[regionStartNode(run.regionId)];
     const eff = resolveStats(run.equipped, level);
     const base = baseStats(level);
     const pct = (v) => `${Math.round(v * 100)}%`;

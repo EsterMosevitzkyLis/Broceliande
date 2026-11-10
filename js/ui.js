@@ -24,7 +24,7 @@ import { isStepMode, stepCost, canVisit, anyVisitable, routePreview, calibration
 import { enemyTotals, waveCounts } from './game.js';
 import { isMuted, soundStats, audioStatus } from './audio.js';
 import { chosenSpeed } from './gameSpeed.js';
-import { isRunComplete, mapNode, nodeRadius } from './run.js';
+import { isRunComplete, mapNode, nodeRadius, deathLoss, nextRegionId } from './run.js';
 import { resolveStats, changedStats, statLabel } from './stats.js';
 import { drawSlotIcon, drawScrollIcon } from './render/items.js';
 import { knownPatterns, newPatterns, totalPatterns } from './patterns.js';
@@ -287,6 +287,14 @@ export function createUI(callbacks) {
     endGatheredRows: document.getElementById('end-gathered-rows'),
     endMessage: document.getElementById('end-message'),
     restart: document.getElementById('btn-restart'),
+    abandon: document.getElementById('btn-abandon'),
+    endLoss: document.getElementById('end-loss'),
+    endLossRows: document.getElementById('end-loss-rows'),
+    endLossItems: document.getElementById('end-loss-items'),
+    crossing: document.getElementById('crossing-dialog'),
+    crossingTitle: document.getElementById('crossing-title'),
+    crossingText: document.getElementById('crossing-text'),
+    cross: document.getElementById('btn-cross'),
     tooltip: document.getElementById('tooltip'),
     menu: document.getElementById('menu'),
     menuHeader: document.getElementById('menu-header'),
@@ -333,6 +341,8 @@ export function createUI(callbacks) {
     el.nextWave.blur();
   });
   el.restart.addEventListener('click', () => callbacks.onEndButton());
+  el.abandon.addEventListener('click', () => callbacks.onAbandon()); // M3a §4
+  el.cross.addEventListener('click', () => { el.cross.disabled = true; callbacks.onCross(); }); // M3a §3
   el.mute.addEventListener('click', () => {
     callbacks.onToggleMute();
     el.mute.blur(); // so Space / Enter later don't toggle it again
@@ -386,6 +396,7 @@ export function createUI(callbacks) {
         : `Placing ${SUMMONS[game.action.target].name} — click the battlefield to place · Esc / right-click to cancel`);
     }
     updateEndOverlay(el, game);
+    updateCrossing(el, game);
     updateLevelName(el, game);
     updateBoss(el, game);
     updateWavePreview(el, game);
@@ -430,7 +441,7 @@ function updateMapMessage(el, game) {
 // The current Wilds' name, bottom-left (M2a §6): during Prep and Combat, and still through
 // ENDING and under the Victory / Defeat overlay.
 function updateLevelName(el, game) {
-  const shown = game.state !== GameState.START && game.state !== GameState.MAP && game.state !== GameState.TRADER && game.state !== GameState.TINKER; // not in a place scene (M2n §4.2)
+  const shown = ![GameState.START, GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.CROSSING].includes(game.state); // not in a place scene (M2n §4.2)
   el.levelName.hidden = !shown;
   if (shown) setText(el.levelName, game.scene.level.name);
 }
@@ -637,7 +648,7 @@ function updateHud(el, game) {
   // M2i §4.1: in Combat, the wave (the current one, or the next during the countdown and gaps).
   setText(el.phase, isCombat && game.wave
     ? `WAVE ${Math.min(game.wave.index + 1, waveCount(game))} / ${waveCount(game)}`
-    : game.state === GameState.TINKER ? "TINKER'S REST" : game.state); // M2p §4.2
+    : game.state === GameState.TINKER ? "TINKER'S REST" : game.state === GameState.CROSSING ? 'MAP' : game.state); // M2p §4.2, M3a §3
   if (isPrep) {
     // Countdown shows 00:25 at the start and 00:00 only at the moment Combat begins.
     setText(el.timer, formatTime(Math.ceil(game.prepRemaining)));
@@ -1148,9 +1159,24 @@ function updateMenu(el, game, view, prevKey, hoverIndex) {
 }
 
 // Victory / Defeat (M2a §4.4): Victory with more nodes reachable shows what carries over and
-// Continue; Victory that completes the run shows a closing line and Start again; Defeat shows
-// Start again.
+// Continue (a region's boss too, M3a §3: Continue leads to the crossing); Victory that completes
+// the run shows the region's closing line and Start again; Defeat shows Start again, or (M3a §4) in
+// a region that keeps part of what the player had, what was lost, Return and Abandon.
 const RUN_COMPLETE_LINE = 'The wilds are quiet… for now.';
+
+// The crossing dialog (M3a §3): the next region's intro over the darkened map.
+function updateCrossing(el, game) {
+  const shown = game.state === GameState.CROSSING;
+  el.crossing.hidden = !shown;
+  if (!shown) {
+    el.cross.disabled = false;
+    return;
+  }
+  const next = C.REGIONS[nextRegionId(game.run)];
+  setText(el.crossingTitle, next.introTitle);
+  setText(el.crossingText, next.introText);
+  setText(el.cross, `Enter ${next.name}`);
+}
 
 function updateEndOverlay(el, game) {
   const ended = game.state === GameState.VICTORY || game.state === GameState.DEFEAT;
@@ -1176,8 +1202,21 @@ function updateEndOverlay(el, game) {
   }
   el.endCarry.hidden = !goesOn;
   el.endMessage.hidden = !(won && !goesOn);
-  // M2f §2: winning the Boss node closes the run with its own line.
-  if (!el.endMessage.hidden) setText(el.endMessage, C.NODE_TYPES[mapNode(game.run, game.run.currentNodeId)?.type]?.finalLine ?? RUN_COMPLETE_LINE);
+  // M2f §2, M3a §3: winning the last region's boss closes the run with that region's line.
+  if (!el.endMessage.hidden) setText(el.endMessage, C.REGIONS[game.run.regionId].finalLine ?? RUN_COMPLETE_LINE);
+  // M3a §4: what this death took, and the choice to go back or give up.
+  const loss = game.state === GameState.DEFEAT ? game.deathLoss : null;
+  el.endLoss.hidden = !loss;
+  el.abandon.hidden = !loss;
+  if (loss) {
+    const key = JSON.stringify(loss);
+    if (el.endLoss.dataset.key !== key) {
+      el.endLoss.dataset.key = key;
+      const lost = Object.fromEntries(Object.entries(loss.resources).filter(([, n]) => n > 0));
+      el.endLossRows.replaceChildren(Object.keys(lost).length ? costRowsElement(lost, lost) : document.createTextNode('No resources'));
+      el.endLossItems.textContent = loss.items.length ? loss.items.map((id) => C.ITEMS[id].name).join(', ') : 'No equipment';
+    }
+  }
   if (goesOn) {
     const inv = game.run.inventory;
     const key = JSON.stringify(inv);
@@ -1187,7 +1226,7 @@ function updateEndOverlay(el, game) {
       el.endCarryRows.replaceChildren(any ? costRowsElement(inv, inv) : document.createTextNode('nothing'));
     }
   }
-  setText(el.restart, goesOn ? 'Continue' : 'Start again');
+  setText(el.restart, goesOn ? 'Continue' : loss ? `Return to ${C.REGIONS[game.run.regionId].name}` : 'Start again');
 }
 
 // Equipment (M2e §6): owned and equipped items, and every stat the resolver has changed
@@ -1217,13 +1256,27 @@ function patternDebugLines(game) {
   ];
 }
 
+// M3a §7: the region, its death loss and what a death right now would remove (the same roll the
+// next death will make).
+function regionLines(game) {
+  const r = game.run;
+  const region = C.REGIONS[r.regionId];
+  const loss = deathLoss(r);
+  const lost = loss ? Object.entries(loss.resources).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`).join(', ') : '';
+  return [
+    `Region: ${r.regionId} (${region.name})  deathLossPct ${region.deathLossPct}  entries ${r.regionVisits}  deaths ${r.deaths}${nextRegionId(r) ? '   (Shift+H on the map: next region)' : ''}`,
+    `  a death now: ${loss ? `loses ${lost || 'no resources'}; items ${loss.items.join(', ') || 'none'}` : 'ends the run'}`,
+  ];
+}
+
 // Run figures (M2a §8): run seed, current and completed nodes, carried inventory, level.
 function runLines(game) {
   const r = game.run;
   return [
     `Run seed: ${r.seed}  (reload for a new run)`,
+    ...regionLines(game),
     `Node:   ${r.currentNodeId ?? '—'}   completed: ${r.completedNodeIds.join(', ') || '—'}${isRunComplete(r) ? '   RUN COMPLETE' : ''}`,
-    `Carried: ${resourceLine(r.inventory)}   Druid HP ${r.druidHp.toFixed(1)}${C.CARRY_DRUID_HP ? ' (carried)' : ' (not carried)'}`,
+    `Carried: ${resourceLine(r.inventory)}   Druid HP ${Number.isFinite(r.druidHp) ? r.druidHp.toFixed(1) : 'full'}${C.CARRY_DRUID_HP ? ' (carried)' : ' (not carried)'}`,
     ...equipmentLines(game),
     ...patternDebugLines(game),
     // M2d §4: items the field sweep gathered on the last Victory.
@@ -1269,7 +1322,7 @@ function tinkerDebugLines(game) {
 function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
   el.debugBox.hidden = !view.debug;
   if (!view.debug) return;
-  if (game.state === GameState.MAP) {
+  if (game.state === GameState.MAP || game.state === GameState.CROSSING) {
     setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), `Level:  ${game.levelId} (last scene)`].join('\n'));
     return;
   }

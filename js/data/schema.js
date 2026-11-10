@@ -27,8 +27,7 @@ export const GLOBAL_TYPES = {
   SWEEP_FLIGHT_TIME: 'number', SWEEP_STAGGER: 'number', SWEEP_END_MARGIN: 'number', SWEEP_END_SCALE: 'number', SWEEP_PULSE_TIME: 'number',
   CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
   MASTER_VOLUME: 'number', SOUND_PITCH_JITTER: 'number',
-  TINKERS_PER_RUN: 'int', TINKER_MIN_ROW: 'int',
-  TRADERS_PER_RUN: 'int', TRADE_PRICE_VARIATION: 'number', TRADE_MARGIN: 'number', TRADE_MAX_RATIO_TERM: 'int',
+  TRADE_PRICE_VARIATION: 'number', TRADE_MARGIN: 'number', TRADE_MAX_RATIO_TERM: 'int',
   TRADE_TAG_CHEAP: 'number', TRADE_TAG_PRICEY: 'number',
 };
 
@@ -103,10 +102,19 @@ export const TABS = {
   levels: {
     columns: {
       id: { type: 'id', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
-      row: { type: 'int' }, nodeType: { type: 'id', required: true }, enemyHpMult: { type: 'number' }, corridorWidth: { type: 'number' },
+      row: { type: 'int' }, nodeType: { type: 'id', required: true }, region: { type: 'id', required: true }, enemyHpMult: { type: 'number' }, corridorWidth: { type: 'number' },
       stepBudget: { type: 'number', required: true }, stuckTime: { type: 'number' },
     },
     pattern: [/^mix_[a-z][a-zA-Z0-9]*$/, { type: 'int' }],
+  },
+  // M3a §1.1: one row per region, in `order`; deathLossPct 1 ends the run on death, less keeps part.
+  regions: {
+    columns: {
+      id: { type: 'id', required: true }, name: { type: 'text', required: true }, order: { type: 'int', required: true },
+      deathLossPct: { type: 'number', required: true }, traders: { type: 'int', required: true }, tinkers: { type: 'int', required: true },
+      tinkerMinRow: { type: 'int', required: true }, risingDead: { type: 'bool' }, sinkingDrops: { type: 'bool' }, mireGround: { type: 'bool' },
+      introTitle: { type: 'text' }, introText: { type: 'text' }, finalLine: { type: 'text' },
+    },
   },
   waves: { columns: { level: { type: 'id', required: true }, wave: { type: 'int', required: true }, gapAfter: { type: 'number' }, tolls: { type: 'list' } } },
   spawns: { columns: { level: { type: 'id', required: true }, wave: { type: 'int', required: true }, t: { type: 'number', required: true }, lane: { type: 'id', required: true }, type: { type: 'id', required: true }, count: { type: 'int', required: true } } },

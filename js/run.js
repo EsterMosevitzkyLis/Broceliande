@@ -1,17 +1,22 @@
 // Run state (M2a §2.2): a path through the level map, kept apart from the encounter state in
-// game.js. A run starts on MAP_START_NODE; winning a node makes its `next` nodes available, and
-// winning a node with no `next` completes the run. Nothing here is tied to particular nodes.
+// game.js. M3a: a run crosses the regions in order, each with its own map. In a region the run
+// starts on its row 1 node; winning a node makes its `next` nodes available; winning a node with no
+// `next` (the region's boss) completes the region, and the last region's completes the run.
+// Nothing here is tied to particular nodes.
 
 import * as C from './config.js';
-import { emptyResources } from './resources.js';
+import { emptyResources, RESOURCE_KEYS } from './resources.js';
 import { makeRandomSeed, createRng } from './rng.js';
 import { rollTrader } from './trade.js';
 import { generateMap, mapSeedFor, nodeRadius } from './mapGen.js';
 
 export { nodeRadius };
 
-// run: { seed, map, currentNodeId, completedNodeIds, inventory, druidHp, items, equipped, seenItems, traders }
-// map (M2g): this run's generated map (mapGen.js), nodes with positions and `next` roads.
+// run: { seed, regionId, regionVisits, deaths, map, currentNodeId, completedNodeIds, inventory, druidHp,
+//        items, equipped, seenItems, traders }
+// regionId (M3a): the region the run is in; regionVisits: how many times it has entered one (each
+// entry gets a new map); deaths: deaths so far (each death's losses are rolled from it).
+// map (M2g): the current region's generated map (mapGen.js), nodes with positions and `next` roads.
 // currentNodeId: the node last entered (null before the first). inventory: resources carried
 // between encounters. druidHp: used for the next encounter only with CARRY_DRUID_HP. Equipment
 // (M2e §5): items owned this run (ITEMS keys), the one equipped in each slot (or null), and the
@@ -19,10 +24,12 @@ export { nodeRadius };
 // rolled trader (name, multipliers, stock), by node id, rolled with the run.
 export function createRun() {
   const seed = C.DEBUG_SEED ?? makeRandomSeed(); // DEBUG_SEED reproduces the whole run
-  const map = generateMap(mapSeedFor(seed));
-  return {
+  const run = {
     seed,
-    map,
+    regionId: null,
+    regionVisits: 0,
+    deaths: 0,
+    map: null,
     currentNodeId: null,
     completedNodeIds: [],
     inventory: emptyResources(),
@@ -30,8 +37,35 @@ export function createRun() {
     items: [],
     equipped: Object.fromEntries(Object.keys(C.SLOT_TYPES).map((slot) => [slot, null])),
     seenItems: [],
-    traders: rollRunTraders(seed, map),
+    traders: {},
   };
+  enterRegion(run, C.REGION_ORDER[0]);
+  return run;
+}
+
+// M3a §3, §4: the run arrives in a region (the first, the next after a boss, or Hag's Causeway
+// again after a death there): a newly generated map of it, seeded from the run seed and the entry,
+// at its row 1 node with nothing won there yet, and the Druid at full HP. Resources, items and
+// equipment carry over unchanged.
+export function enterRegion(run, regionId) {
+  run.regionId = regionId;
+  run.regionVisits++;
+  run.map = generateMap(mapSeedFor(run.seed, regionId, run.regionVisits), regionId);
+  run.currentNodeId = null;
+  run.completedNodeIds = [];
+  run.druidHp = Infinity; // full: startingDruidHp clamps it to his max HP
+  run.traders = rollRunTraders((run.seed + run.regionVisits * 0x1f123) >>> 0, run.map);
+}
+
+// The region's first node (§1.2): its node in its lowest row (row 1).
+export function regionStartNode(regionId) {
+  const nodes = C.MAP_NODES.filter((n) => n.region === regionId);
+  return nodes.reduce((a, b) => (C.LEVELS[b.levelId].row < C.LEVELS[a.levelId].row ? b : a)).id;
+}
+
+// The region after the run's current one, or null in the last.
+export function nextRegionId(run) {
+  return C.REGION_ORDER[C.REGION_ORDER.indexOf(run.regionId) + 1] ?? null;
 }
 
 // M2n §5: a trader for every Trader node on the map, seeded from the run seed, no name used twice.
@@ -62,7 +96,7 @@ function lastCompleted(run) {
 // siblings are bypassed.
 export function availableNodeIds(run) {
   const last = lastCompleted(run);
-  if (!last) return [C.MAP_START_NODE];
+  if (!last) return [regionStartNode(run.regionId)];
   const choices = last.next.filter((id) => !run.completedNodeIds.includes(id));
   return choices.includes(run.currentNodeId) ? [run.currentNodeId] : choices;
 }
@@ -90,10 +124,53 @@ export function nodeState(run, id) {
   return reachableNodeIds(run).has(id) ? 'locked' : 'bypassed';
 }
 
-// The run is complete when the last node won has no `next` nodes (§4.1).
-export function isRunComplete(run) {
+// The region is complete when the last node won has no `next` nodes (its boss, §4.1); the run is
+// complete when that region is the last (M3a §3).
+export function isRegionComplete(run) {
   const last = lastCompleted(run);
   return !!last && last.next.length === 0;
+}
+
+export function isRunComplete(run) {
+  return isRegionComplete(run) && !nextRegionId(run);
+}
+
+// ---------------------------------------------------------------------------
+// Dying by region (M3a §4). In a region with deathLossPct 1 a death ends the run. Below 1, the run
+// goes on from the region's start: each resource keeps floor(amount × (1 − deathLossPct)) and each
+// owned item is lost with chance deathLossPct, rolled in turn from the run seed and the death count
+// (so the debug panel's preview is what the next death will take). Patterns are never lost.
+// ---------------------------------------------------------------------------
+export function regionEndsRunOnDeath(run) {
+  return C.REGIONS[run.regionId].deathLossPct >= 1;
+}
+
+// What a death now would take: { resources: { id: units lost }, kept: { id: units kept }, items: [ids] },
+// or null where a death ends the run. Reads the carried inventory (what the battle started with:
+// anything found in the battle is gone anyway).
+export function deathLoss(run) {
+  if (regionEndsRunOnDeath(run)) return null;
+  const pct = C.REGIONS[run.regionId].deathLossPct;
+  const rng = createRng((run.seed ^ Math.imul(run.deaths + 1, 0x2c1b3c6d)) >>> 0);
+  const kept = {};
+  const resources = {};
+  for (const k of RESOURCE_KEYS) {
+    const have = run.inventory[k] ?? 0;
+    kept[k] = Math.floor(have * (1 - pct) + 1e-9);
+    resources[k] = have - kept[k];
+  }
+  const items = run.items.filter(() => rng.next() < pct);
+  return { resources, kept, items };
+}
+
+// Applies a death's losses (deathLoss) to the run: what was lost is gone and lost items leave their
+// slots; kept items stay equipped where they were.
+export function applyDeathLoss(run, loss) {
+  run.inventory = { ...emptyResources(), ...loss.kept };
+  run.items = run.items.filter((id) => !loss.items.includes(id));
+  run.seenItems = run.seenItems.filter((id) => run.items.includes(id));
+  for (const slot of Object.keys(run.equipped)) if (loss.items.includes(run.equipped[slot])) run.equipped[slot] = null;
+  run.deaths++;
 }
 
 // Each encounter's seed, derived from the run seed and the node ID (§2.2), so a fixed run seed
@@ -113,7 +190,8 @@ export function recordVictory(run, resources, druidHp) {
 }
 
 // HP the Druid starts the next encounter with: full (his effective max HP, M2e §5), or with
-// CARRY_DRUID_HP the HP he won with, clamped to that max (it may have dropped after unequipping).
+// CARRY_DRUID_HP the HP he won with, clamped to that max (it may have dropped after unequipping;
+// on entering a region it is Infinity, so full).
 export function startingDruidHp(run, maxHp) {
   return C.CARRY_DRUID_HP ? Math.min(run.druidHp, maxHp) : maxHp;
 }
@@ -128,23 +206,24 @@ export function availableNodeAt(run, p) {
   return null;
 }
 
-// Start-up check of MAP_NODES (M2a §4.1, M2c §1.1, M2g §1): unique IDs, a known start node, known
-// levels and types, every node in a row (its level's), the start node alone in the lowest row and
-// rows numbered without gaps.
+// Start-up check of MAP_NODES (M2a §4.1, M2c §1.1, M2g §1, M3a §1.2): unique IDs, known levels and
+// types, every node in a row (its level's); in each region, its start node alone in its lowest row
+// and rows numbered without gaps.
 export function validateMap() {
   const ids = C.MAP_NODES.map((n) => n.id);
   if (new Set(ids).size !== ids.length) console.error(`MAP_NODES has duplicate IDs: ${ids.join(', ')}`);
-  if (!ids.includes(C.MAP_START_NODE)) console.error(`MAP_START_NODE "${C.MAP_START_NODE}" is not in MAP_NODES`);
   for (const n of C.MAP_NODES) {
     if (!C.LEVELS[n.levelId]) console.error(`Map node ${n.id}: unknown level "${n.levelId}"`);
     else if (!Number.isInteger(C.LEVELS[n.levelId].row)) console.error(`Map node ${n.id}: its level "${n.levelId}" has no row (levels tab)`);
     if (!C.NODE_TYPES[n.type]) console.error(`Map node ${n.id}: unknown type "${n.type}" (NODE_TYPES)`);
   }
-  const rows = C.MAP_NODES.map((n) => C.LEVELS[n.levelId]?.row).filter(Number.isInteger);
-  const lowest = Math.min(...rows);
-  const start = C.MAP_NODES.find((n) => n.id === C.MAP_START_NODE);
-  if (start && (C.LEVELS[start.levelId]?.row !== lowest || rows.filter((r) => r === lowest).length !== 1)) console.error('MAP_START_NODE must be alone in the lowest row');
-  for (let r = lowest; r <= Math.max(...rows); r++) if (!rows.includes(r)) console.error(`Map: no node in row ${r} (rows must not skip)`);
+  for (const regionId of C.REGION_ORDER) {
+    const rows = C.MAP_NODES.filter((n) => n.region === regionId).map((n) => C.LEVELS[n.levelId]?.row).filter(Number.isInteger);
+    if (!rows.length) continue;
+    const lowest = Math.min(...rows);
+    if (rows.filter((r) => r === lowest).length !== 1) console.error(`Map (${regionId}): the region's start must be alone in its lowest row`);
+    for (let r = lowest; r <= Math.max(...rows); r++) if (!rows.includes(r)) console.error(`Map (${regionId}): no node in row ${r} (rows must not skip)`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -199,7 +278,7 @@ export function markSlotSeen(run, slot) {
 // the node last entered still exists in the same row (else false: the caller starts a new run).
 export function regenerateMap(run, seed) {
   const was = run.currentNodeId ? mapNode(run, run.currentNodeId) : null;
-  run.map = generateMap(seed);
+  run.map = generateMap(seed, run.regionId);
   run.traders = rollRunTraders(seed, run.map, run.traders); // M2n §5: the same traders where their nodes remain
   if (!was) return true;
   const now = mapNode(run, was.id);

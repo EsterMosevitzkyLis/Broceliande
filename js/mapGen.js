@@ -1,10 +1,11 @@
-// Generated map roads (M2g): each run's map from a seed. Rows and row heights are fixed (each
+// Generated map roads (M2g): each region's map from a seed (M3a §1.2: one map per region, built
+// only from that region's levels, with its own Traders and Tinker's Rests). Rows and row heights are fixed (each
 // node's row is its level's); what varies is the order and x position of the nodes within a row,
 // the roads between adjacent rows and their curves.
 //
 // The run's Trader nodes (M2n §2) and Tinker's Rests (M2p §4.1) are generated here too: ids
 // trader1, trader2…, tinker1…, no level.
-// A map: { nodes: [{ id, levelId, name, type, row, pos: { x, y }, next: [ids] }],
+// A map: { regionId, nodes: [{ id, levelId, name, type, row, pos: { x, y }, next: [ids] }],
 //          roads: [{ from, to, bend }] (bend: px the curve bows sideways, + to the road's left),
 //          attempts, failed: [check names the chosen map fails], failCounts: { check: attempts it failed } }.
 // Visual and structural only: the rules (states, availability) are in run.js.
@@ -27,13 +28,14 @@ const MAX_OUT = 3;
 // RNG stream, the first passing every check winning. Only if none passes does one extra node move
 // to another row of its band (each tried in turn, MAP_MAX_ATTEMPTS more each). If nothing passes at
 // all: the attempt failing the fewest checks, with a warning.
-export function generateMap(seed) {
+export function generateMap(seed, regionId) {
   const rng = createRng(seed >>> 0);
   const failCounts = Object.fromEntries(CHECKS.map((c) => [c, 0]));
-  const rows = levelRows();
+  const region = C.REGIONS[regionId];
+  const rows = levelRows(regionId);
   const extras = [
-    ...extraBands(rows, 'trader', C.TRADERS_PER_RUN, 1).map((band) => ({ type: 'trader', band })),
-    ...extraBands(rows, 'tinker', C.TINKERS_PER_RUN, rowIndexFrom(rows, C.TINKER_MIN_ROW)).map((band) => ({ type: 'tinker', band })),
+    ...extraBands(rows, 'trader', region.traders, 1).map((band) => ({ type: 'trader', band })),
+    ...extraBands(rows, 'tinker', region.tinkers, rowIndexFrom(rows, region.tinkerMinRow)).map((band) => ({ type: 'tinker', band })),
   ];
   const chosen = chooseExtraRows(rng, rows, extras);
   const tries = [chosen, ...extras.flatMap((x, k) => preferredRows(x, extras, chosen, x.band.filter((r) => r !== chosen[k]))
@@ -43,7 +45,7 @@ export function generateMap(seed) {
   for (const extraRows of tries) {
     for (let n = 0; n < C.MAP_MAX_ATTEMPTS; n++) {
       attempts++;
-      const map = attempt(rng, extras, extraRows);
+      const map = attempt(rng, regionId, extras, extraRows);
       const failed = CHECKS.filter((c) => !CHECK_FNS[c](map));
       for (const c of failed) failCounts[c]++;
       if (!best || failed.length < best.failed.length) best = { map, failed };
@@ -53,18 +55,22 @@ export function generateMap(seed) {
   }
   if (best.failed.length) console.warn(`Map: no attempt passed every check; using one that fails ${best.failed.join(', ')}`);
   const movedExtra = best.map.extraRows.some((r, k) => r !== chosen[k]);
-  return { ...best.map, attempts, failed: best.failed, failCounts, movedExtra };
+  return { ...best.map, regionId, attempts, failed: best.failed, failCounts, movedExtra };
 }
 
-// The seed a run's map uses (§3): from the run seed, or MAP_FIXED_SEED when MAP_RANDOMISE is off.
-export function mapSeedFor(runSeed) {
-  return C.MAP_RANDOMISE ? (runSeed ^ 0x5bd1e995) >>> 0 : C.MAP_FIXED_SEED;
+// The seed a region's map uses (§3): from the run seed, the region and how many times the run has
+// entered a region (M3a §4: a return to Hag's Causeway gets a new map), or MAP_FIXED_SEED (one per
+// region) when MAP_RANDOMISE is off.
+export function mapSeedFor(runSeed, regionId, visit = 1) {
+  const order = C.REGIONS[regionId].order;
+  if (!C.MAP_RANDOMISE) return (C.MAP_FIXED_SEED + 1000 * (order - 1)) >>> 0;
+  return (((runSeed ^ 0x5bd1e995) >>> 0) + Math.imul(order - 1, 0x9e3779b1) + Math.imul(visit - 1, 7919)) >>> 0;
 }
 
-// The level nodes' rows, bottom to top: [[node, …], …], each node a fresh copy with its row.
-function levelRows() {
+// The region's level nodes' rows, bottom to top: [[node, …], …], each node a fresh copy with its row.
+function levelRows(regionId) {
   const byRow = new Map();
-  for (const n of C.MAP_NODES) {
+  for (const n of C.MAP_NODES.filter((m) => m.region === regionId)) {
     const row = C.LEVELS[n.levelId].row;
     if (!byRow.has(row)) byRow.set(row, []);
     byRow.get(row).push({ id: n.id, levelId: n.levelId, name: n.name, type: n.type, row, pos: null, next: [] });
@@ -80,8 +86,8 @@ function rowIndexFrom(rows, row) {
 
 // The rows with the run's extra nodes added: extras[k] in rows[extraRows[k]] (none if null), with
 // ids trader1, trader2, tinker1… and their type's label as name.
-function rowsWithExtras(extras, extraRows) {
-  const rows = levelRows();
+function rowsWithExtras(regionId, extras, extraRows) {
+  const rows = levelRows(regionId);
   const counts = {};
   extras.forEach((x, k) => {
     const index = extraRows[k];
@@ -143,8 +149,8 @@ function chooseExtraRows(rng, rows, extras) {
   return chosen;
 }
 
-function attempt(rng, extras, extraRows) {
-  const rows = rowsWithExtras(extras, extraRows);
+function attempt(rng, regionId, extras, extraRows) {
+  const rows = rowsWithExtras(regionId, extras, extraRows);
   rows.forEach((row, i) => {
     shuffle(rng, row);                // §2.1: order within the row
     placeRow(rng, row, i, rows.length, (k) => Math.max(...rows[k].map(nodeRadius))); // x positions, the row's height with a little jitter

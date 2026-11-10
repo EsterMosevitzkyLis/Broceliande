@@ -335,6 +335,93 @@ html, body {
   background: #4b6e34;
 }
 
+/* M3a §4: Return and Abandon side by side; Abandon is the quieter one. */
+.end-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+#btn-abandon {
+  font-size: 24px;
+  padding: 12px 30px;
+  background: #3a2a24;
+  color: #e8d8cc;
+  border: 2px solid #8a5a48;
+  border-radius: 6px;
+}
+
+#btn-abandon:hover {
+  background: #4a342c;
+}
+
+#end-loss {
+  margin: -12px 0 30px;
+  font-size: 22px;
+}
+
+#end-loss-rows .cost-rows {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+}
+
+#end-loss-items {
+  margin-top: 10px;
+  color: #e0a090;
+  font-style: italic;
+}
+
+/* M3a §3: the crossing dialog, over the darkened map. */
+#crossing-dialog {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.62);
+  pointer-events: auto;
+}
+
+.crossing-panel {
+  width: 820px;
+  padding: 44px 60px 40px;
+  text-align: center;
+  background: #142624;
+  border: 3px solid #3f6a5e;
+  border-radius: 10px;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+}
+
+#crossing-title {
+  font-family: Georgia, serif;
+  font-size: 58px;
+  letter-spacing: 0.08em;
+  color: #cfe3d4;
+}
+
+#crossing-text {
+  margin: 24px 0 34px;
+  font-family: Georgia, serif;
+  font-size: 25px;
+  font-style: italic;
+  line-height: 1.5;
+  color: #b8cbbd;
+}
+
+#btn-cross {
+  font-size: 28px;
+  padding: 12px 40px;
+  background: #24433c;
+  color: #e6f2ea;
+  border: 2px solid #6fa08e;
+  border-radius: 6px;
+}
+
+#btn-cross:hover {
+  background: #2e564c;
+}
+
 /* ---------- Resources ---------- */
 #hud-resources {
   display: flex;

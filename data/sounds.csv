@@ -49,3 +49,6 @@ forgeAmbience,0.12,1,0.3,2,TRUE
 craftHammer,0.5,1,0.2,2,TRUE
 craftComplete,0.5,1,0.2,1,TRUE
 patternFound,0.55,1,0.3,1,TRUE
+regionCrossing,0.6,1,1,1,TRUE
+mapAmbienceCinderwood,0.1,1,0.3,2,TRUE
+mapAmbienceHags,0.12,1,0.3,2,TRUE
