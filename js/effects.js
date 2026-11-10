@@ -61,7 +61,7 @@ export function updateEffects(game, dt) {
   game.healSparkles = game.healSparkles.filter((s) => s.age < C.HEAL_SPARKLE_TIME);
   if (game.shake) {
     game.shake.age += dt;
-    if (game.shake.age >= C.OGRE_SHAKE_TIME) game.shake = null;
+    if (game.shake.age >= (game.shake.time ?? C.OGRE_SHAKE_TIME)) game.shake = null;
   }
   if (game.bossAnnouncement) {
     game.bossAnnouncement.age += dt;

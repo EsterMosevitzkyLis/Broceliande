@@ -239,7 +239,7 @@ export function validateTables(t, problems) {
 
   for (const r of t.levels) {
     const src = PLACEHOLDER_LEVELS[r.id] ?? r.id;
-    if (!waveCounts[src]) err('levels', r, 'id', `${r.id} has no waves`);
+    if (!waveCounts[r.id] && !waveCounts[src]) err('levels', r, 'id', `${r.id} has no waves`);
     if (!candidateCounts[src]) err('levels', r, 'id', `${r.id} has no candidates`);
     if (!palettes.has(src)) err('levels', r, 'id', `${r.id} has no palette`);
   }

@@ -62,3 +62,11 @@ knightWindup,0.55,1,0.3,1,TRUE
 knightBlow,1,1,0.3,2,TRUE
 knightDies,0.9,1,1,1,TRUE
 riseAgain,0.6,1,0.15,3,TRUE
+bogKingRoar,1,1,1,1,TRUE
+bogKingStep,0.35,1,0.4,2,TRUE
+bogKingWindup,0.6,1,0.3,1,TRUE
+bogKingBlow,1,1,0.3,2,TRUE
+bogKingDies,1,1,1,1,TRUE
+bogKingSummons,0.7,1,1,1,TRUE
+bogKingSinks,0.8,1,1,1,TRUE
+bogKingSurfaces,0.8,1,1,1,TRUE

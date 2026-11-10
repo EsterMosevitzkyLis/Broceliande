@@ -374,3 +374,170 @@ export function drawAsh(ctx, a, k) {
   }
   ctx.restore();
 }
+
+const BOG_KING = {
+  peat: '#211b14', peatLight: '#3a3024', hit: '#b8ae9c', root: '#5a3e24', reed: '#6a6a3a', reedDark: '#4a4a2a',
+  antler: '#cfc4a8', antlerEdge: '#7d705a', iron: '#6a4a30', ironLight: '#9a6a40', water: 'rgba(40, 60, 58, 0.8)',
+};
+
+// Arm angles from the shoulder (rad; 0 = ahead, positive = downward): dragging his hands through
+// the mud as he walks, raised overhead in the wind-up, slammed down in the blow.
+const KING_ARM_DRAG = 1.25;
+const KING_ARM_RAISED = -1.9;
+const KING_ARM_DOWN = 1.0;
+
+// M3b §5.3: the Bog King: huge and hunched, made of black peat, roots and rotting reeds, a crude
+// crown of antlers and rusted iron, cold green eyes, dark water trailing off him. Both fists come
+// up overhead in his wind-up and slam down in his blow; he spreads his arms wide as he raises
+// Thralls. Drawn at radius 60 facing right, feet below his centre.
+export function drawBogKing(ctx, e, hit, lunging, anim) {
+  const t = C.ENEMY_TYPES[e.type];
+  const r = e.radius;
+  const feet = e.y + r * 0.5;
+  if (e.part !== 'body') drawShadow(ctx, e.x, feet, r * 1.1, r * 0.26);
+  if (e.part === 'shadow') return;
+  const L = BOG_KING;
+  const peat = hit === 'strike' ? STRIKE_FLASH : hit ? L.hit : L.peat;
+  let arm = KING_ARM_DRAG;
+  let spread = 0; // 0 → 1: arms flung wide (raising Thralls)
+  if (e.attack === AttackState.WINDUP) {
+    const k = Math.min(1, e.windupElapsed / t.windupTime);
+    arm = KING_ARM_DRAG + (KING_ARM_RAISED - KING_ARM_DRAG) * (1 - (1 - k) * (1 - k));
+  } else if (anim - e.lastBlowTime < C.OGRE_BLOW_POSE_TIME) {
+    arm = KING_ARM_DOWN;
+  } else if (e.summonPoseAt !== undefined && anim - e.summonPoseAt < C.BOG_KING_SUMMON_POSE_TIME) {
+    spread = Math.sin(Math.min(1, (anim - e.summonPoseAt) / C.BOG_KING_SUMMON_POSE_TIME) * Math.PI);
+  }
+  const step = Math.sin(e.stride * 0.06);
+  ctx.save();
+  ctx.translate(e.x, feet);
+  ctx.scale(e.facing * (r / 60), r / 60);
+  if (lunging) ctx.translate(4, 0);
+  ctx.rotate(step * 0.03);
+  // Dark water pooling and trailing behind him.
+  ctx.fillStyle = L.water;
+  ctx.beginPath();
+  ctx.ellipse(-30, -2, 46, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Short, thick legs.
+  ctx.fillStyle = L.peat;
+  for (const [x, dir] of [[-18, 1], [14, -1]]) {
+    ctx.beginPath();
+    ctx.roundRect(x - 12 + step * dir * 5, -40, 24, 40, 9);
+    ctx.fill();
+  }
+  const shoulder = { x: 16, y: -108 };
+  // An arm from its shoulder at `angle`; spread (raising Thralls) swings it wide, up and out
+  // to its own side (the far arm backwards).
+  const drawArm = (angle, width, color, back) => {
+    const sx = shoulder.x - (back ? 30 : 0);
+    const wide = back ? Math.PI + 0.55 : -0.55;
+    const a = angle + (wide - angle) * spread;
+    const hand = { x: sx + Math.cos(a) * 62, y: shoulder.y + Math.sin(a) * 62 };
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sx, shoulder.y);
+    ctx.quadraticCurveTo((sx + hand.x) / 2 + 6, (shoulder.y + hand.y) / 2 + 10, hand.x, hand.y);
+    ctx.stroke();
+    ctx.fillStyle = color; // a great muddy fist
+    ctx.beginPath();
+    ctx.arc(hand.x, hand.y, width * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    return hand;
+  };
+  drawArm(arm, 16, L.peatLight, true); // the far arm, behind him
+  // The hunched mass of peat, with a knot of roots through it.
+  ctx.fillStyle = peat;
+  ctx.beginPath();
+  ctx.ellipse(-4, -78, 46, 44, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(10, -112, 30, 24, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = L.peatLight;
+  for (const [x, y, rx, ry] of [[-24, -90, 10, 7], [-8, -60, 9, 6], [14, -84, 8, 6], [-30, -62, 7, 5]]) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = L.root;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-44, -96);
+  ctx.bezierCurveTo(-20, -112, 0, -60, 30, -88);
+  ctx.moveTo(-40, -56);
+  ctx.bezierCurveTo(-18, -70, 6, -110, 34, -118);
+  ctx.stroke();
+  // Rotting reeds hanging off his back and shoulders, swaying.
+  const sway = Math.sin(anim * 1.6 + e.id) * 2;
+  for (const [x, y, len, c] of [[-30, -110, 34, L.reed], [-18, -118, 40, L.reedDark], [-40, -92, 30, L.reed], [-6, -124, 26, L.reedDark], [-46, -74, 24, L.reed]]) {
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x - 6 + sway, y + len * 0.5, x - 4 + sway, y + len);
+    ctx.stroke();
+  }
+  // His head, low and forward, under the crown of antlers and rusted iron.
+  ctx.fillStyle = peat;
+  ctx.beginPath();
+  ctx.ellipse(34, -118, 16, 14, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = L.iron; // the iron band
+  ctx.fillRect(20, -134, 28, 7);
+  ctx.fillStyle = L.ironLight;
+  for (const x of [22, 30, 38, 44]) fillPoly(ctx, [[x, -134], [x + 2, -142], [x + 4, -134]], L.ironLight);
+  fillPoly(ctx, [[22, -134], [12, -150], [4, -168], [10, -162], [14, -170], [18, -156], [26, -136]], L.antler, L.antlerEdge, 1);
+  fillPoly(ctx, [[40, -134], [46, -152], [42, -170], [50, -160], [56, -172], [54, -152], [46, -134]], L.antler, L.antlerEdge, 1);
+  drawEyes(ctx, 40, -120, 2.8, true, true);
+  drawEyes(ctx, 32, -121, 2.4, true, true);
+  // Dark water dripping off him.
+  ctx.strokeStyle = L.water;
+  ctx.lineWidth = 2;
+  for (const [x, y] of [[-40, -60], [-20, -40], [8, -46], [30, -100], [-30, -100]]) {
+    const k = (anim * 0.9 + (x - y) * 0.01) % 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + k * 16);
+    ctx.lineTo(x, y + k * 16 + 8);
+    ctx.stroke();
+  }
+  drawArm(arm, 18, peat, false); // the near arm, in front
+  ctx.restore();
+}
+
+// §5.3: his lane's entrance before he rises from it: a dark pool spreading, bubbling. k: 0 → 1.
+export function drawBossEntrance(ctx, at, k, anim) {
+  const r = 30 + 50 * k;
+  ctx.save();
+  ctx.fillStyle = `rgba(14, 20, 16, ${0.35 + 0.4 * k})`;
+  ctx.beginPath();
+  ctx.ellipse(at.x, at.y, r, r * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  drawBubbles(ctx, at.x, at.y, r, anim, 7);
+  ctx.restore();
+}
+
+// §5.2: where he sank: a ring of bubbles over the bog.
+export function drawSunkRing(ctx, x, y, r, anim) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(30, 44, 36, 0.7)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  drawBubbles(ctx, x, y, r, anim, 10);
+  ctx.restore();
+}
+
+function drawBubbles(ctx, x, y, r, anim, n) {
+  ctx.fillStyle = 'rgba(190, 220, 200, 0.6)';
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const p = (anim * 1.2 + i * 0.37) % 1;
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(a) * r * 0.8, y + Math.sin(a) * r * 0.32 - p * 10, 1.5 + (1 - p) * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}

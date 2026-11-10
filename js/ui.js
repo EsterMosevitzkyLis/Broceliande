@@ -25,6 +25,7 @@ import { enemyTotals, waveCounts } from './game.js';
 import { isMuted, soundStats, audioStatus } from './audio.js';
 import { chosenSpeed } from './gameSpeed.js';
 import { isRunComplete, mapNode, nodeRadius, deathLoss, nextRegionId } from './run.js';
+import { raisedCount } from './systems/bogKingSystem.js';
 import { resolveStats, changedStats, statLabel } from './stats.js';
 import { drawSlotIcon, drawScrollIcon } from './render/items.js';
 import { knownPatterns, newPatterns, totalPatterns } from './patterns.js';
@@ -106,7 +107,11 @@ function bossDebugLines(game) {
       ? `WIND-UP ${e.windupElapsed.toFixed(2)} / ${t.windupTime} s → ${e.windupTarget.kind === 'druid' ? 'Druid' : `summon #${e.windupTarget.id}`}`
       : `ready to wind up in ${Math.max(0, t.attackInterval - t.windupTime - e.sinceBlow).toFixed(1)} s`;
     lines.push(`  ${t.name} #${e.id}: HP ${Math.ceil(e.hp)} / ${e.maxHp}  ${attack}`);
+    // M3b §5.2: the Bog King's raising and sinking.
+    if (t.role === 'boss') lines.push(`    raises Thralls in ${Math.max(0, C.BOG_KING_SUMMON_INTERVAL - (e.summonTimer ?? 0)).toFixed(1)} s  (${raisedCount(game, e)} / ${C.BOG_KING_SUMMON_MAX} of his about)  ${e.hasSunk ? 'has sunk' : 'sinks at half HP'}`);
   }
+  for (const en of game.bossEntrances) lines.push(`  ${C.ENEMY_TYPES[en.type].name} rises from ${en.lane.id} in ${Math.max(0, en.timer).toFixed(1)} s`);
+  for (const sub of game.submerged) lines.push(`  ${C.ENEMY_TYPES[sub.enemy.type].name} under the bog: resurfaces in ${Math.max(0, sub.timer).toFixed(1)} s`);
   return lines;
 }
 
@@ -490,7 +495,8 @@ function updateFoundItem(el, game) {
 
 // The living mini-boss, if any (M2c §2.7): the first one spawned.
 function livingBoss(game) {
-  return game.enemies?.find((e) => C.ENEMY_TYPES[e.type].boss) ?? null;
+  // M3b §5: the Bog King's bar before any mini-boss's.
+  return game.enemies?.find((e) => C.ENEMY_TYPES[e.type].role === 'boss') ?? game.enemies?.find((e) => C.ENEMY_TYPES[e.type].boss) ?? null;
 }
 
 // Mini-boss HP bar while one is alive (from its spawn, not its first damage), and the arrival
@@ -498,7 +504,7 @@ function livingBoss(game) {
 // Wave preview (M2i §4.2): during the countdown and gaps, the next wave's number, countdown and
 // enemies (icons with counts, an Ogre outlined in red), with Call next wave.
 // Enemy types in display order: by base type, each followed by its variants (a Grim, M2l §2.1).
-const PREVIEW_ORDER = ['wolf', 'thrall', 'stirge', 'bear', 'brute', 'ogre', 'knight'];
+const PREVIEW_ORDER = ['wolf', 'thrall', 'stirge', 'bear', 'brute', 'ogre', 'knight', 'bogKing'];
 function enemyDisplayOrder() {
   const rank = (type) => {
     const base = C.ENEMY_TYPES[type].baseType;
@@ -574,9 +580,13 @@ export function checkWavePreview(scenes) {
 
 function updateBoss(el, game) {
   const inBattle = game.state === GameState.COMBAT || game.state === GameState.ENDING;
-  const boss = inBattle ? livingBoss(game) : null;
+  // M3b §5.3: the Bog King's bar stays up, greyed, while he is under the bog.
+  const sunk = inBattle ? game.submerged?.[0]?.enemy ?? null : null;
+  const boss = inBattle ? livingBoss(game) ?? sunk : null;
   el.bossBar.hidden = !boss;
   el.bossBar.classList.toggle('grim', !!boss && C.ENEMY_TYPES[boss.type].variant === 'grim'); // darker frame (M2l §2.1)
+  el.bossBar.classList.toggle('submerged', !!boss && boss === sunk);
+  el.bossBar.classList.toggle('king', !!boss && C.ENEMY_TYPES[boss.type].role === 'boss'); // M3b §5.3: with a crown
   el.uiLayer.classList.toggle('boss-active', !!boss);
   if (boss) {
     const max = boss.maxHp; // scaled by the level's enemyHpMult (M2f §3.1)

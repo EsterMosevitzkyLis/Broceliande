@@ -1,7 +1,7 @@
 // Bootstrap, stage scaling and the fixed-timestep loop (spec §3.4, §3.5).
 
 import * as C from './config.js';
-import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion } from './game.js';
+import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, spawnDebugBogKing, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion } from './game.js';
 import { createInput } from './input.js';
 import { createRenderer } from './renderer.js';
 import { createUI, checkLevelNameLabel, checkBossBar, checkWavePreview } from './ui.js';
@@ -254,6 +254,7 @@ const input = createInput(stage, canvas, () => scale, {
       case 'g': if (e.shiftKey) spawnDebugGrimWolves(game); else grantResources(game); break; // Shift+G (M2l §4): 4 Grim Wolves
       case 'h': if (e.shiftKey && debugNextRegion(game)) afterRestart(); break; // M3a §7: Shift+H on the map, the next region's map
       case 't': if (e.shiftKey) openDebugTrader(game); break; // M2n §6: Shift+T on the map opens a trader scene
+      case 'j': if (e.shiftKey) spawnDebugBogKing(game); break; // M3b §6: the Bog King (Combat only)
       case 'v': toggleMute(); break;                    // M1g §3.6: mute / unmute sound
       case 'x': toggleDropMult(game); break;            // M1d §3: enemy drop chances ×1 / ×DEBUG_DROP_MULT
       case 'i': // M2e §6: on the map, add a random unowned item; in battle, reveal the hidden item's spot (debug overlay)

@@ -77,12 +77,12 @@ export function toggleMute() {
 const TURRET_FIRE_SOUND = { sprinkler: 'sprinklerFire', toader: 'toaderFire', cinderjaw: 'cinderjawFires' };
 // M3b §2.2: Hag's Causeway's undead: wet groans (Thrall), a deep creaking groan (Brute), a metallic,
 // sloshing roar (the Drowned Knight).
-const ENEMY_ATTACK_SOUND = { wolf: 'wolfBite', bear: 'bearAttack', ogre: 'ogreBlow', stirge: 'stirgeBite', thrall: 'thrallAttack', brute: 'bruteAttack', knight: 'knightBlow' };
-const ENEMY_DEATH_SOUND = { wolf: 'wolfDie', bear: 'bearDie', ogre: 'ogreDies', stirge: 'stirgeDies', thrall: 'thrallDie', brute: 'bruteDie', knight: 'knightDies' };
+const ENEMY_ATTACK_SOUND = { wolf: 'wolfBite', bear: 'bearAttack', ogre: 'ogreBlow', stirge: 'stirgeBite', thrall: 'thrallAttack', brute: 'bruteAttack', knight: 'knightBlow', bogKing: 'bogKingBlow' };
+const ENEMY_DEATH_SOUND = { wolf: 'wolfDie', bear: 'bearDie', ogre: 'ogreDies', stirge: 'stirgeDies', thrall: 'thrallDie', brute: 'bruteDie', knight: 'knightDies', bogKing: 'bogKingDies' };
 // M2c §2.9: a mini-boss's arrival, footsteps and wind-up (none for wolves and Bears).
-const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns', knight: 'knightSpawns' }; // M2h: once per flock (its first Stirge)
-const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep' };
-const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup' };
+const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns', knight: 'knightSpawns', bogKing: 'bogKingRoar' }; // M2h: once per flock (its first Stirge)
+const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep', bogKing: 'bogKingStep' };
+const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup', bogKing: 'bogKingWindup' };
 
 function subscribe() {
   events.on('turretFired', (e) => play(TURRET_FIRE_SOUND[e.type], e));
@@ -98,6 +98,7 @@ function subscribe() {
   events.on('squirrelStrikes', (e) => play('squirrelScratch', e));
   events.on('enemyDied', (e) => playEnemy(ENEMY_DEATH_SOUND, e));
   events.on('enemyRose', (e) => play('riseAgain', e)); // M3b §3.3
+  for (const name of ['bogKingSummons', 'bogKingSinks', 'bogKingSurfaces']) events.on(name, (e) => play(name, e)); // M3b §5
   events.on('enemySpawned', (e) => { if (e.first !== false) playEnemy(ENEMY_SPAWN_SOUND, e); });
   events.on('enemyStep', (e) => playEnemy(ENEMY_STEP_SOUND, e));
   events.on('enemyWindup', (e) => playEnemy(ENEMY_WINDUP_SOUND, e));
@@ -629,6 +630,63 @@ const RECIPES = {
     bell(t, out, 300 * p, 1.25, 0.6, 0.35);
     noise(t, out, { filter: 'bandpass', freq: 700 * p, to: 250 * p, q: 1.2, dur: 0.5, gain: 0.9, delay: 1.25 });
     return 1.8;
+  },
+
+  // M3b §5.3: the Bog King rises from the peat: a deep, slow roar under a long, sucking gurgle.
+  bogKingRoar(t, out, p) {
+    growl(t, out, { freq: 62 * p, to: 38 * p, dur: 2.4, attack: 0.5, cutoff: 420, trem: 7, gain: 1 });
+    growl(t, out, { freq: 47 * p, to: 30 * p, dur: 2.2, attack: 0.6, cutoff: 320, trem: 5, gain: 0.8, delay: 0.1 });
+    noise(t, out, { filter: 'bandpass', freq: 250 * p, to: 600 * p, q: 2, dur: 1.6, attack: 0.3, gain: 0.5 });
+    return 2.6;
+  },
+
+  // His heavy, squelching step.
+  bogKingStep(t, out, p) {
+    tone(t, out, { freq: 52 * p, to: 30 * p, dur: 0.2, gain: 1 });
+    return noise(t, out, { filter: 'bandpass', freq: 400 * p, to: 200 * p, q: 2, dur: 0.18, gain: 0.6, delay: 0.02 });
+  },
+
+  // Both fists coming up: a rising groan, mud sucking off them.
+  bogKingWindup(t, out, p) {
+    growl(t, out, { freq: 55 * p, to: 80 * p, dur: 0.9, attack: 0.2, cutoff: 450, trem: 9, gain: 0.7 });
+    noise(t, out, { filter: 'bandpass', freq: 300 * p, to: 700 * p, q: 3, dur: 0.6, attack: 0.1, gain: 0.4 });
+    return 0.95;
+  },
+
+  // The slam: a huge, deep thump and a wet splash.
+  bogKingBlow(t, out, p) {
+    tone(t, out, { freq: 70 * p, to: 22 * p, dur: 0.6, gain: 1.6 });
+    noise(t, out, { filter: 'lowpass', freq: 500 * p, dur: 0.35, gain: 1.2 });
+    noise(t, out, { filter: 'bandpass', freq: 900 * p, to: 300 * p, q: 1, dur: 0.5, gain: 0.9, delay: 0.05 });
+    return 0.65;
+  },
+
+  // He dies: a long sinking roar, then the bog closing over him.
+  bogKingDies(t, out, p) {
+    growl(t, out, { freq: 80 * p, to: 25 * p, dur: 2.6, attack: 0.1, cutoff: 500, trem: 8, gain: 1 });
+    noise(t, out, { filter: 'bandpass', freq: 600 * p, to: 150 * p, q: 2, dur: 1.4, gain: 0.8, delay: 2.0 });
+    return 3.4;
+  },
+
+  // He raises the drowned: a low swell and the ground cracking open.
+  bogKingSummons(t, out, p) {
+    growl(t, out, { freq: 60 * p, to: 90 * p, dur: 1.0, attack: 0.3, cutoff: 500, trem: 6, gain: 0.7 });
+    [0.3, 0.45, 0.6].forEach((d) => noise(t, out, { filter: 'lowpass', freq: 800 * p, dur: 0.12, gain: 0.7, delay: d }));
+    return 1.05;
+  },
+
+  // He sinks into the bog: a falling gurgle.
+  bogKingSinks(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 700 * p, to: 180 * p, q: 3, dur: 1.4, attack: 0.1, gain: 0.8 });
+    growl(t, out, { freq: 70 * p, to: 40 * p, dur: 1.2, attack: 0.1, cutoff: 400, trem: 6, gain: 0.6 });
+    return 1.45;
+  },
+
+  // He resurfaces: a rising, bursting gurgle.
+  bogKingSurfaces(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 200 * p, to: 800 * p, q: 3, dur: 1.0, attack: 0.3, gain: 0.8 });
+    growl(t, out, { freq: 45 * p, to: 70 * p, dur: 1.2, attack: 0.3, cutoff: 420, trem: 7, gain: 0.8 });
+    return 1.25;
   },
 
   // M3b §3.3: a body rises again: a wet, gurgling groan.

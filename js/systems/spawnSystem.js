@@ -8,6 +8,7 @@ import { createEnemy, laneWorldPos, maxOffset, collisionRadiusOf } from '../enti
 import { findBlocker } from './collisionSystem.js';
 import { levelWaves } from '../levelSettings.js';
 import { events } from '../events.js';
+import { startEntrance } from './bogKingSystem.js';
 
 function shuffle(rng, items) {
   const a = [...items];
@@ -68,6 +69,12 @@ function trySpawn(game, lane, type, first = true) {
   const offset = t.keepSide
     ? (game.rng.next() < 0.5 ? -1 : 1) * Math.max(0, maxOffset(type, lane) - C.SIDE_KEEP_MARGIN)
     : game.rng.range(-maxOffset(type, lane), maxOffset(type, lane));
+  // M3b §5.3: the Bog King rises from his lane's entrance after it has bubbled for a while.
+  if (t.role === 'boss') {
+    startEntrance(game, lane, type);
+    if (game.wave) { game.wave.spawned++; game.wave.lastSpawnAt = game.waveTime; }
+    return true;
+  }
   const pos = laneWorldPos(lane, 0, offset);
   // Flyers (M2h §3.1) enter over anything on the ground.
   if (!t.flying && findBlocker(game.enemies, null, pos.x, pos.y, collisionRadiusOf(type))) return false;

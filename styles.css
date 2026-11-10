@@ -507,6 +507,17 @@ html, body {
 #boss-name {
   letter-spacing: 0.12em;
 }
+/* M3b §5.3: the Bog King's bar: a crown before his name; greyed while he is under the bog. */
+#boss-bar.king #boss-name::before {
+  content: '\265B';
+  margin-right: 8px;
+  color: #e0c060;
+  font-size: 18px;
+}
+#boss-bar.submerged {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
 #boss-bar-track {
   width: 300px;
   height: 10px;

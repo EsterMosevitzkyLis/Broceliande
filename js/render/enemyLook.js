@@ -11,10 +11,10 @@
 
 import * as C from '../config.js';
 import { drawWolf, drawBear, drawOgre, drawStirge, drawGrimSmoke } from './entities.js';
-import { drawThrall, drawBrute, drawKnight } from './undead.js';
+import { drawThrall, drawBrute, drawKnight, drawBogKing } from './undead.js';
 
-const ENEMY_DRAW = { wolf: drawWolf, bear: drawBear, ogre: drawOgre, stirge: drawStirge, thrall: drawThrall, brute: drawBrute, knight: drawKnight };
-const UNDEAD = new Set(['thrall', 'brute', 'knight']); // M3b §2: cold green outline and mist
+const ENEMY_DRAW = { wolf: drawWolf, bear: drawBear, ogre: drawOgre, stirge: drawStirge, thrall: drawThrall, brute: drawBrute, knight: drawKnight, bogKing: drawBogKing };
+const UNDEAD = new Set(['thrall', 'brute', 'knight', 'bogKing']); // M3b §2: cold green outline and mist
 
 // Where the smoke rises from, per base type: top of the body above the feet (× radius), spread
 // (× radius) and puff scale (× radius). The Stirge's is measured from its flying body.
@@ -26,6 +26,7 @@ const SMOKE = {
   thrall: { top: 1.7, width: 1.2, puff: 0.9 },
   brute: { top: 1.8, width: 1.4, puff: 1 },
   knight: { top: 2.4, width: 0.9, puff: 0.7 },
+  bogKing: { top: 2.6, width: 1.1, puff: 0.7 },
 };
 
 const SCRATCH_SIZE = 7;     // × radius: side of the square scratch canvas round one enemy
@@ -51,7 +52,7 @@ export function drawEnemyLook(ctx, e, hit, lunging, anim, { smoke = true } = {})
   const grim = t.variant === 'grim';
   const undead = UNDEAD.has(t.baseType);
   // M3b §3.3: pulling itself up, just risen: squashed into the mire, growing back to full height.
-  const rising = e.risen && e.risenAt !== undefined ? Math.min(1, (anim - e.risenAt) / C.RISE_ANIM_TIME) : 1;
+  const rising = e.pullUpAt !== undefined ? Math.min(1, (anim - e.pullUpAt) / C.RISE_ANIM_TIME) : 1; // also the Bog King and his Thralls (§5.3)
   if (rising < 1) {
     const feet = d.y + d.radius * 0.5;
     ctx.save();

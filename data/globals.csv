@@ -82,3 +82,7 @@ TRADE_TAG_PRICEY,1.15,TUNING - multiplier at or above this: pricey (goods) / sel
 RISE_DELAY,1.5,"TUNING - s a risen-dead body lies where it fell before it stands up again (M3b sec. 3.1)"
 RISE_HP_FRAC,0.5,TUNING - fraction of its max HP a body rises with
 DROP_SINK_TIME,12,TUNING - s a landed drop lasts before the mire swallows it (M3b sec. 4)
+BOG_KING_SUMMON_INTERVAL,10,TUNING - s between the Bog King raising Drowned Thralls (M3b sec. 5.2)
+BOG_KING_SUMMON_COUNT,3,TUNING - Thralls he raises each time
+BOG_KING_SUMMON_MAX,12,TUNING - most of his raised Thralls alive at once
+BOG_KING_SINK_TIME,3,"TUNING - s he stays sunk in the bog at half HP, then he resurfaces at the start of another lane"

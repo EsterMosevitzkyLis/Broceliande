@@ -47,7 +47,8 @@ export function checkWaveCleared(game) {
   const w = game.wave;
   if (w.state !== WaveState.WAVE) return false;
   if (game.spawnQueues.some((q) => q.spawns.length > 0)) return false;
-  const cleared = game.enemies.length === 0 && game.bodies.length === 0; // M3b §3.1: bodies waiting to rise too
+  // M3b: bodies waiting to rise (§3.1), and a Bog King still to come up or under the bog (§5), too.
+  const cleared = game.enemies.length === 0 && game.bodies.length === 0 && game.bossEntrances.length === 0 && game.submerged.length === 0;
   const last = w.index + 1 >= waveCount(game);
   if (!cleared && (last || game.waveTime - w.lastSpawnAt < C.WAVE_GAP_AFTER_LAST_SPAWN)) return false;
   w.cleared++; // waves done (Victory overlay)
@@ -74,12 +75,15 @@ export function skipWave(game) {
   for (const q of game.spawnQueues) q.spawns = [];
   for (const enemy of [...game.enemies]) killEnemy(game, enemy);
   finishBodies(game); // M3b §3: bodies left by those kills, and any already waiting, stay down
+  game.bossEntrances = []; // M3b §5: and a Bog King still to come up never does
+  for (const sub of game.submerged) { game.enemyCounts[sub.enemy.type].alive--; game.enemyCounts[sub.enemy.type].killed++; }
+  game.submerged = [];
 }
 
 // Enemies still to deal with: every one alive (from any wave), every body waiting to rise (M3b §3.1),
 // plus this wave's not yet spawned (HUD).
 export function waveEnemiesLeft(game) {
-  return game.enemies.length + game.bodies.length + game.spawnQueues.reduce((a, q) => a + q.spawns.length, 0);
+  return game.enemies.length + game.bodies.length + game.bossEntrances.length + game.submerged.length + game.spawnQueues.reduce((a, q) => a + q.spawns.length, 0);
 }
 
 // The wave at w.index starts on its own clock. Spawns still queued (debug enemies queued in the

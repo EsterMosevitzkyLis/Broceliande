@@ -45,9 +45,20 @@ function rise(game, body) {
   const t = enemyType(e);
   e.hp = Math.max(1, Math.round(e.maxHp * C.RISE_HP_FRAC));
   e.risen = true;
-  e.risenAt = game.combatTime; // its pull-up animation (drawing)
+  e.pullUpAt = game.combatTime; // its pull-up animation (drawing)
+  returnToLane(e);
+  game.enemies.push(e);
+  game.traitStats.rises++;
+  // §3.2: a boss rises as one: its bar back (at RISE_HP_FRAC) and a banner.
+  if (t.boss) game.bossAnnouncement = { text: `${/^The /.test(t.name) ? t.name : `The ${t.name}`} rises again!`, age: 0 };
+  events.emit('enemyRose', { type: e.type, x: e.x, y: e.y });
+}
+
+// An enemy back in play after leaving it (a body rising, the Bog King resurfacing, §5.2): no
+// statuses, walking its lane (it queues for melee slots again as normal), its attack reset.
+export function returnToLane(e) {
+  const t = enemyType(e);
   e.statuses = {};
-  // Back on its lane where it fell; it queues for melee slots again as normal.
   e.state = EnemyState.WALKING;
   e.slots = [];
   e.stand = null;
@@ -62,11 +73,6 @@ function rise(game, body) {
   e.stuckTimer = 0;
   e.stuckOn = null;
   e.passThroughId = null;
-  game.enemies.push(e);
-  game.traitStats.rises++;
-  // §3.2: a boss rises as one: its bar back (at RISE_HP_FRAC) and a banner.
-  if (t.boss) game.bossAnnouncement = { text: `${/^The /.test(t.name) ? t.name : `The ${t.name}`} rises again!`, age: 0 };
-  events.emit('enemyRose', { type: e.type, x: e.x, y: e.y });
 }
 
 // Debug Shift+N (skipWave): every body dies for good at once.

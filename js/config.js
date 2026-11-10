@@ -86,6 +86,12 @@ export const ASH_TIME = 1.2;                // s a body burnt to ash smoulders b
 export const DROP_SINK_BLINK_TIME = 3;      // s: in its last this-many s a sinking drop blinks
 export const DROP_SINK_DEPTH = 0.45;        // × icon size a drop settles into the mire by the end
 export const DROP_SINK_SHRINK = 0.45;       // how much smaller it is by the end
+// The Bog King (M3b §5.3). Visual only; his stats and timings are in data/.
+export const BOSS_ENTRANCE_TIME = 2;        // s his lane's entrance bubbles and darkens before he rises from it
+export const BOG_KING_SHAKE_PX = 13;        // TUNING — px, the screen shake of his slam (an Ogre's: OGRE_SHAKE_PX)
+export const BOG_KING_SHAKE_TIME = 0.35;    // s
+export const BOG_KING_SPLASH_RADIUS = 96;   // px, the splash ring of his slam
+export const BOG_KING_SUMMON_POSE_TIME = 0.9; // s he holds his arms spread after raising Thralls
 export const SHOWCASE_GAP = 28;             // debug Shift+C: px between the figures in the comparison row
 export const SHOWCASE_PAIR_GAP = 70;        // px between one normal / Grim pair and the next
 
@@ -1253,6 +1259,7 @@ export let STIRGE_DRUID_RING, STIRGE_WANDER_SPEED, STIRGE_WANDER_INTERVAL, STIRG
   STIRGE_SEPARATION_SPEED, CLOUDS_HIT_FLYERS;
 export let BURST_STAGGER, FIRST_WAVE_DELAY, WAVE_GAP_AFTER_LAST_SPAWN;
 export let RISE_DELAY, RISE_HP_FRAC, DROP_SINK_TIME; // M3b §3–§4
+export let BOG_KING_SUMMON_INTERVAL, BOG_KING_SUMMON_COUNT, BOG_KING_SUMMON_MAX, BOG_KING_SINK_TIME; // M3b §5
 export let SPOT_SCALE; // LOCATION_RADIUS / SPOT_ART_RADIUS, set in applyData
 export let CORRIDOR_WIDTH, RANDOMISE_LAYOUT, FIXED_LAYOUT_SEED, LOCATION_RADIUS, LOCATION_JITTER, LOCATION_GAP,
   LANE_MIN_TURRET_SLOTS, FEATURE_ROUTE_MIN_FACTOR, FEATURE_ROUTE_MAX_FACTOR, MAX_LAYOUT_ATTEMPTS;
@@ -1331,6 +1338,7 @@ export function applyData(t) {
     STIRGE_DRUID_RING, STIRGE_WANDER_SPEED, STIRGE_WANDER_INTERVAL, STIRGE_SEPARATION, STIRGE_SEPARATION_SPEED, CLOUDS_HIT_FLYERS,
     BURST_STAGGER, FIRST_WAVE_DELAY, WAVE_GAP_AFTER_LAST_SPAWN,
     RISE_DELAY, RISE_HP_FRAC, DROP_SINK_TIME,
+    BOG_KING_SUMMON_INTERVAL, BOG_KING_SUMMON_COUNT, BOG_KING_SUMMON_MAX, BOG_KING_SINK_TIME,
     CORRIDOR_WIDTH, RANDOMISE_LAYOUT, FIXED_LAYOUT_SEED, LOCATION_RADIUS, LOCATION_JITTER, LOCATION_GAP,
     LANE_MIN_TURRET_SLOTS, FEATURE_ROUTE_MIN_FACTOR, FEATURE_ROUTE_MAX_FACTOR, MAX_LAYOUT_ATTEMPTS,
     ZONE_NEAR_TURRET, ZONE_NEAR_FEATURE, ZONE_FAR_TURRET, ZONE_FAR_FEATURE,
@@ -1425,15 +1433,16 @@ export function applyData(t) {
   const featureIds = Object.keys(FEATURE_TYPES);
   LEVELS = byId(t.levels, (r) => {
     const src = PLACEHOLDER_LEVELS[r.id] ?? r.id; // M3a §1.3: a placeholder's candidates, palette and waves
+    const waveSrc = t.waves.some((w) => w.level === r.id) ? r.id : src; // M3b §5: unless it has waves of its own (Bog King's Rest)
     const level = { ...LEVEL_GEOMETRY[r.id], name: r.name, description: r.description, region: r.region, row: r.row, nodeType: r.nodeType, stepBudget: r.stepBudget };
     for (const k of ['enemyHpMult', 'corridorWidth', 'stuckTime']) opt(level, k, r[k]);
     level.featureMix = Object.fromEntries(featureIds.map((f) => [f, r[`mix_${f}`] ?? 0]));
     level.zoneQuotas = { near: { turret: ZONE_NEAR_TURRET, feature: ZONE_NEAR_FEATURE }, far: { turret: ZONE_FAR_TURRET, feature: ZONE_FAR_FEATURE } };
     level.candidateLocations = t.candidates.filter((c) => c.level === src).sort((a, b) => a.index - b.index).map((c) => ({ x: c.x, y: c.y, zone: c.zone }));
     level.palette = unflatten(t.palettes.find((p) => p.level === src) ?? {}, ['level', '_row']);
-    level.waves = t.waves.filter((w) => w.level === src).map((w) => {
+    level.waves = t.waves.filter((w) => w.level === waveSrc).map((w) => {
       // M3b §1: each spawn is its region's enemy for the role (a wolf in Hag's Causeway is a Drowned Thrall).
-      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === src && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
+      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === waveSrc && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
       return opt(wave, 'tolls', w.tolls);
     });
     return level;

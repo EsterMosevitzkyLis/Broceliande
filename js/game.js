@@ -20,6 +20,7 @@ import { updateWisps } from './systems/wispSystem.js';
 import { updateStatuses } from './systems/statusSystem.js';
 import { updateBurns } from './systems/burnSystem.js';
 import { updateBodies } from './systems/riseSystem.js';
+import { updateBogKing } from './systems/bogKingSystem.js';
 import { isStepMode } from './systems/stepSystem.js';
 import { GameState, PrepMode, ActionState } from './states.js';
 import { sceneFor } from './scene.js';
@@ -133,6 +134,8 @@ export function createGame(levelId) {
     enemies: [],       // all living enemies, every type (M1e §3.4)
     bodies: [],        // M3b §3: bodies waiting to rise
     ashes: [],         // M3b §3.1: risers burnt to ash (visual only)
+    bossEntrances: [], // M3b §5.3
+    submerged: [],     // M3b §5.2
     meleeSlots: createMeleeSlots(scene.level.druidPos),
     spawnQueues: [],   // the current wave's spawns per lane (M2i §2)
     wavePlans: [],     // every wave's spawns per lane, lanes resolved at encounter start
@@ -224,6 +227,8 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.enemies = [];
   game.bodies = [];  // M3b §3: bodies waiting to rise (riseSystem.js)
   game.ashes = [];   // M3b §3.1: risers burnt to ash (visual only)
+  game.bossEntrances = []; // M3b §5.3: a Bog King about to rise from his lane's entrance
+  game.submerged = [];     // M3b §5.2: a Bog King under the bog
   game.meleeSlots = createMeleeSlots(level.druidPos);
   game.wavePlans = buildWavePlans(level, game.lanes, game.rng);
   game.spawnQueues = [];
@@ -503,6 +508,19 @@ export function spawnDebugOgre(game, type = 'ogre') {
   return true;
 }
 
+// Debug Shift+J (M3b §6): the Bog King at the start of a random lane. Combat only; an error and
+// nothing else if the level's corridors are too narrow for him.
+export function spawnDebugBogKing(game) {
+  if (game.state !== GameState.COMBAT) return false;
+  const width = corridorWidth(game.scene.level);
+  if (!fitsCorridor('bogKing', width)) {
+    console.error(`${game.levelId}: corridors are ${width} px, too narrow for the Bog King (needs ${2 * C.ENEMY_TYPES.bogKing.radius + 2})`);
+    return false;
+  }
+  queueDebugEnemy(game, 'bogKing');
+  return true;
+}
+
 // Debug key S (M2h §6): spawn a flock of Stirges at the start of a random lane. Combat only.
 // Shift+S: a flock of Grim Stirges (M2l §4).
 export function spawnDebugStirges(game, type = 'stirge') {
@@ -571,6 +589,7 @@ export function updateGame(game, dt) {
       updateWisps(game, dt);         // M2k §3.3: Slow Wisps fly and burst
       updateBurns(game);             // M2o §2.2: burn ticks (before burns run out)
       updateBodies(game, dt);        // M3b §3: bodies waiting to rise stand up
+      updateBogKing(game, dt);       // M3b §5: his entrance, raising Thralls, resurfacing
       updateStatuses(game);          // M2k §3.4: timed statuses (slowed) run out
       updateDoubles(game, dt);       // Bough Double jobs (M1i §2)
       updateMelee(game, dt);

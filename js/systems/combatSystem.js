@@ -13,6 +13,7 @@ import { spreadWildfire } from './burnSystem.js';
 import { isBeingUpgraded } from './doubleSystem.js';
 import { events } from '../events.js';
 import { willRise, layBody, burnToAsh } from './riseSystem.js';
+import { sinkAtHalf } from './bogKingSystem.js';
 
 const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
 
@@ -188,6 +189,7 @@ export function damageEnemy(game, enemy, damage, source = null) {
   if (source) recordDamage(game, source, taken);
   enemy.hp -= dealt;
   enemy.lastHitTime = game.combatTime;
+  if (sinkAtHalf(game, enemy)) return taken; // M3b §5.2: the Bog King sinks at half HP
   if (enemy.hp <= 0) killEnemy(game, enemy);
   return taken;
 }
@@ -304,8 +306,10 @@ function blow(game, enemy, t) {
     lifestealOnBite(game, enemy);
     if (t.splashRatio) splash(game, at, aim.kind === 'summon' ? aim.id : null, t);
   }
-  game.dustRings.push({ x: at.x, y: at.y, age: 0, radius: landed && t.splashRatio ? t.splashRadius : C.OGRE_DUST_RADIUS });
-  game.shake = { age: 0 };
+  // M3b §5.3: the Bog King's slam throws up a wide splash ring and shakes the screen harder.
+  const king = t.role === 'boss';
+  game.dustRings.push({ x: at.x, y: at.y, age: 0, wet: king, radius: king ? C.BOG_KING_SPLASH_RADIUS : landed && t.splashRatio ? t.splashRadius : C.OGRE_DUST_RADIUS });
+  game.shake = king ? { age: 0, px: C.BOG_KING_SHAKE_PX, time: C.BOG_KING_SHAKE_TIME } : { age: 0 };
   enemy.attack = AttackState.READY;
   enemy.sinceBlow = 0;
   enemy.windupTarget = null;

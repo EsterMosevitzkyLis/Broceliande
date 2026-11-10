@@ -822,7 +822,7 @@ export function drawDruidHpBar(ctx, x, y, hp, maxHp = C.DRUID_HP) {
 // lift: bar height above the collision centre, × radius; width in px.
 const HP_BAR = {
   wolf: { lift: 2.9, width: 30 }, bear: { lift: 1.75, width: 48 }, ogre: { lift: 2.15, width: 90 }, stirge: { lift: 3.1, width: 22 }, // stirge: above its flying body
-  thrall: { lift: 3.3, width: 30 }, brute: { lift: 2.2, width: 48 }, knight: { lift: 2.35, width: 90 }, // M3b §2
+  thrall: { lift: 3.3, width: 30 }, brute: { lift: 2.2, width: 48 }, knight: { lift: 2.35, width: 90 }, bogKing: { lift: 2.65, width: 120 }, // M3b §2, §5
 };
 
 // Mini-bosses (M2c §2.7) keep theirs visible all the time.
@@ -1125,12 +1125,12 @@ export function drawDustRing(ctx, d, progress) {
   const r = (d.radius ?? C.OGRE_DUST_RADIUS) * (0.35 + 0.65 * progress); // wider for a splash blow (M2l §2.2)
   const a = 1 - progress;
   ctx.save();
-  ctx.strokeStyle = `rgba(190, 170, 130, ${0.7 * a})`;
+  ctx.strokeStyle = d.wet ? `rgba(60, 90, 84, ${0.75 * a})` : `rgba(190, 170, 130, ${0.7 * a})`; // M3b §5.3: the Bog King's splash is dark water
   ctx.lineWidth = 6 * a + 1;
   ctx.beginPath();
   ctx.ellipse(d.x, d.y, r, r * 0.4, 0, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.fillStyle = `rgba(200, 182, 145, ${0.45 * a})`;
+  ctx.fillStyle = d.wet ? `rgba(110, 140, 130, ${0.5 * a})` : `rgba(200, 182, 145, ${0.45 * a})`;
   for (let i = 0; i < 6; i++) {
     const ang = (i / 6) * Math.PI * 2;
     ctx.beginPath();

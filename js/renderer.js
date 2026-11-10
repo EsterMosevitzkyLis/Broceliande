@@ -26,7 +26,7 @@ import { drawSlotFloater } from './render/items.js';
 import { drawWisp, drawWispTarget, drawWispGhost, drawWispBurst, drawSlowSpiral } from './render/wisp.js';
 import { isSlowed, isCorroded, isBurning } from './systems/statusSystem.js';
 import { drawEnemyLook } from './render/enemyLook.js'; // an enemy's look, Grims included (M2l §2.1)
-import { drawBody, drawAsh } from './render/undead.js';   // M3b §3.3: the rising dead
+import { drawBody, drawAsh, drawBossEntrance, drawSunkRing } from './render/undead.js'; // M3b §3.3, §5.3: the rising dead, the Bog King
 import { drawShowcase } from './debug/showcase.js';
 
 const HIT_FLASH_TIME = 0.15; // s of hit flash on the Druid (bite) or an enemy (pebble); visual only
@@ -110,6 +110,9 @@ export function createRenderer(canvas) {
     // M3b §3.3: bodies slumped in the mire waiting to rise, and risers burnt to ash, on the ground.
     for (const b of game.bodies) drawBody(ctx, b, b.age / (b.age + Math.max(0, b.timer)), animationTime(game), (fig) => drawEnemyLook(ctx, fig, false, false, animationTime(game), { smoke: false }));
     for (const a of game.ashes) drawAsh(ctx, a, a.age / C.ASH_TIME);
+    // M3b §5.3: the Bog King's lane entrance bubbling before he rises; his bubble ring while sunk.
+    for (const en of game.bossEntrances) drawBossEntrance(ctx, laneEntrance(en.lane), 1 - en.timer / C.BOSS_ENTRANCE_TIME, animationTime(game));
+    for (const sub of game.submerged) drawSunkRing(ctx, sub.enemy.x, sub.enemy.y + sub.enemy.radius * 0.5, sub.enemy.radius, animationTime(game));
     drawRanges(ctx, game, view);
     // Committed route trail (M1h §1): the footprints of every leg so far, under anything upright.
     if (isPrep && isStepMode(game)) drawTrail(ctx, game.trail);
@@ -276,7 +279,7 @@ function drawSweep(ctx, game, view) {
 // shake's age (no randomness); null when there is none or SCREEN_SHAKE_ENABLED is false.
 function shakeOffset(game) {
   if (!C.SCREEN_SHAKE_ENABLED || !game.shake) return null;
-  const k = C.OGRE_SHAKE_PX * (1 - game.shake.age / C.OGRE_SHAKE_TIME);
+  const k = (game.shake.px ?? C.OGRE_SHAKE_PX) * (1 - game.shake.age / (game.shake.time ?? C.OGRE_SHAKE_TIME)); // M3b: the Bog King's is stronger
   return { x: k * Math.sin(game.shake.age * 95), y: k * Math.cos(game.shake.age * 73) };
 }
 
