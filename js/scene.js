@@ -10,10 +10,11 @@ import { emptyResources } from './resources.js';
 import { zoneIds, geometricZone, zoneQuota, zoneCandidates, quotaTotals, isNearZone } from './zones.js';
 import { corridorWidth, featureMix, levelWaves, waveTotals } from './levelSettings.js';
 import { fitsCorridor } from './entities/enemy.js';
+import { generateMire } from './mire.js';
 
 export const LEVEL_IDS = Object.keys(C.LEVELS);
 
-// scene: { levelId, level (its LEVELS entry), lanes, candidates, decor, flats, groundPatches }.
+// scene: { levelId, level (its LEVELS entry), lanes, candidates, decor, flats, groundPatches, mire (M3c §3.1) }.
 export function createScene(levelId) {
   const level = C.LEVELS[levelId];
   const lanes = level.lanes.map((lane) => ({
@@ -31,7 +32,8 @@ export function createScene(levelId) {
     y: c.y,
     lanes: lanes.filter((lane) => lane.path.distanceTo(c) <= C.TURRET_RANGE).map((lane) => lane.id),
   }));
-  const scene = { levelId, level, lanes, candidates, decor: null, flats: null, groundPatches: null };
+  const scene = { levelId, level, lanes, candidates, decor: null, flats: null, groundPatches: null, mire: [] };
+  scene.mire = generateMire(scene); // M3c §3.1: before anything measures step costs here
   scatterDecor(scene);
   return scene;
 }

@@ -11,18 +11,23 @@ import { RESOURCE_KEYS } from './resources.js';
 
 // Rolls a trader (§3.2, §3.5) from a seeded rng: a multiplier and a stock per resource, a name
 // not in usedNames (§4.5: no two traders in a run share one) and a colour variation for its look.
-export function rollTrader(rng, usedNames = []) {
+// M3c §1: in regionId, a resource whose trade row lists other regions isn't stocked (offers leaves
+// it out; the trader still buys it).
+export function rollTrader(rng, usedNames = [], regionId = null) {
   const v = C.TRADE_PRICE_VARIATION;
   const mult = {};
   const stock = {};
+  const offers = [];
   for (const k of RESOURCE_KEYS) {
     mult[k] = rng.range(1 - v, 1 + v);
     stock[k] = rng.int(C.TRADE[k].stockMin, C.TRADE[k].stockMax);
+    if (C.TRADE[k].regions && !C.TRADE[k].regions.includes(regionId)) stock[k] = 0;
+    else offers.push(k);
   }
   const free = C.TRADER_TEXT.name.filter((n) => !usedNames.includes(n));
   const pool = free.length ? free : C.TRADER_TEXT.name;
   const name = pool[rng.int(0, pool.length - 1)];
-  return { name, look: rng.int(0, 1e6), mult, stock };
+  return { name, look: rng.int(0, 1e6), mult, stock, offers };
 }
 
 export function tradeValue(trader, resource) {

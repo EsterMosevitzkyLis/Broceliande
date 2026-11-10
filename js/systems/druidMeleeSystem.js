@@ -9,6 +9,7 @@ import * as C from '../config.js';
 import { ActionState } from '../states.js';
 import { EnemyState } from '../entities/enemy.js';
 import { damageEnemy } from './combatSystem.js';
+import { applyItemBurn } from './statusSystem.js';
 import { addFloatingText } from '../effects.js';
 import { events } from '../events.js';
 
@@ -80,6 +81,7 @@ function impact(game) {
   target.lastKnockTime = game.combatTime; // visual knock-back only; position is not touched
   events.emit('druidImpact', { x: target.x, y: target.y });
   addFloatingText(game, `-${C.DRUID_MELEE_DAMAGE}`, target.x, target.y - target.radius * 2, true);
+  applyItemBurn(game, target, game.stats['druid.strikeBurnDuration']); // M3c §5: Ashen Censer (first, so a killing strike burns)
   damageEnemy(game, target, C.DRUID_MELEE_DAMAGE);
 }
 

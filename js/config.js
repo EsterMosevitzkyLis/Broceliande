@@ -86,6 +86,15 @@ export const ASH_TIME = 1.2;                // s a body burnt to ash smoulders b
 export const DROP_SINK_BLINK_TIME = 3;      // s: in its last this-many s a sinking drop blinks
 export const DROP_SINK_DEPTH = 0.45;        // × icon size a drop settles into the mire by the end
 export const DROP_SINK_SHRINK = 0.45;       // how much smaller it is by the end
+// Mire ground (M3c §3.1): patches generated once per level (seeded from its decorSeed + MIRE_SEED_OFFSET),
+// each a cluster of overlapping round blobs, kept MIRE_CORRIDOR_GAP px off every corridor.
+export const MIRE_SEED_OFFSET = 7331;
+export const MIRE_BLOBS = [4, 8];           // blobs per patch
+export const MIRE_BLOB_RADIUS = [26, 64];   // px
+export const MIRE_PATCH_SPREAD = 70;        // px a patch's blobs scatter round its centre
+export const MIRE_CORRIDOR_GAP = 6;         // px
+export const MIRE_SAMPLE_PX = 4;            // px between samples when measuring travel inside the mire
+export const MIRE_COLORS = { base: 'rgba(38, 52, 34, 0.78)', edge: 'rgba(24, 34, 22, 0.9)', sheen: 'rgba(170, 205, 180, 0.22)', reed: '#5e7e4a', bubble: 'rgba(190, 220, 200, 0.55)' };
 // The Bog King (M3b §5.3). Visual only; his stats and timings are in data/.
 export const BOSS_ENTRANCE_TIME = 2;        // s his lane's entrance bubbles and darkens before he rises from it
 export const BOG_KING_SHAKE_PX = 13;        // TUNING — px, the screen shake of his slam (an Ogre's: OGRE_SHAKE_PX)
@@ -227,7 +236,7 @@ export const DROP_SETTLE_TIME = 0.08;     // s of squash-and-settle on landing (
 // ---------------------------------------------------------------------------
 // Sound (M1g §3) — synthesised in js/audio.js, triggered by gameplay events. Never affects the simulation.
 // ---------------------------------------------------------------------------
-export const SOUND_RESOURCE_FREQ = { pits: 440, reeds: 660, feathers: 990, boughs: 300, shells: 520 }; // TUNING — Hz, chime pitch per resource (Boughs lowest and woody, M1i §1.3; Shells soft and hollow, M2k §2.1)
+export const SOUND_RESOURCE_FREQ = { pits: 440, reeds: 660, feathers: 990, boughs: 300, shells: 520, peat: 180 }; // TUNING — Hz, chime pitch per resource (Boughs lowest and woody, M1i §1.3; Shells soft and hollow, M2k §2.1)
 export const SOUND_CHIME_STAGGER = 0.07;  // s between chimes when one search finds several resources
 export const SOUND_SUMMON_FREQ = { vulture: 330, squirrel: 880 }; // TUNING — Hz, shimmer base pitch per summon
 export const SOUND_STATS_WINDOW = 5;      // s, debug panel: sounds played / skipped over this much real time (M1g §5)
@@ -1242,7 +1251,9 @@ export const EQUIP_CLEARING_RAGGED = 0.2;
 // ===========================================================================
 
 // Code-side lists the data must match: the resources the game draws (icons, HUD) and its summons.
-export const RESOURCE_IDS = ['pits', 'reeds', 'feathers', 'boughs', 'shells'];
+export const RESOURCE_IDS = ['pits', 'reeds', 'feathers', 'boughs', 'shells', 'peat'];
+// M3c §1: a regional resource's HUD counter shows only from its region on (or while any is held).
+export const REGIONAL_RESOURCES = { peat: 'hags' };
 export const SUMMON_KINDS = ['vulture', 'squirrel', 'double', 'slowWisp'];
 // Palettes of non-combat places (M2n §1): rows of the palettes tab that aren't levels.
 // M3a §5: a region's own version of a place (trader + 'Hags' = 'traderHags') is used there if it
@@ -1260,6 +1271,7 @@ export let STIRGE_DRUID_RING, STIRGE_WANDER_SPEED, STIRGE_WANDER_INTERVAL, STIRG
 export let BURST_STAGGER, FIRST_WAVE_DELAY, WAVE_GAP_AFTER_LAST_SPAWN;
 export let RISE_DELAY, RISE_HP_FRAC, DROP_SINK_TIME; // M3b §3–§4
 export let BOG_KING_SUMMON_INTERVAL, BOG_KING_SUMMON_COUNT, BOG_KING_SUMMON_MAX, BOG_KING_SINK_TIME; // M3b §5
+export let MIRE_STEP_MULT, ITEM_BURN_TICK, ITEM_BURN_DAMAGE; // M3c §3.2, §5
 export let SPOT_SCALE; // LOCATION_RADIUS / SPOT_ART_RADIUS, set in applyData
 export let CORRIDOR_WIDTH, RANDOMISE_LAYOUT, FIXED_LAYOUT_SEED, LOCATION_RADIUS, LOCATION_JITTER, LOCATION_GAP,
   LANE_MIN_TURRET_SLOTS, FEATURE_ROUTE_MIN_FACTOR, FEATURE_ROUTE_MAX_FACTOR, MAX_LAYOUT_ATTEMPTS;
@@ -1339,6 +1351,7 @@ export function applyData(t) {
     BURST_STAGGER, FIRST_WAVE_DELAY, WAVE_GAP_AFTER_LAST_SPAWN,
     RISE_DELAY, RISE_HP_FRAC, DROP_SINK_TIME,
     BOG_KING_SUMMON_INTERVAL, BOG_KING_SUMMON_COUNT, BOG_KING_SUMMON_MAX, BOG_KING_SINK_TIME,
+    MIRE_STEP_MULT, ITEM_BURN_TICK, ITEM_BURN_DAMAGE,
     CORRIDOR_WIDTH, RANDOMISE_LAYOUT, FIXED_LAYOUT_SEED, LOCATION_RADIUS, LOCATION_JITTER, LOCATION_GAP,
     LANE_MIN_TURRET_SLOTS, FEATURE_ROUTE_MIN_FACTOR, FEATURE_ROUTE_MAX_FACTOR, MAX_LAYOUT_ATTEMPTS,
     ZONE_NEAR_TURRET, ZONE_NEAR_FEATURE, ZONE_FAR_TURRET, ZONE_FAR_FEATURE,
@@ -1386,8 +1399,11 @@ export function applyData(t) {
   });
 
   TURRET_TYPES = {};
-  for (const r of t.turrets) {
-    const type = (TURRET_TYPES[r.turret] ??= { name: r.name, attack: r.attack, range: r.range, projectileSpeed: r.projectileSpeed, muzzleHeight: r.muzzleHeight, levels: [] });
+  // M3c §4.1: a variant row (baseType) takes every blank cell from its base type's row at the same level.
+  const turretRow = (id, level) => t.turrets.find((x) => x.turret === id && x.level === level);
+  for (const row of t.turrets) {
+    const r = row.baseType ? { ...turretRow(row.baseType, row.level), ...row } : row;
+    const type = (TURRET_TYPES[r.turret] ??= { name: r.name, attack: r.attack, range: r.range, projectileSpeed: r.projectileSpeed, muzzleHeight: r.muzzleHeight, baseType: row.baseType ?? r.turret, region: row.region ?? null, levels: [] });
     const level = { damage: r.damage, fireInterval: r.fireInterval, range: r.range, cost: cost(r), time: r.time, name: r.levelName ?? null, targets: r.targets ?? 1 };
     if (r.attack === 'cloud') level.cloud = { radius: r.cloudRadius, duration: r.cloudDuration, tickInterval: r.cloudTick, tickDamage: r.cloudTickDamage };
     if (r.corrodeMult !== undefined) level.cloud.corrode = { mult: r.corrodeMult, linger: r.corrodeLinger }; // M2m §2.4: Corrosion
@@ -1435,7 +1451,7 @@ export function applyData(t) {
     const src = PLACEHOLDER_LEVELS[r.id] ?? r.id; // M3a §1.3: a placeholder's candidates, palette and waves
     const waveSrc = t.waves.some((w) => w.level === r.id) ? r.id : src; // M3b §5: unless it has waves of its own (Bog King's Rest)
     const level = { ...LEVEL_GEOMETRY[r.id], name: r.name, description: r.description, region: r.region, row: r.row, nodeType: r.nodeType, stepBudget: r.stepBudget };
-    for (const k of ['enemyHpMult', 'corridorWidth', 'stuckTime']) opt(level, k, r[k]);
+    for (const k of ['enemyHpMult', 'corridorWidth', 'stuckTime', 'mireCoverage']) opt(level, k, r[k]);
     level.featureMix = Object.fromEntries(featureIds.map((f) => [f, r[`mix_${f}`] ?? 0]));
     level.zoneQuotas = { near: { turret: ZONE_NEAR_TURRET, feature: ZONE_NEAR_FEATURE }, far: { turret: ZONE_FAR_TURRET, feature: ZONE_FAR_FEATURE } };
     level.candidateLocations = t.candidates.filter((c) => c.level === src).sort((a, b) => a.index - b.index).map((c) => ({ x: c.x, y: c.y, zone: c.zone }));
@@ -1453,7 +1469,8 @@ export function applyData(t) {
 
   SOUNDS = byId(t.sounds, (r) => ({ volume: r.volume, pitch: r.pitch, minGap: r.minGap, maxVoices: r.maxVoices, enabled: r.enabled }));
 
-  TRADE = byId(t.trade, (r) => ({ baseValue: r.baseValue, stockMin: r.stockMin, stockMax: r.stockMax }), 'resource');
+  // regions (M3c §1): where traders stock it; null = everywhere.
+  TRADE = byId(t.trade, (r) => ({ baseValue: r.baseValue, stockMin: r.stockMin, stockMax: r.stockMax, regions: r.regions ? r.regions.split(',').map((x) => x.trim()) : null }), 'resource');
   TRADER_TEXT = Object.fromEntries(TRADER_LINE_KINDS.map((kind) => [kind, t.traders.filter((r) => r.kind === kind).map((r) => r.text)]));
   PLACE_PALETTE = Object.fromEntries(PLACE_PALETTES.map((id) => [id, unflatten(t.palettes.find((p) => p.level === id) ?? {}, ['level', '_row'])]));
 }

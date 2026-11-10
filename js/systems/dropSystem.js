@@ -108,18 +108,21 @@ export function updateDrops(game, dt) {
   const sinking = regionTwist(game.scene.level, 'sinkingDrops');
   for (const drop of game.drops) {
     drop.age += dt;
-    if (sinking && isLanded(drop)) drop.sunk = (drop.sunk ?? 0) + dt;
+    if (sinking && isLanded(drop)) {
+      drop.sunk = (drop.sunk ?? 0) + dt;
+      drop.sinkLimit = sinkTime(game); // s it lasts (drawing and debug)
+    }
   }
   if (!sinking) return;
-  const lost = game.drops.filter((d) => d.sunk >= C.DROP_SINK_TIME);
+  const lost = game.drops.filter((d) => d.sunk >= sinkTime(game));
   if (!lost.length) return;
   for (const d of lost) game.dropStats.lost[d.resource]++;
   game.drops = game.drops.filter((d) => !lost.includes(d)); // a Squirrel heading for one picks another
 }
 
-// How far a drop has sunk, 0 → 1 (drawing).
-export function sinkFraction(drop) {
-  return Math.min(1, (drop.sunk ?? 0) / C.DROP_SINK_TIME);
+// s a landed drop lasts in the mire: DROP_SINK_TIME × drops.sinkTimeMult (M3c §5, Peatcutter's Belt).
+export function sinkTime(game) {
+  return C.DROP_SINK_TIME * game.stats['drops.sinkTimeMult'];
 }
 
 // Debug key X (§3): drop chances ×1 ↔ ×DEBUG_DROP_MULT. Kept across restarts.

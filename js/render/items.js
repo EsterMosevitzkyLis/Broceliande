@@ -245,6 +245,50 @@ const MARKS = {
     ctx.ellipse(0, 4, 4, 5, 0, 0, Math.PI * 2);
     ctx.fill();
   },
+  smoke(ctx) { // Peatsmoke Crown (M3c §5): a curl of smoke over a small flame
+    ctx.beginPath();
+    ctx.moveTo(-3, 8);
+    ctx.quadraticCurveTo(-8, 0, -2, -4);
+    ctx.quadraticCurveTo(4, -8, 0, -13);
+    ctx.lineWidth = 2.6;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(1, 9, 3.5, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  flame(ctx) { // Ashen Censer (M3c §5): a flame in a little bowl
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.quadraticCurveTo(7, -3, 4, 4);
+    ctx.quadraticCurveTo(0, 7, -4, 4);
+    ctx.quadraticCurveTo(-7, -3, 0, -12);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, 7, 7, 3, 0, 0, Math.PI);
+    ctx.fill();
+  },
+  spade(ctx) { // Peatcutter's Belt (M3c §5): a cutting spade on the buckle
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.lineTo(0, 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-5, 2);
+    ctx.lineTo(5, 2);
+    ctx.lineTo(4, 11);
+    ctx.lineTo(-4, 11);
+    ctx.closePath();
+    ctx.fill();
+  },
+  ripple(ctx) { // Bogwalker Boots (M3c §5): ripples on still water
+    ctx.lineWidth = 2;
+    for (const r of [4, 8, 12]) {
+      ctx.beginPath();
+      ctx.ellipse(0, 6, r, r * 0.4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  },
   bolt(ctx) { // Stormfeather Crown: a lightning bolt
     ctx.beginPath();
     ctx.moveTo(3, -8);

@@ -26,6 +26,8 @@ export function completeSearch(game, featureIndex) {
     const main = C.FEATURE_TYPES[feature.type].mainResource;
     gained[main] = (gained[main] ?? 0) + bonus;
   }
+  // M3c §5, Peatcutter's Belt: extra Peat from a Peat Bog.
+  if (C.FEATURE_TYPES[feature.type].mainResource === 'peat' && game.stats['features.peatBonus'] > 0) gained.peat = (gained.peat ?? 0) + game.stats['features.peatBonus'];
   add(game.resources, gained);
   game.doubleStats.boughsGained += gained.boughs ?? 0; // M1i §4 debug figure
   feature.exhausted = true;

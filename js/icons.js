@@ -26,6 +26,14 @@ export const RESOURCE_ICON_SVG = {
     + '<path d="M12 12.2 Q12.2 10.6 13.6 10.8 Q15.4 11.2 15 13.2 Q14.4 15.6 11.6 15.4 Q8.4 14.8 8.8 11.4 Q9.4 7.6 13.6 7.6 Q18 8 18.2 12.6 Q18.2 17.2 13 18"'
     + ' stroke="#8a5a2e" stroke-width="1.6" stroke-linecap="round" fill="none"/>'
     + '<path d="M3.5 19.5 L13 19.5" stroke="#8a5a2e" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  // Peat (M3c §1): a dark brown cut block with fibrous edges and a wisp of moss on top.
+  peat: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">'
+    + '<path d="M4 9 L18 6.5 L20.5 9.5 L20 18.5 L6 20.5 L3.5 17.5 Z" fill="#3b2a1c"/>'
+    + '<path d="M4 9 L18 6.5 L20.5 9.5 L6.5 12 Z" fill="#5a4230"/>'
+    + '<path d="M6.5 12 L6 20.5" stroke="#2a1c12" stroke-width="1.2"/>'
+    + '<path d="M3.5 13 L2.5 13.6 M3.6 15.5 L2.4 16 M20.6 12 L21.6 12.4 M20.5 15 L21.5 15.6 M9 20.2 L8.6 21.4 M14 19.6 L13.8 20.8"'
+    + ' stroke="#6a4e36" stroke-width="1" stroke-linecap="round"/>'
+    + '<path d="M9 9.6 Q11 6.8 14 8.2 Q12.5 8.4 12 10.2 Z" fill="#7fb446"/></svg>',
 };
 
 // Canvas images built from the same SVG source, created on first use. An image that has not

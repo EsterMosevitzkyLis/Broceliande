@@ -86,3 +86,7 @@ BOG_KING_SUMMON_INTERVAL,10,TUNING - s between the Bog King raising Drowned Thra
 BOG_KING_SUMMON_COUNT,3,TUNING - Thralls he raises each time
 BOG_KING_SUMMON_MAX,12,TUNING - most of his raised Thralls alive at once
 BOG_KING_SINK_TIME,3,"TUNING - s he stays sunk in the bog at half HP, then he resurfaces at the start of another lane"
+# Peat and mire,,
+MIRE_STEP_MULT,2,TUNING - each px of travel inside mire ground costs this many px of steps (M3c sec. 3.2)
+ITEM_BURN_TICK,1.2,"TUNING - s between ticks of a burn set by an item (Peatsmoke Crown, Ashen Censer, M3c sec. 5)"
+ITEM_BURN_DAMAGE,1,TUNING - damage per tick of that burn

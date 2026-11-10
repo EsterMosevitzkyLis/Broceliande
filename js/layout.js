@@ -38,7 +38,7 @@ function evaluate(scene, layout) {
     slot.lanes = coveredLanes(lanes, slot);
     for (const id of slot.lanes) coverage[id]++;
   }
-  const routeCost = greedyRoute(layout.features, level.druidPos).steps;
+  const routeCost = greedyRoute(layout.features, level.druidPos, scene.mire).steps; // M3c §3.2: mire counts
   const failed = lanes.filter((lane) => coverage[lane.id] < C.LANE_MIN_TURRET_SLOTS).map((lane) => `coverage:${lane.id}`);
   const band = routeBand(level);
   if (routeCost < band.min || routeCost > band.max) failed.push('route');

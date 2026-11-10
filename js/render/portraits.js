@@ -50,6 +50,10 @@ const PORTRAIT_DRAW = {
     drawTurretSlot(ctx, { x, y }, false, false);
     drawCinderjaw(ctx, { x, y, level: 1, angle: -0.3, lastFireTime: -Infinity }, false, 1);
   }),
+  peatjaw: designSize((ctx, x, y) => { // M3c §4.2: the Cinderjaw in peat colours
+    drawTurretSlot(ctx, { x, y }, false, false);
+    drawCinderjaw(ctx, { x, y, level: 1, angle: -0.3, lastFireTime: -Infinity, type: 'peatjaw' }, false, 1);
+  }),
 };
 
 // Enemies (M2i §4.2) with their battlefield look, a Grim's outline, cracks and features included

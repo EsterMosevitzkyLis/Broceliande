@@ -21,3 +21,8 @@ druid.damageTakenMult,Damage taken x
 druid.regenInterval,Regen interval (s)
 drops.chanceMult,Drop chance x
 enemy.hpMult,Enemy HP X
+vulture.burnDuration,Vulture pecks burn for (s)
+druid.strikeBurnDuration,Druid strike burns for (s)
+features.peatBonus,Peat Bog bonus Peat
+drops.sinkTimeMult,Drop sink time x
+mire.stepMult,Mire extra step cost x

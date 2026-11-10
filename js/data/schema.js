@@ -20,6 +20,7 @@ export const GLOBAL_TYPES = {
   BURST_STAGGER: 'number', FIRST_WAVE_DELAY: 'number', WAVE_GAP_AFTER_LAST_SPAWN: 'number',
   RISE_DELAY: 'number', RISE_HP_FRAC: 'number', DROP_SINK_TIME: 'number',
   BOG_KING_SUMMON_INTERVAL: 'number', BOG_KING_SUMMON_COUNT: 'int', BOG_KING_SUMMON_MAX: 'int', BOG_KING_SINK_TIME: 'number',
+  MIRE_STEP_MULT: 'number', ITEM_BURN_TICK: 'number', ITEM_BURN_DAMAGE: 'number',
   CORRIDOR_WIDTH: 'number', RANDOMISE_LAYOUT: 'bool', FIXED_LAYOUT_SEED: 'int',
   LOCATION_RADIUS: 'number', LOCATION_JITTER: 'number', LOCATION_GAP: 'number', LANE_MIN_TURRET_SLOTS: 'int',
   FEATURE_ROUTE_MIN_FACTOR: 'number', FEATURE_ROUTE_MAX_FACTOR: 'number', MAX_LAYOUT_ATTEMPTS: 'int',
@@ -74,10 +75,12 @@ export const TABS = {
   drops: { columns: { enemy: { type: 'id', required: true }, resource: { type: 'id', required: true }, chance: { type: 'number', required: true }, min: { type: 'int', required: true }, max: { type: 'int', required: true } } },
   turrets: {
     columns: {
+      // M3c §4.1: a variant row (baseType, region) may leave cells blank; base rows need them (validate.js).
       turret: { type: 'id', required: true }, name: { type: 'text', required: true }, level: { type: 'int', required: true },
-      attack: { type: 'id', required: true }, damage: { type: 'number', required: true }, fireInterval: { type: 'number', required: true },
-      range: { type: 'number', required: true }, time: { type: 'number', required: true }, projectileSpeed: { type: 'number' },
-      muzzleHeight: { type: 'number', required: true }, cloudRadius: { type: 'number' }, cloudDuration: { type: 'number' },
+      baseType: { type: 'id' }, region: { type: 'id' },
+      attack: { type: 'id' }, damage: { type: 'number' }, fireInterval: { type: 'number' },
+      range: { type: 'number' }, time: { type: 'number' }, projectileSpeed: { type: 'number' },
+      muzzleHeight: { type: 'number' }, cloudRadius: { type: 'number' }, cloudDuration: { type: 'number' },
       cloudTick: { type: 'number' }, cloudTickDamage: { type: 'number' },
       levelName: { type: 'text' }, targets: { type: 'int' }, corrodeMult: { type: 'number' }, corrodeLinger: { type: 'number' }, // M2m §2
       coneAngle: { type: 'number' }, burnDuration: { type: 'number' }, burnTick: { type: 'number' }, burnTickDamage: { type: 'number' }, spreadRadius: { type: 'number' }, // M2o §3
@@ -109,6 +112,7 @@ export const TABS = {
       id: { type: 'id', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
       row: { type: 'int' }, nodeType: { type: 'id', required: true }, region: { type: 'id', required: true }, enemyHpMult: { type: 'number' }, corridorWidth: { type: 'number' },
       stepBudget: { type: 'number', required: true }, stuckTime: { type: 'number' },
+      mireCoverage: { type: 'number' }, // M3c §3.1: rough fraction of the battlefield that is mire (with the region's mireGround)
     },
     pattern: [/^mix_[a-z][a-zA-Z0-9]*$/, { type: 'int' }],
   },
@@ -128,7 +132,7 @@ export const TABS = {
   palettes: { columns: { level: { type: 'id', required: true } }, pattern: [/^[a-z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*$/, { type: 'text' }] },
   sounds: { columns: { id: { type: 'id', required: true }, volume: { type: 'number', required: true }, pitch: { type: 'number', required: true }, minGap: { type: 'number', required: true }, maxVoices: { type: 'int', required: true }, enabled: { type: 'bool', required: true } } },
   // M2n §3.1: each resource's trade value and a trader's stock range.
-  trade: { columns: { resource: { type: 'id', required: true }, baseValue: { type: 'number', required: true }, stockMin: { type: 'int', required: true }, stockMax: { type: 'int', required: true } } },
+  trade: { columns: { resource: { type: 'id', required: true }, baseValue: { type: 'number', required: true }, stockMin: { type: 'int', required: true }, stockMax: { type: 'int', required: true }, regions: { type: 'text' } } }, // regions (M3c §1): blank = every region
   // M2n §4.5: trader names (kind = name) and their lines (greet, trade, soldout, leave), with an optional {resource}.
   traders: { columns: { kind: { type: 'id', required: true }, text: { type: 'text', required: true } } },
 };

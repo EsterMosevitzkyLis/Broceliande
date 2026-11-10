@@ -5,6 +5,7 @@
 //   burning:  { until, nextTick, tickDamage, tickInterval, spreadRadius, level, sourceTurretId } —
 //             tickDamage every tickInterval s (burnSystem.js), M2o §2.2; spreadRadius > 0: Wildfire
 
+import * as C from '../config.js';
 import { enemyType } from '../entities/enemy.js';
 
 // Slows an enemy for `duration` s from now; already slowed: the duration restarts. Its type's
@@ -49,6 +50,13 @@ export function applyBurn(game, enemy, burn, turretId, level) {
   const stronger = fresh.tickDamage / fresh.tickInterval > old.tickDamage / old.tickInterval;
   const kept = stronger ? { ...fresh, nextTick: Math.min(old.nextTick, fresh.nextTick) } : { ...old, until: fresh.until };
   enemy.statuses.burning = kept;
+}
+
+// M3c §5: a burn set by an item (Peatsmoke Crown, Ashen Censer): ITEM_BURN_DAMAGE every
+// ITEM_BURN_TICK s for `duration` s. The same burning status as the Cinderjaw's.
+export function applyItemBurn(game, enemy, duration) {
+  if (!(duration > 0) || !game.enemies.includes(enemy)) return;
+  applyBurn(game, enemy, { duration, tickInterval: C.ITEM_BURN_TICK, tickDamage: C.ITEM_BURN_DAMAGE, spreadRadius: 0 }, null, 'item');
 }
 
 export function isBurning(enemy) {

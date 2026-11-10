@@ -23,3 +23,7 @@ gleanersBelt,belt,3,Gleaner's Belt,Enemy drop chances x1.25.,drops.chanceMult,mu
 wildwrightsBelt,belt,0,Wildwright's Belt,"Building and upgrading 35% faster, and every search yields 1 more of the spot's main resource.",work.speed,mult,1.35,search.mainBonus,add,1,,,,#3a4a3a,#e0a050,anvil
 striderBoots,shoes,3,Strider Boots,Adds 25 steps.,steps.budget,add,25,,,,,,,#4a5a6a,#d0e0f0,wing
 pathfindersShoes,shoes,0,Pathfinder's Shoes,"Adds 15 steps, and travel costs 20% fewer steps.",steps.budget,add,15,steps.length,mult,1.2,,,,#6a4a6a,#f0d0ff,star
+peatsmokeCrown,crown,0,Peatsmoke Crown,Vulture pecks set enemies burning (1 damage every 1.2 s for 4 s).,vulture.burnDuration,add,4,,,,,,,#4a3a2a,#e07a3a,smoke
+ashenCenser,necklace,0,Ashen Censer,The Druid's strike sets its target burning (1 damage every 1.2 s for 6 s).,druid.strikeBurnDuration,add,6,,,,,,,#5a5450,#ff9a4a,flame
+peatcuttersBelt,belt,0,Peatcutter's Belt,"Peat Bogs yield 2 more Peat, and drops sink 50% slower.",features.peatBonus,add,2,drops.sinkTimeMult,mult,1.5,,,,#5a4430,#b8b0a0,spade
+bogwalkerBoots,shoes,0,Bogwalker Boots,Mire ground costs no extra steps.,mire.stepMult,mult,0,,,,,,,#3e4a3a,#8ab47a,ripple

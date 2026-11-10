@@ -88,9 +88,11 @@ export function validateTables(t, problems) {
 
   // turrets: levels 1, 2, 3… per turret; cloud attacks need their cloud values; corrosion (M2m §2.4) is a cloud's.
   const turretLevels = {};
-  for (const r of t.turrets) {
-    resourceColumns('turrets', r, 'cost_', '');
-    (turretLevels[r.turret] ??= []).push(r);
+  const baseRow = (r) => t.turrets.find((x) => x.turret === r.baseType && x.level === r.level && x.baseType === undefined) ?? {};
+  for (const raw of t.turrets) {
+    resourceColumns('turrets', raw, 'cost_', '');
+    (turretLevels[raw.turret] ??= []).push(raw);
+    const r = raw.baseType ? { ...baseRow(raw), ...raw } : raw; // M3c §4.1: a variant as merged with its base
     if (!['projectile', 'cloud', 'cone'].includes(r.attack)) err('turrets', r, 'attack', `attack must be projectile, cloud or cone, not "${r.attack}"`);
     if (r.attack !== 'cone' && r.projectileSpeed === undefined) err('turrets', r, 'projectileSpeed', 'a projectile or cloud turret needs a value');
     // M2o §3.1: a cone (Cinderjaw) needs its cone and burn values; spreadRadius (Wildfire) is optional.
@@ -209,6 +211,19 @@ export function validateTables(t, problems) {
   // Rows are levels, or non-combat places (M2n §1: the trader scene).
   for (const r of t.palettes) known('palettes', r, 'level', new Set([...levels, ...PLACE_PALETTES]), 'level or place');
   for (const id of PLACE_PALETTES) if (!palettes.has(id)) err('palettes', '', 'level', `missing the "${id}" palette`);
+
+  // turrets (M3c §4.1): base rows need every stat; a variant names a known base type, at the same levels,
+  // and a known region.
+  for (const r of t.turrets) {
+    if (r.baseType !== undefined) {
+      if (!t.turrets.some((x) => x.turret === r.baseType && x.baseType === undefined)) err('turrets', r, 'baseType', `unknown base turret "${r.baseType}"`);
+      else if (!t.turrets.some((x) => x.turret === r.baseType && x.level === r.level)) err('turrets', r, 'level', `${r.baseType} has no level ${r.level}`);
+      known('turrets', r, 'region', regions, 'region');
+      continue;
+    }
+    for (const c of ['attack', 'damage', 'fireInterval', 'range', 'time', 'muzzleHeight']) if (r[c] === undefined) err('turrets', r, c, 'a value is required (only variant rows with a baseType may leave it blank)');
+  }
+  for (const r of t.trade) for (const reg of (r.regions ?? '').split(',').map((x) => x.trim()).filter(Boolean)) if (!regions.has(reg)) err('trade', r, 'regions', `unknown region "${reg}"`);
 
   // trade (M2n §3.1): one row per resource, stock ranges in order, positive values.
   ids('trade', 'resource');

@@ -905,3 +905,54 @@ function drawRock(ctx, { x, y, size: s }, P) {
   ctx.ellipse(x - 4 * s, y - 12 * s, 5 * s, 3 * s, 0, 0, Math.PI * 2);
   ctx.fill();
 }
+
+// M3c §3.1: mire ground: dark, wet green-brown patches with a faint sheen, scattered reeds and
+// the odd bubble, over the floor and under corridors, objects and decoration. t: s (bubbles).
+export function drawMire(ctx, scene, t) {
+  const M = C.MIRE_COLORS;
+  for (const p of scene.mire) {
+    ctx.fillStyle = M.edge;
+    for (const b of p.blobs) {
+      ctx.beginPath();
+      ctx.ellipse(b.x, b.y, b.r + 5, (b.r + 5) * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = M.base;
+    for (const b of p.blobs) {
+      ctx.beginPath();
+      ctx.ellipse(b.x, b.y, b.r, b.r * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = M.sheen;
+    ctx.lineWidth = 2;
+    p.blobs.forEach((b, i) => {
+      ctx.beginPath();
+      ctx.ellipse(b.x - b.r * 0.2, b.y - b.r * 0.15, b.r * 0.45, b.r * 0.16, -0.1, Math.PI * (1.1 + (i % 3) * 0.05), Math.PI * 1.8);
+      ctx.stroke();
+    });
+    // Reeds at a few blob edges, and a bubble now and then.
+    p.blobs.forEach((b, i) => {
+      if ((p.seed + i) % 3 !== 0) return;
+      const a = ((p.seed * 0.13 + i * 1.7) % (Math.PI * 2));
+      const x = b.x + Math.cos(a) * b.r * 0.85;
+      const y = b.y + Math.sin(a) * b.r * 0.68;
+      ctx.strokeStyle = M.reed;
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      for (let k = -1; k <= 1; k++) {
+        ctx.beginPath();
+        ctx.moveTo(x + k * 3, y);
+        ctx.lineTo(x + k * 4.5, y - 14 - (k === 0 ? 4 : 0));
+        ctx.stroke();
+      }
+    });
+    p.blobs.forEach((b, i) => {
+      const k = (t * 0.35 + i * 0.37 + p.seed * 0.001) % 1;
+      if (k > 0.3) return; // a short pop in each cycle
+      ctx.fillStyle = M.bubble;
+      ctx.beginPath();
+      ctx.arc(b.x + ((i * 17) % 11) - 5, b.y + ((i * 13) % 9) - 4, 1.5 + k * 6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+}

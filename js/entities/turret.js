@@ -5,6 +5,16 @@ import * as C from '../config.js';
 
 export const TURRET_TYPE_KEYS = Object.keys(C.TURRET_TYPES);
 
+// M3c §4.1: the types the build menus offer in a region: a region's variant instead of its base
+// type (the Peatjaw instead of the Cinderjaw in Hag's Causeway), and no other region's variants.
+export function buildableTypes(regionId) {
+  return TURRET_TYPE_KEYS.filter((id) => {
+    const t = C.TURRET_TYPES[id];
+    if (t.baseType !== id) return t.region === regionId;
+    return !TURRET_TYPE_KEYS.some((v) => C.TURRET_TYPES[v].baseType === id && v !== id && C.TURRET_TYPES[v].region === regionId);
+  });
+}
+
 export function turretType(type) {
   return C.TURRET_TYPES[type];
 }

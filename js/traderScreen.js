@@ -47,6 +47,10 @@ export function createTraderScreen(callbacks) {
     setText(el.speech, `“${v.line}”`);
 
     for (const k of RESOURCE_KEYS) {
+      // M3c §1: goods the trader doesn't stock here aren't shown; nor is a pack card for them while empty.
+      const offered = v.trader.offers?.includes(k) ?? true;
+      cards.get[k].hidden = !offered;
+      cards.give[k].hidden = !offered && !(inv[k] > 0);
       fillCard(cards.give[k], inv[k], packTag(v.trader, k), v.give === k, false);
       fillCard(cards.get[k], v.trader.stock[k], goodsTag(v.trader, k), v.get === k, v.trader.stock[k] <= 0);
     }

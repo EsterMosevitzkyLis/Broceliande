@@ -17,7 +17,7 @@ export function updateBurns(game) {
     if (!b) continue;
     while (b.nextTick <= game.combatTime + TICK_EPSILON && b.nextTick <= b.until + TICK_EPSILON && game.enemies.includes(enemy)) {
       b.nextTick += b.tickInterval;
-      damageEnemy(game, enemy, b.tickDamage, `cinderjaw:burn:${b.level}`);
+      damageEnemy(game, enemy, b.tickDamage, b.level === 'item' ? 'item:burn' : `cinderjaw:burn:${b.level}`); // M3c §5: item burns apart
       events.emit('burnTick', {});
     }
   }

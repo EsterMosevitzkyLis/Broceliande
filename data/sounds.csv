@@ -70,3 +70,4 @@ bogKingDies,1,1,1,1,TRUE
 bogKingSummons,0.7,1,1,1,TRUE
 bogKingSinks,0.8,1,1,1,TRUE
 bogKingSurfaces,0.8,1,1,1,TRUE
+peatChime,0.6,1,0.05,4,TRUE

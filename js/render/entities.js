@@ -116,7 +116,7 @@ const COLORS = {
 // (LOCATION_RADIUS around the location centre). Upright sprites therefore stand on a base
 // point below the centre; these offsets centre each sprite's drawn extent on the location.
 // Visual only: gameplay (range, travel cost, targeting) uses the location centre.
-const FEATURE_BASE_OFFSET = { tree: 36, reedPatch: 15, shrub: 20, ruins: 22, pond: 0 };
+const FEATURE_BASE_OFFSET = { tree: 36, reedPatch: 15, shrub: 20, ruins: 22, pond: 0, peatBog: 4 };
 
 // Wolf drop idle effect (M1d §1.3), visual only: a slow bob and a soft pulsing glow.
 const DROP_BOB_PX = 1.5;
@@ -562,8 +562,8 @@ function drawDruidBody(ctx, x, y, r, feet, hurt, staffAngle) {
 // M3b §4: a landed drop sinking into the mire: it settles lower (its bottom hidden under the mire
 // line), darkens and shrinks, with a few bubbles; in its last DROP_SINK_BLINK_TIME s it blinks.
 function drawSinkingDrop(ctx, drop, img, size, t) {
-  const f = Math.min(1, drop.sunk / C.DROP_SINK_TIME);
-  const left = C.DROP_SINK_TIME - drop.sunk;
+  const f = Math.min(1, drop.sunk / drop.sinkLimit);
+  const left = drop.sinkLimit - drop.sunk;
   const scale = 1 - C.DROP_SINK_SHRINK * f;
   const w = size * scale;
   const line = drop.y + size * 0.42; // the mire's surface: the drop's resting bottom
@@ -1177,9 +1177,55 @@ function drawFeatureArt(ctx, feature, hovered) {
     case 'shrub': drawFeatherShrub(ctx, x, y, R); break;
     case 'ruins': drawRuins(ctx, x, y, R); break;
     case 'pond': drawPond(ctx, x, y, R); break;
+    case 'peatBog': drawPeatBog(ctx, x, y, R); break; // M3c §2
     default: break;
   }
   ctx.restore();
+}
+
+// M3c §2: a Peat Bog: a dark, wet patch of cut peat, a few stacked blocks, a cutting spade stuck in
+// the ground and a puddle with a sheen. Fits the spot footprint like the other spots.
+function drawPeatBog(ctx, x, y, R) {
+  const s = R / 30;
+  ctx.fillStyle = '#2e2419'; // the wet, cut ground
+  ctx.beginPath();
+  ctx.ellipse(x, y, 30 * s, 17 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#1c2a2a'; // the puddle and its sheen
+  ctx.beginPath();
+  ctx.ellipse(x + 12 * s, y + 5 * s, 10 * s, 5 * s, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(170, 210, 200, 0.55)';
+  ctx.lineWidth = 1.5 * s;
+  ctx.beginPath();
+  ctx.ellipse(x + 10 * s, y + 4 * s, 5 * s, 1.8 * s, 0.1, Math.PI * 1.1, Math.PI * 1.9);
+  ctx.stroke();
+  for (const [bx, by] of [[-16, 2], [-8, 3], [-12, -4]]) { // stacked cut blocks
+    ctx.fillStyle = '#3e2c1c';
+    ctx.fillRect(x + bx * s - 5 * s, y + by * s - 7 * s, 10 * s, 7 * s);
+    ctx.fillStyle = '#5a4230';
+    ctx.fillRect(x + bx * s - 5 * s, y + by * s - 7 * s, 10 * s, 2.2 * s);
+  }
+  ctx.strokeStyle = '#6e4e30'; // the spade's handle and blade
+  ctx.lineWidth = 2.4 * s;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x + 4 * s, y - 2 * s);
+  ctx.lineTo(x + 10 * s, y - 26 * s);
+  ctx.stroke();
+  ctx.fillStyle = '#9a9a92';
+  ctx.beginPath();
+  ctx.moveTo(x + 1 * s, y - 4 * s);
+  ctx.lineTo(x + 8 * s, y - 2 * s);
+  ctx.lineTo(x + 7 * s, y + 4 * s);
+  ctx.lineTo(x + 1 * s, y + 3 * s);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#6fa13a'; // a tuft of moss
+  ctx.beginPath();
+  ctx.arc(x - 20 * s, y - 6 * s, 3 * s, 0, Math.PI * 2);
+  ctx.arc(x - 17 * s, y - 8 * s, 2.4 * s, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // Pebble Sprinkler: a stick post with rotating stick arms and a pebble cup on the

@@ -74,6 +74,8 @@ export function toggleMute() {
 // ---------------------------------------------------------------------------
 // Events → sounds
 // ---------------------------------------------------------------------------
+// Resources with a chime of their own (and sounds row): Shells (M2k §2.1), Peat (M3c §1).
+const OWN_CHIME = { shells: 'shellChime', peat: 'peatChime' };
 const TURRET_FIRE_SOUND = { sprinkler: 'sprinklerFire', toader: 'toaderFire', cinderjaw: 'cinderjawFires' };
 // M3b §2.2: Hag's Causeway's undead: wet groans (Thrall), a deep creaking groan (Brute), a metallic,
 // sloshing roar (the Drowned Knight).
@@ -85,7 +87,7 @@ const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep', bogKing: 'bog
 const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup', bogKing: 'bogKingWindup' };
 
 function subscribe() {
-  events.on('turretFired', (e) => play(TURRET_FIRE_SOUND[e.type], e));
+  events.on('turretFired', (e) => play(TURRET_FIRE_SOUND[C.TURRET_TYPES[e.type].baseType], e)); // a variant fires as its base (M3c §4)
   events.on('cloudBurst', (e) => play('cloudBurst', e));
   // M2n §4.6: the trader scene.
   for (const name of ['traderGreet', 'tradeComplete', 'tradeUndo', 'soldOut']) events.on(name, (e) => play(name, e));
@@ -104,10 +106,9 @@ function subscribe() {
   events.on('enemyWindup', (e) => playEnemy(ENEMY_WINDUP_SOUND, e));
   events.on('resourcesGained', (e) => { // M2k §2.1: Shells have their own chime (and sounds row)
     const resources = e.resources ?? [];
-    const others = resources.filter((r) => r !== 'shells');
+    const others = resources.filter((r) => !OWN_CHIME[r]);
     if (others.length) play('resourceChime', { ...e, resources: others });
-    const i = resources.indexOf('shells');
-    if (i >= 0) play('shellChime', { delay: i * C.SOUND_CHIME_STAGGER }); // keeps its turn in the sequence
+    resources.forEach((r, i) => { if (OWN_CHIME[r]) play(OWN_CHIME[r], { delay: i * C.SOUND_CHIME_STAGGER }); }); // each keeps its turn in the sequence
   });
   events.on('searchStarted', (e) => play('searchRustle', e));
   events.on('turretBuilt', (e) => play('build', e));
@@ -630,6 +631,14 @@ const RECIPES = {
     bell(t, out, 300 * p, 1.25, 0.6, 0.35);
     noise(t, out, { filter: 'bandpass', freq: 700 * p, to: 250 * p, q: 1.2, dur: 0.5, gain: 0.9, delay: 1.25 });
     return 1.8;
+  },
+
+  // M3c §1: Peat gained: a soft, low, earthy thud-tone.
+  peatChime(t, out, p, data) {
+    const d = data?.delay ?? 0;
+    tone(t, out, { type: 'triangle', freq: C.SOUND_RESOURCE_FREQ.peat * p, to: C.SOUND_RESOURCE_FREQ.peat * 0.8 * p, dur: 0.22, attack: 0.006, gain: 0.7, delay: d });
+    noise(t, out, { filter: 'lowpass', freq: 380 * p, dur: 0.08, gain: 0.45, delay: d });
+    return d + 0.24;
   },
 
   // M3b §5.3: the Bog King rises from the peat: a deep, slow roar under a long, sucking gurgle.

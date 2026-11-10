@@ -3,9 +3,10 @@
 // all candidate locations (footprint, jitter, role, covered lanes), enemy collision radii, IDs and held melee slots, turret IDs and target
 // lines, Vulture IDs, block radii and target lines, pebble IDs. All turret ranges are drawn by the renderer in debug mode.
 
+import { inMire } from '../mire.js';
 import * as C from '../config.js';
 import { GameState } from '../states.js';
-import { isStepMode, isVisitTarget, stepCost } from '../systems/stepSystem.js';
+import { isStepMode, isVisitTarget, stepCost, routePreview, markerPos } from '../systems/stepSystem.js';
 import { candidateProblems } from '../scene.js';
 import { turretMuzzle, turretRange, levelStats } from '../entities/turret.js';
 import { doubleStandPos } from '../systems/doubleSystem.js';
@@ -17,6 +18,7 @@ const EDGE_COLOR = 'rgba(120, 220, 255, 0.45)';
 const SPAWN_COLOR = 'rgba(255, 110, 110, 0.95)';
 const ENEMY_COLOR = 'rgba(255, 150, 90, 0.95)';
 const ITEM_COLOR = 'rgba(255, 215, 60, 1)'; // the hidden item's spot (M2e §6)
+const MIRE_COLOR = 'rgba(120, 230, 160, 0.9)'; // M3c §6: mire outlines and a route's part in the mire
 const UNSTICK_COLOR = 'rgba(255, 230, 40, 0.95)'; // enemies passing through a slower one (M2d §4)
 const TARGET_COLOR = 'rgba(255, 235, 120, 0.9)';
 const VULTURE_COLOR = 'rgba(255, 140, 220, 0.9)';
@@ -52,8 +54,41 @@ function cross(ctx, x, y, size) {
   ctx.stroke();
 }
 
+// M3c §6: mire patches outlined; along the hovered route (step-mode Prep), its part in the mire.
+function drawMireDebug(ctx, game, scene, hover) {
+  ctx.save();
+  ctx.strokeStyle = MIRE_COLOR;
+  ctx.setLineDash([4, 4]);
+  for (const p of scene.mire) {
+    for (const b of p.blobs) {
+      ctx.beginPath();
+      ctx.ellipse(b.x, b.y, b.r, b.r * 0.8, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
+  const route = routePreview(game, hover);
+  if (route && scene.mire.length) {
+    const to = markerPos(game, hover);
+    const n = Math.ceil(Math.hypot(to.x - route.from.x, to.y - route.from.y) / 4);
+    ctx.strokeStyle = MIRE_COLOR;
+    ctx.lineWidth = 5;
+    for (let i = 0; i < n; i++) {
+      const a = { x: route.from.x + ((to.x - route.from.x) * i) / n, y: route.from.y + ((to.y - route.from.y) * i) / n };
+      const b = { x: route.from.x + ((to.x - route.from.x) * (i + 1)) / n, y: route.from.y + ((to.y - route.from.y) * (i + 1)) / n };
+      if (!inMire(scene.mire, (a.x + b.x) / 2, (a.y + b.y) / 2)) continue;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 // revealItem: debug key I in battle (M2e §6) marks the spot holding the hidden item.
-export function drawDebugOverlay(ctx, game, scene, revealItem = false) {
+// hover: the picked object under the pointer (M3c §6: its route's mire part).
+export function drawDebugOverlay(ctx, game, scene, revealItem = false, hover = null) {
   ctx.save();
   ctx.strokeStyle = COLOR;
   ctx.fillStyle = COLOR;
@@ -64,6 +99,7 @@ export function drawDebugOverlay(ctx, game, scene, revealItem = false) {
   drawDruid(ctx, game);
 
   drawZones(ctx, scene.level);
+  drawMireDebug(ctx, game, scene, hover);
   drawCandidates(ctx, game, scene);
 
   drawEnemies(ctx, game);
@@ -450,7 +486,7 @@ function drawEnemies(ctx, game) {
 // M3b §6: bodies waiting to rise, with their countdown; drops sinking into the mire, with theirs.
 function drawRisingAndSinking(ctx, game) {
   for (const b of game.bodies) label(ctx, `body #${b.enemy.id} rises in ${Math.max(0, b.timer).toFixed(1)}s`, b.enemy.x - 30, b.enemy.y + b.enemy.radius + 14);
-  for (const d of game.drops) if (d.sunk) label(ctx, `${Math.max(0, C.DROP_SINK_TIME - d.sunk).toFixed(1)}`, d.x - 8, d.y + 16);
+  for (const d of game.drops) if (d.sunk) label(ctx, `${Math.max(0, d.sinkLimit - d.sunk).toFixed(1)}`, d.x - 8, d.y + 16);
 }
 
 function drawDruid(ctx, game) {

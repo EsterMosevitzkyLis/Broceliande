@@ -3,7 +3,7 @@
 import * as C from './config.js';
 import { GameState, ActionState } from './states.js';
 import { drawDebugOverlay } from './debug/debugOverlay.js';
-import { drawFloor, drawCorridors, drawFlats, drawDecor, drawStream, drawAshFlecks, drawLaneGlow } from './render/environment.js';
+import { drawFloor, drawCorridors, drawFlats, drawDecor, drawStream, drawAshFlecks, drawLaneGlow, drawMire } from './render/environment.js';
 import {
   drawTurretSlot, drawDruid, drawFeature, drawEnemyHpBar, enemyBarY, drawArmorSpark, drawHealSparkle, drawCorrodeDrips, drawDruidHpBar, drawDustRing, drawLanePulse,
   drawTurret, drawToader, toaderMouthOpen, drawPellet, drawCloud, drawRange, drawProgressBar, drawFloatingText, drawPebble,
@@ -92,6 +92,7 @@ export function createRenderer(canvas) {
     drawStream(ctx, scene); // M2f §4.2: under the corridors, which cross it as fords
     drawCorridors(ctx, scene);
     drawFlats(ctx, scene);
+    drawMire(ctx, scene, animationTime(game)); // M3c §3.1: mire ground (never on a corridor), under everything upright
     // M2f §4.11: the Heartwood's sickly glow at its lane entrances.
     if (scene.level.laneGlow) for (const lane of game.lanes) drawLaneGlow(ctx, laneEntrance(lane), scene.level.palette.laneGlow, performance.now() / 1000);
     // A mini-boss's lane entrance pulsing red as it arrives (M2c §2.6).
@@ -244,7 +245,7 @@ export function createRenderer(canvas) {
     if (game.sweep) drawSweep(ctx, game, view);
 
     if (view.debug) {
-      drawDebugOverlay(ctx, game, scene, view.revealItem);
+      drawDebugOverlay(ctx, game, scene, view.revealItem, view.hover);
       if (view.clickMarker) drawClickMarker(ctx, view.clickMarker);
     }
   }
@@ -391,7 +392,7 @@ function enemyTintFilter(e) {
 
 function drawTurretOfType(ctx, t, upgrading, anim) {
   if (t.type === 'toader') drawToader(ctx, t, upgrading, toaderMouthOpen(t, anim), anim);
-  else if (t.type === 'cinderjaw') drawCinderjaw(ctx, t, upgrading, anim); // M2o §4.1
+  else if (C.TURRET_TYPES[t.type].baseType === 'cinderjaw') drawCinderjaw(ctx, t, upgrading, anim); // M2o §4.1, and the Peatjaw (M3c §4.2)
   else drawTurret(ctx, t, upgrading, anim);
 }
 

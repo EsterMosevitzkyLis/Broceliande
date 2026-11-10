@@ -10,12 +10,14 @@ const COLORS = {
   printBad: 'rgba(235, 85, 58, 0.9)',  // unaffordable: matches the step bar's red blink
   trail: 'rgb(226, 200, 152)',         // committed trail: the same earthy tone, at TRAIL_FOOTPRINT_ALPHA
   labelBg: 'rgba(16, 22, 14, 0.85)',
+  mire: 'rgba(70, 92, 62, 0.95)',          // M3c §3.2: in the mire, darker and wetter
+  mireSheen: 'rgba(190, 225, 205, 0.5)',
 };
 
 // Committed legs (M1h §1.2): every footprint at once, fainter than the preview, never red.
 export function drawTrail(ctx, legs) {
   for (const leg of legs) {
-    for (const p of leg) drawPrint(ctx, p, COLORS.trail, C.TRAIL_FOOTPRINT_ALPHA);
+    for (const p of leg) drawPrint(ctx, p, p.mire ? COLORS.mire : COLORS.trail, C.TRAIL_FOOTPRINT_ALPHA);
   }
 }
 
@@ -33,6 +35,12 @@ function drawPrint(ctx, p, color, alpha) {
   ctx.beginPath();
   ctx.ellipse(-4, 0, 2.4, 2.1, 0, 0, Math.PI * 2); // heel
   ctx.fill();
+  if (p.mire) { // a wet sheen on a print in the mire
+    ctx.fillStyle = COLORS.mireSheen;
+    ctx.beginPath();
+    ctx.ellipse(3, -0.6, 2, 1, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -46,7 +54,7 @@ export function drawFootsteps(ctx, prints, elapsed, cost, affordable) {
   prints.forEach((p, i) => {
     const appear = n > 1 ? span * (i / (n - 1)) : 0;
     const alpha = Math.min(1, Math.max(0, (elapsed - appear) / C.FOOTPRINT_FADE_TIME));
-    if (alpha > 0) drawPrint(ctx, p, color, alpha);
+    if (alpha > 0) drawPrint(ctx, p, p.mire && affordable ? COLORS.mire : color, alpha);
   });
   if (elapsed < C.FOOTPRINT_REVEAL_TIME || n === 0) return;
 

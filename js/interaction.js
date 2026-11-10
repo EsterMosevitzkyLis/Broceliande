@@ -14,7 +14,7 @@ import {
 } from './systems/actionSystem.js';
 import { isStepMode, canVisit } from './systems/stepSystem.js';
 import { isDoubleTargeting, isDoubleTarget, doubleOnSlot, startDoubleJob, cancelDoubleJob } from './systems/doubleSystem.js';
-import { TURRET_TYPE_KEYS } from './entities/turret.js';
+import { buildableTypes } from './entities/turret.js';
 import { startCombat, enterNode } from './game.js';
 import { availableNodeAt } from './run.js';
 import * as C from './config.js';
@@ -104,14 +104,14 @@ export function createInteraction(game, view) {
     if (!menu) return;
     if (menu.kind === 'build') {
       // One card per turret type (M1f §5.2): build it, or in step mode travel there to build it.
-      const type = TURRET_TYPE_KEYS[option];
+      const type = buildableTypes(game.scene.level.region)[option];
       const started = isStepMode(game)
         ? startTravel(game, { kind: 'slot', index: menu.index }, type)
         : startBuild(game, menu.index, type);
       if (started) closeMenu();
     }
     // M1i §2.4: the turret choice for a Double's build job.
-    if (menu.kind === 'doubleBuild' && startDoubleJob(game, menu.index, TURRET_TYPE_KEYS[option])) closeMenu();
+    if (menu.kind === 'doubleBuild' && startDoubleJob(game, menu.index, buildableTypes(game.scene.level.region)[option])) closeMenu();
     // M1i §2.6: the turret menu's first card is "Cancel job" while a Double works there.
     if (menu.kind === 'turret' && option === 0 && cancelDoubleJob(game, menu.index)) closeMenu();
   }

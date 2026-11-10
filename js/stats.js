@@ -30,6 +30,12 @@ const BASES = {
   'search.mainBonus':         () => C.SEARCH_MAIN_BONUS,
   'steps.budget':             (level) => level.stepBudget,
   'steps.length':             () => C.STEP_PX,
+  // M3c §5: identities (none, ×1) unless a Peat item changes them.
+  'vulture.burnDuration':     () => 0, // s a peck sets its target burning (Peatsmoke Crown)
+  'druid.strikeBurnDuration': () => 0, // s the Druid's strike sets its target burning (Ashen Censer)
+  'features.peatBonus':       () => 0, // extra Peat from a Peat Bog (Peatcutter's Belt)
+  'drops.sinkTimeMult':       () => 1, // × DROP_SINK_TIME (Peatcutter's Belt)
+  'mire.stepMult':            () => 1, // × the mire's extra step cost (Bogwalker Boots: 0)
   // Per level, not changed by equipment (M2f §3.1): every enemy's HP × this.
   'enemy.hpMult':             (level) => level.enemyHpMult ?? 1,
 };

@@ -19,8 +19,8 @@ import { isDoubleTargeting, isDoubleTarget, doubleOnSlot, doubleJob } from './sy
 import { DoubleState } from './entities/boughDouble.js';
 import { AttackState } from './entities/enemy.js';
 import { turretOnSlot } from './systems/buildSystem.js';
-import { buildCost, levelStats, levelRange, levelName, nextLevelStats, maxLevel, turretType, TURRET_TYPE_KEYS } from './entities/turret.js';
-import { isStepMode, stepCost, canVisit, anyVisitable, routePreview, calibrationFigures, affordableTurretTypes } from './systems/stepSystem.js';
+import { buildCost, levelStats, levelRange, levelName, nextLevelStats, maxLevel, turretType, TURRET_TYPE_KEYS, buildableTypes } from './entities/turret.js';
+import { isStepMode, stepCost, stepParts, canVisit, anyVisitable, routePreview, calibrationFigures, affordableTurretTypes } from './systems/stepSystem.js';
 import { enemyTotals, waveCounts } from './game.js';
 import { isMuted, soundStats, audioStatus } from './audio.js';
 import { chosenSpeed } from './gameSpeed.js';
@@ -281,6 +281,7 @@ export function createUI(callbacks) {
       feathers: document.getElementById('res-feathers'),
       boughs: document.getElementById('res-boughs'),
       shells: document.getElementById('res-shells'),
+      peat: document.getElementById('res-peat'),
     },
     startCombat: document.getElementById('btn-start-combat'),
     mute: document.getElementById('btn-mute'),
@@ -691,6 +692,13 @@ function updateHud(el, game) {
   setText(el.hpText, `${Math.ceil(game.druidHp)} / ${maxHp}`);
 
   for (const [k, node] of Object.entries(el.res)) {
+    // M3c §1: a regional resource's counter shows from its region on, or while any is held.
+    const from = C.REGIONAL_RESOURCES[k];
+    if (from) {
+      const reached = game.run && C.REGIONS[game.run.regionId].order >= C.REGIONS[from].order;
+      const shown = reached || game.scene?.level.region === from || game.resources[k] > 0 || (game.run?.inventory[k] ?? 0) > 0;
+      if (node.parentElement.hidden === shown) node.parentElement.hidden = !shown;
+    }
     setText(node, String(game.resources[k]));
     // M2d §2.2: a counter pulses briefly when a swept item lands on it.
     const pulsing = game.state === GameState.ENDING && game.endElapsed - (game.hudPulses?.[k] ?? -Infinity) < C.SWEEP_PULSE_TIME;
@@ -957,7 +965,7 @@ function laneWarning(game, slotIndex, type) {
 function buildOptions(game, menu) {
   const stepMode = isStepMode(game);
   const steps = stepMode ? stepCost(game, { kind: 'slot', index: menu.index }) : 0;
-  return TURRET_TYPE_KEYS.map((type) => {
+  return buildableTypes(game.scene.level.region).map((type) => {
     const affordable = canAfford(game.resources, buildCost(type));
     const enoughSteps = !stepMode || steps <= game.stepsRemaining;
     const disabled = stepMode
@@ -991,7 +999,7 @@ const summonDetail = (game) => ({
 // Turret choice for a Bough Double's build job (M1i §2.4 step 3): one card per turret type, its
 // cost rows including the Bough.
 function doubleBuildOptions(game, menu) {
-  return TURRET_TYPE_KEYS.map((type) => {
+  return buildableTypes(game.scene.level.region).map((type) => {
     const job = doubleJob(game, menu.index, type);
     const affordable = canAfford(game.resources, job.cost);
     return {
@@ -1358,7 +1366,10 @@ function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
     stepLines.push(`Druid at: (${Math.round(d.x)}, ${Math.round(d.y)})  moves ${game.moveHistory.length} (U undoes)`);
     const h = view.hover;
     if (game.state === GameState.PREP && (h?.kind === 'feature' || h?.kind === 'slot')) {
-      stepLines.push(`Hover:  ${h.kind} #${h.index}  cost ${stepCost(game, h)}  ${canVisit(game, h) ? 'clickable' : 'not clickable'}`);
+      const sp = stepParts(game, h); // M3c §6: the route's normal and mire parts
+      const len = game.stats['steps.length'];
+      const mireText = sp.inside > 0 ? `  (normal ${(sp.outside / len).toFixed(1)} + mire ${(sp.inside / len).toFixed(1)} × ${(1 + (C.MIRE_STEP_MULT - 1) * game.stats['mire.stepMult']).toFixed(1)})` : '';
+      stepLines.push(`Hover:  ${h.kind} #${h.index}  cost ${sp.cost}${mireText}  ${canVisit(game, h) ? 'clickable' : 'not clickable'}`);
     }
   }
   setText(el.debugPanel, [

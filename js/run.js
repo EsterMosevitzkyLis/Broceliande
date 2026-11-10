@@ -75,7 +75,7 @@ function rollRunTraders(seed, map, keep = {}) {
   const nodes = map.nodes.filter((n) => n.type === 'trader');
   const traders = Object.fromEntries(nodes.filter((n) => keep[n.id]).map((n) => [n.id, keep[n.id]]));
   for (const node of nodes) {
-    if (!traders[node.id]) traders[node.id] = rollTrader(rng, Object.values(traders).map((t) => t.name));
+    if (!traders[node.id]) traders[node.id] = rollTrader(rng, Object.values(traders).map((t) => t.name), map.regionId);
   }
   return traders;
 }

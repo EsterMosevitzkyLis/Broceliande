@@ -5,7 +5,7 @@ import * as C from '../config.js';
 import { drawShadow } from './environment.js';
 import { artBase, spotDrawn, levelRingRadii } from './entities.js';
 
-const COLORS = {
+const CINDERJAW = {
   stone: '#6d675c',
   stoneLight: '#8c867a',
   wood: '#6a4a2c',
@@ -26,6 +26,18 @@ const COLORS = {
   ringInner: '#ffb260',
   flame: ['#fff2a8', '#ffc64a', '#ff8a2a', '#e2551e'],
 };
+// M3c §4.2: the Peatjaw: darker, peat-brown and moss-flecked stone, a deep red-orange flame and
+// thicker, darker smoke. Burning enemies look the same as with the Cinderjaw.
+const PEATJAW = {
+  ...CINDERJAW,
+  stone: '#4a3c2e', stoneLight: '#6a8a4a', wood: '#3e2a1a', woodDark: '#261a10',
+  head: '#4e4632', headDark: '#342e20', jaw: '#433b2a', plate: '#3e3a28', plateEdge: '#2a2618',
+  ember: '#e0441a', emberHot: '#ff8a3a', crack: '#d8501e',
+  smoke: 'rgba(70, 62, 54, ALPHA)', ring: '#8a3a1a', ringInner: '#d86a3a',
+  flame: ['#ffb070', '#ff7a2a', '#d8401a', '#8a2010'],
+};
+const LOOKS = { cinderjaw: CINDERJAW, peatjaw: PEATJAW };
+let COLORS = CINDERJAW; // the turret being drawn's palette (drawCinderjawArt, drawConeBurst)
 const alpha = (c, a) => c.replace('ALPHA', a.toFixed(3));
 
 const JAW_OPEN_TIME = 0.4; // s the jaw stays open after a breath (matches the cone)
@@ -35,6 +47,15 @@ const JAW_OPEN_TIME = 0.4; // s the jaw stays open after a breath (matches the c
 export const drawCinderjaw = spotDrawn(drawCinderjawArt);
 
 function drawCinderjawArt(ctx, turret, upgrading, anim = 0) {
+  COLORS = LOOKS[turret.type] ?? CINDERJAW;
+  try {
+    drawJawArt(ctx, turret, upgrading, anim);
+  } finally {
+    COLORS = CINDERJAW;
+  }
+}
+
+function drawJawArt(ctx, turret, upgrading, anim) {
   const { x, y } = artBase(turret);
   const level = turret.level ?? 1;
   ctx.save();
@@ -215,6 +236,15 @@ function drawHead(ctx, level, open, anim, seed) {
 // A breath (§4.2): orange-yellow flame filling the cone, its edges the real cone's, fading over
 // CONE_BURST_TIME. Particles are placed from the burst's own numbers (no RNG).
 export function drawConeBurst(ctx, b) {
+  COLORS = LOOKS[b.type] ?? CINDERJAW;
+  try {
+    drawBurst(ctx, b);
+  } finally {
+    COLORS = CINDERJAW;
+  }
+}
+
+function drawBurst(ctx, b) {
   const k = b.age / C.CONE_BURST_TIME;
   const reach = b.range * Math.min(1, k * 3); // the flame shoots out fast, then fades
   ctx.save();

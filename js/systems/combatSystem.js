@@ -100,7 +100,7 @@ function breatheFire(game, turret, target) {
     applyBurn(game, e, stats.cone.burn, turret.id, turret.level);
     damageEnemy(game, e, stats.damage, `${turret.type}:impact:${turret.level}`);
   }
-  game.coneBursts.push({ x: turret.x, y: turret.y, aim, half, range, level: turret.level, age: 0 });
+  game.coneBursts.push({ x: turret.x, y: turret.y, aim, half, range, level: turret.level, type: turret.type, age: 0 }); // type: its look (M3c §4.2)
   turret.aim = aim;
   events.emit('turretFired', { type: turret.type, x: turret.x, y: turret.y });
   turret.lastFireTime = game.combatTime;
