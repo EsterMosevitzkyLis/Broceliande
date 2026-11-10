@@ -79,7 +79,7 @@ TRADE_MAX_RATIO_TERM,5,TUNING - largest term in a shown trade ratio a -> b
 TRADE_TAG_CHEAP,0.85,TUNING - multiplier at or below this: cheap (goods) / sells poorly (pack)
 TRADE_TAG_PRICEY,1.15,TUNING - multiplier at or above this: pricey (goods) / sells well (pack)
 # Hag's Causeway twists,,
-RISE_DELAY,1.5,"TUNING - s a risen-dead body lies where it fell before it stands up again (M3b sec. 3.1)"
+RISE_DELAY,1.5,TUNING - s a risen-dead body lies where it fell before it stands up again (M3b sec. 3.1)
 RISE_HP_FRAC,0.5,TUNING - fraction of its max HP a body rises with
 DROP_SINK_TIME,12,TUNING - s a landed drop lasts before the mire swallows it (M3b sec. 4)
 BOG_KING_SUMMON_INTERVAL,10,TUNING - s between the Bog King raising Drowned Thralls (M3b sec. 5.2)
