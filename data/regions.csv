@@ -1,3 +1,3 @@
 id,name,order,deathLossPct,traders,tinkers,tinkerMinRow,risingDead,sinkingDrops,mireGround,introTitle,introText,finalLine,notes
-cinderwood,The Cinderwood,1,1,2,2,4,FALSE,FALSE,FALSE,,,"The Heartwood is cleansed. Broceliande breathes again.",deathLossPct 1 - a death ends the run
+cinderwood,The Cinderwood,1,1,2,2,4,FALSE,FALSE,FALSE,,,The Heartwood is cleansed. Broceliande breathes again.,deathLossPct 1 - a death ends the run
 hags,Hag's Causeway,2,0.7,2,2,4,TRUE,TRUE,TRUE,Hag's Causeway,"Beyond the last of the burnt trees, the ground turns soft. The old road sinks into black water, and the water does not give things back. They call this place Hag's Causeway, though no one living has seen her. Here the dead do not stay buried.",The Bog King sinks for the last time. The Causeway falls quiet.,"TUNING - deathLossPct 0.7: on death each resource keeps floor(30%) and each item is lost at 70%, twists come in M3b and M3c"
