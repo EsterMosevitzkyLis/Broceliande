@@ -257,6 +257,38 @@ function ellipseFits(scene, x, y, rx, ry, rot) {
   return true;
 }
 
+function shuffled(rng, list) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = rng.int(0, i);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// M3d: a landmark { kind, size, near } given no position: the first seeded spot where it fits;
+// near 'lane': beside a corridor (its edge just clear of it).
+function placeLandmark(scene, spec, rng) {
+  const h = spec.size * 0.45;
+  const spots = [];
+  if (spec.near === 'lane') {
+    for (const lane of scene.lanes) {
+      for (let s = 120; s < lane.path.length - 200; s += 30) {
+        const p = lane.path.pointAt(s);
+        const n = lane.path.normalAt(s);
+        for (const side of [-1, 1]) {
+          const off = lane.corridorWidth / 2 + spec.size + 6;
+          spots.push({ x: p.x + n.x * off * side, y: p.y + n.y * off * side + h * 0.5 });
+        }
+      }
+    }
+  } else {
+    for (let x = 100; x < C.STAGE_WIDTH - 100; x += 30) for (let y = C.HUD_STRIP_HEIGHT + 120; y < C.STAGE_HEIGHT - 40; y += 30) spots.push({ x, y });
+  }
+  const fit = shuffled(rng, spots).find((p) => p.y - h > C.HUD_STRIP_HEIGHT && ellipseFits(scene, p.x, p.y - h * 0.5, spec.size, h * 0.6, 0));
+  return fit ? { ...spec, x: Math.round(fit.x), y: Math.round(fit.y) } : null;
+}
+
 // Themed decoration (M2b §3). Returns { flats, items, blocked }; blocked: circles the forest
 // keeps out of.
 function themedDecor(scene) {
@@ -267,7 +299,14 @@ function themedDecor(scene) {
   const blocked = [];
 
   // Fixed landmarks (the burial mound): size = half-width; tested as an ellipse over the hill.
-  for (const lm of level.landmarks ?? []) {
+  // M3d: a landmark without x / y is placed here: the first seeded spot that fits beside a lane
+  // (near: 'lane', the Rotting Ford's footbridge) or anywhere clear (the Drowned Gallows).
+  for (const spec of level.landmarks ?? []) {
+    const lm = spec.x === undefined ? placeLandmark(scene, spec, rng) : spec;
+    if (!lm) {
+      console.warn(`${scene.levelId}: no room for its ${spec.kind}; left out`);
+      continue;
+    }
     const h = lm.size * 0.45;
     if (!ellipseFits(scene, lm.x, lm.y - h * 0.5, lm.size, h * 0.6, 0)) {
       console.warn(`${scene.levelId}: landmark ${lm.kind} at (${lm.x}, ${lm.y}) overlaps a corridor or candidate; left out`);
@@ -296,6 +335,42 @@ function themedDecor(scene) {
         items.push({ kind, x: p.x, y: p.y, size, variant, angle: a }); // angle: which way a root points
         blocked.push({ x: c.x, y: c.y, r: e.r * size });
         break;
+      }
+    }
+  }
+
+  // M3d (The Sallow Mere): a broad grey mere at the map's edge, partly off screen, clear of the
+  // corridors and candidates; sallow trees grow round it with the rest of the forest.
+  if (level.mere) {
+    const M = level.mere;
+    const spots = [];
+    for (const k of [0.25, 0.45]) { // its centre a little off screen, or further
+      for (let x = 0; x <= C.STAGE_WIDTH; x += 30) spots.push({ x, y: C.STAGE_HEIGHT + M.ry * k }, { x, y: C.HUD_STRIP_HEIGHT + M.ry * (k - 0.1) });
+      for (let y = C.HUD_STRIP_HEIGHT; y <= C.STAGE_HEIGHT; y += 30) spots.push({ x: -M.rx * k, y }, { x: C.STAGE_WIDTH + M.rx * k, y });
+    }
+    const at = shuffled(rng, spots).find((p) => ellipseFits(scene, p.x, p.y, M.rx, M.ry, 0));
+    if (at) {
+      flats.push({ kind: 'mere', x: at.x, y: at.y, rx: M.rx, ry: M.ry, rot: 0 });
+      blocked.push({ x: at.x, y: at.y, r: Math.min(M.rx, M.ry) });
+    } else {
+      console.warn(`${scene.levelId}: no room for its mere; left out`);
+    }
+  }
+
+  // M3d (The Corpse Reedbeds): tall, dense reed walls along both sides of every corridor, where
+  // they clear the corridors, candidates and the landmarks.
+  if (level.reedWalls) {
+    const R = level.reedWalls;
+    for (const lane of scene.lanes) {
+      for (let s = R.spacing; s < lane.path.length; s += R.spacing) {
+        const p = lane.path.pointAt(s);
+        const n = lane.path.normalAt(s);
+        for (const side of [-1, 1]) {
+          const off = lane.corridorWidth / 2 + R.offset + rng.range(0, 6);
+          const q = { x: p.x + n.x * off * side, y: p.y + n.y * off * side + C.DECOR.extent.reedWall.lift * R.size * 0.5 };
+          if (q.y < C.HUD_STRIP_HEIGHT + 20 || !decorFits(scene, 'reedWall', q, R.size)) continue;
+          items.push({ kind: 'reedWall', x: q.x, y: q.y, size: R.size * rng.range(0.85, 1.15), variant: rng.int(0, 2) });
+        }
       }
     }
   }

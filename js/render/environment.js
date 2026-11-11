@@ -67,11 +67,13 @@ export function drawShadow(ctx, x, y, rx, ry) {
 
 // level: its palette, thornBushes (M2a §5.3) for spiky thorn bushes instead of round ones, and
 // gnarledTrees (M2b §3.3) for twisted trees, bareTrees (M2f §4.8) for pale leafless ones,
-// charredTrees (M3a §2) for burnt, leafless orchard trees.
+// charredTrees (M3a §2) for burnt, leafless orchard trees, willowTrees (M3d) for drooping
+// willows (pale in Bonewhite Willows, sallow by The Sallow Mere), wormwoodBushes (M3d) for
+// feathery grey-green wormwood.
 export function drawDecor(ctx, item, level) {
   const palette = level.palette;
-  if (item.kind === 'tree') (level.bareTrees ? drawBareTree : level.charredTrees ? drawCharredTree : level.gnarledTrees ? drawGnarledTree : drawTree)(ctx, item, palette);
-  else if (item.kind === 'bush') (level.thornBushes ? drawThornBush : drawBush)(ctx, item, palette);
+  if (item.kind === 'tree') (level.bareTrees ? drawBareTree : level.charredTrees ? drawCharredTree : level.willowTrees ? drawWillowTree : level.gnarledTrees ? drawGnarledTree : drawTree)(ctx, item, palette);
+  else if (item.kind === 'bush') (level.thornBushes ? drawThornBush : level.wormwoodBushes ? drawWormwoodBush : drawBush)(ctx, item, palette);
   else if (item.kind === 'rock') drawRock(ctx, item, palette);
   else THEMED[item.kind](ctx, item, palette);
 }
@@ -83,6 +85,8 @@ export function drawFlats(ctx, scene) {
   for (const f of scene.flats) {
     if (f.kind === 'ash') {
       drawAshPit(ctx, f, P);
+    } else if (f.kind === 'mere') {
+      drawMere(ctx, f, P);
     } else if (f.kind === 'water') {
       ctx.fillStyle = P.water.rim;
       ctx.beginPath();
@@ -171,6 +175,12 @@ const THEMED = {
   weepingStone: drawWeepingStone,
   root: drawRoot,
   charredRoof: drawCharredRoof,
+  tallowCandles: drawTallowCandles,
+  leechStones: drawLeechStones,
+  lanternPole: drawLanternPole,
+  reedWall: drawReedWall,
+  footbridge: drawFootbridge,
+  gallows: drawGallows,
   charredBeams: drawCharredBeams,
   scorchedStones: drawScorchedStones,
 };
@@ -906,21 +916,33 @@ function drawRock(ctx, { x, y, size: s }, P) {
   ctx.fill();
 }
 
-// M3c §3.1: mire ground: dark, wet green-brown patches with a faint sheen, scattered reeds and
-// the odd bubble, over the floor and under corridors, objects and decoration. t: s (bubbles).
+// M3c §3.1, M3d: mire ground: darker and wetter than the ground round it, with a soft, slightly
+// lighter muddy rim, a sheen on the water, reeds along its borders and the occasional slow bubble.
+// Over the floor, under everything upright; obvious at a glance without overpowering the scene.
 export function drawMire(ctx, scene, t) {
   const M = C.MIRE_COLORS;
+  const insideOther = (p, x, y) => p.blobs.some((o) => Math.hypot(x - o.x, (y - o.y) / 0.8) < o.r - 2);
   for (const p of scene.mire) {
-    ctx.fillStyle = M.edge;
-    for (const b of p.blobs) {
-      ctx.beginPath();
-      ctx.ellipse(b.x, b.y, b.r + 5, (b.r + 5) * 0.8, 0, 0, Math.PI * 2);
-      ctx.fill();
+    // The muddy rim: a soft band round the whole patch, fading outwards.
+    for (const [grow, color] of [[14, M.rimOuter], [8, M.rim]]) {
+      ctx.fillStyle = color;
+      for (const b of p.blobs) {
+        ctx.beginPath();
+        ctx.ellipse(b.x, b.y, b.r + grow, (b.r + grow) * 0.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
+    // The wet body: dark, a little darker again towards each blob's middle.
     ctx.fillStyle = M.base;
     for (const b of p.blobs) {
       ctx.beginPath();
       ctx.ellipse(b.x, b.y, b.r, b.r * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = M.deep;
+    for (const b of p.blobs) {
+      ctx.beginPath();
+      ctx.ellipse(b.x + b.r * 0.05, b.y + b.r * 0.04, b.r * 0.62, b.r * 0.48, 0, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.strokeStyle = M.sheen;
@@ -930,29 +952,302 @@ export function drawMire(ctx, scene, t) {
       ctx.ellipse(b.x - b.r * 0.2, b.y - b.r * 0.15, b.r * 0.45, b.r * 0.16, -0.1, Math.PI * (1.1 + (i % 3) * 0.05), Math.PI * 1.8);
       ctx.stroke();
     });
-    // Reeds at a few blob edges, and a bubble now and then.
+    // Reeds along the border: tufts round each blob's edge where it isn't inside another blob.
+    ctx.strokeStyle = M.reed;
+    ctx.lineCap = 'round';
     p.blobs.forEach((b, i) => {
-      if ((p.seed + i) % 3 !== 0) return;
-      const a = ((p.seed * 0.13 + i * 1.7) % (Math.PI * 2));
-      const x = b.x + Math.cos(a) * b.r * 0.85;
-      const y = b.y + Math.sin(a) * b.r * 0.68;
-      ctx.strokeStyle = M.reed;
-      ctx.lineWidth = 1.6;
-      ctx.lineCap = 'round';
-      for (let k = -1; k <= 1; k++) {
-        ctx.beginPath();
-        ctx.moveTo(x + k * 3, y);
-        ctx.lineTo(x + k * 4.5, y - 14 - (k === 0 ? 4 : 0));
-        ctx.stroke();
+      for (let k = 0; k < 5; k++) {
+        const a = ((p.seed % 97) * 0.07 + i * 1.3 + k * 1.26) % (Math.PI * 2);
+        const x = b.x + Math.cos(a) * (b.r + 3);
+        const y = b.y + Math.sin(a) * (b.r + 3) * 0.8;
+        if ((k + i + p.seed) % 2 || insideOther(p, x, y)) continue;
+        ctx.lineWidth = 1.6;
+        for (let j = -1; j <= 1; j++) {
+          ctx.beginPath();
+          ctx.moveTo(x + j * 3, y);
+          ctx.lineTo(x + j * 4.5, y - 13 - (j === 0 ? 5 : 0));
+          ctx.stroke();
+        }
       }
     });
-    p.blobs.forEach((b, i) => {
-      const k = (t * 0.35 + i * 0.37 + p.seed * 0.001) % 1;
-      if (k > 0.3) return; // a short pop in each cycle
-      ctx.fillStyle = M.bubble;
+    // An occasional slow bubble: one blob at a time, swelling and popping.
+    const cycle = 4.5; // s per bubble
+    const k = ((t + (p.seed % 50) * 0.37) % cycle) / cycle;
+    const b = p.blobs[Math.floor((t + (p.seed % 50) * 0.37) / cycle) % p.blobs.length];
+    if (k < 0.35) {
+      const r = 2 + (k / 0.35) * 5;
+      ctx.strokeStyle = M.bubble;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.arc(b.x + ((i * 17) % 11) - 5, b.y + ((i * 13) % 9) - 4, 1.5 + k * 6, 0, Math.PI * 2);
+      ctx.arc(b.x + b.r * 0.15, b.y - b.r * 0.1, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Hag's Causeway's signature decoration (M3d §2). Each fits its DECOR.extent entry.
+// ---------------------------------------------------------------------------
+
+// Tallow Fen: pale candles of fat floating on a pool, a few lit, each with a soft glow.
+function drawTallowCandles(ctx, { x, y, size: s, variant }, P) {
+  for (const [dx, dy, h, lit] of [[-12, 2, 9, true], [4, -3, 12, variant > 0], [15, 4, 7, true]]) {
+    const cx = x + dx * s;
+    const cy = y + dy * s;
+    if (lit) {
+      const g = ctx.createRadialGradient(cx, cy - h * s, 0, cx, cy - h * s, 14 * s);
+      g.addColorStop(0, 'rgba(255, 220, 140, 0.45)');
+      g.addColorStop(1, 'rgba(255, 220, 140, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy - h * s, 14 * s, 0, Math.PI * 2);
       ctx.fill();
-    });
+    }
+    ctx.fillStyle = '#e8e0c8';
+    ctx.fillRect(cx - 2.5 * s, cy - h * s, 5 * s, h * s);
+    ctx.fillStyle = '#c8bfa4';
+    ctx.fillRect(cx + 0.5 * s, cy - h * s, 2 * s, h * s);
+    if (lit) {
+      ctx.fillStyle = P.glow;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - h * s - 3 * s, 1.6 * s, 3 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = P.water.ripple;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 5 * s, 1.5 * s, 0, 0, Math.PI);
+    ctx.stroke();
+  }
+}
+
+// The Leechwater Pools: stones at a pool's edge with dark leeches clinging to them.
+function drawLeechStones(ctx, { x, y, size: s, variant }, P) {
+  for (const [dx, dy, r] of [[-14, 2, 9], [6, -2, 11], [20, 4, 7]]) {
+    ctx.fillStyle = P.rock.dark;
+    ctx.beginPath();
+    ctx.ellipse(x + dx * s, y + dy * s - r * 0.4 * s, r * s, r * 0.7 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = P.rock.base;
+    ctx.beginPath();
+    ctx.ellipse(x + dx * s - r * 0.2 * s, y + dy * s - r * 0.6 * s, r * 0.6 * s, r * 0.35 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#1a1210';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 2.6 * s;
+  for (const [dx, dy, a] of [[-16, -2, 0.6], [-10, 0, -0.4], [4, -6, 0.9], [9, -3, -0.2], [18, 2, 0.5 + variant * 0.3]]) {
+    ctx.beginPath();
+    ctx.moveTo(x + dx * s, y + dy * s);
+    ctx.quadraticCurveTo(x + (dx + Math.cos(a) * 3) * s, y + (dy + Math.sin(a) * 3 - 2) * s, x + (dx + Math.cos(a) * 6) * s, y + (dy + Math.sin(a) * 6) * s);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = P.water.ripple;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x + 2 * s, y + 4 * s, 30 * s, 5 * s, 0, 0, Math.PI);
+  ctx.stroke();
+}
+
+// The Lantern Fen: a crooked pole with a lantern hanging from its crook, some lit (variant).
+function drawLanternPole(ctx, { x, y, size: s, variant }, P) {
+  drawShadow(ctx, x, y, 8 * s, 3 * s);
+  ctx.strokeStyle = P.treeDark.trunk;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 3.5 * s;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x - 4 * s, y - 30 * s, x + 2 * s, y - 52 * s);
+  ctx.lineTo(x + 14 * s, y - 56 * s);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + 13 * s, y - 56 * s);
+  ctx.lineTo(x + 13 * s, y - 48 * s);
+  ctx.stroke();
+  const lit = variant !== 1;
+  if (lit) {
+    const g = ctx.createRadialGradient(x + 13 * s, y - 42 * s, 0, x + 13 * s, y - 42 * s, 20 * s);
+    g.addColorStop(0, 'rgba(255, 210, 120, 0.5)');
+    g.addColorStop(1, 'rgba(255, 210, 120, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x + 13 * s, y - 42 * s, 20 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = P.roof.dark;
+  ctx.fillRect(x + 9 * s, y - 48 * s, 8 * s, 2 * s);
+  ctx.fillStyle = lit ? P.glow : P.roof.light;
+  ctx.fillRect(x + 10 * s, y - 46 * s, 6 * s, 8 * s);
+  ctx.fillStyle = P.roof.dark;
+  ctx.fillRect(x + 9 * s, y - 38 * s, 8 * s, 2 * s);
+}
+
+// The Corpse Reedbeds: a tall, dense clump of reeds walling a corridor.
+function drawReedWall(ctx, { x, y, size: s, variant }, P) {
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 9; i++) {
+    const dx = (i - 4) * 3 * s;
+    const h = (30 + ((i * 7 + variant * 5) % 14)) * s;
+    const lean = (i - 4) * 0.06 + (variant - 1) * 0.08;
+    ctx.strokeStyle = i % 3 === 0 ? P.vegetation.base : P.vegetation.light;
+    ctx.lineWidth = 2 * s;
+    ctx.beginPath();
+    ctx.moveTo(x + dx, y);
+    ctx.lineTo(x + dx + lean * h, y - h);
+    ctx.stroke();
+    if (i % 3 === 1) {
+      ctx.strokeStyle = P.roof.dark;
+      ctx.lineWidth = 3.4 * s;
+      ctx.beginPath();
+      ctx.moveTo(x + dx + lean * h * 0.8, y - h * 0.8);
+      ctx.lineTo(x + dx + lean * h * 0.95, y - h * 0.95);
+      ctx.stroke();
+    }
+  }
+}
+
+// The Rotting Ford: a rotted wooden footbridge, planks missing, sagging on its posts. size: half-width.
+function drawFootbridge(ctx, { x, y, size: w }, P) {
+  const h = w * 0.25;
+  drawShadow(ctx, x, y + 4, w * 1.05, h * 0.5);
+  ctx.strokeStyle = P.roof.dark;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = w * 0.06;
+  for (const px of [-0.85, -0.3, 0.3, 0.85]) {
+    ctx.beginPath();
+    ctx.moveTo(x + px * w, y + h * 0.3);
+    ctx.lineTo(x + px * w, y - h * 0.6);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 11; i++) {
+    if (i === 3 || i === 7) continue; // missing planks
+    const px = x - w + (i + 0.5) * (2 * w / 11);
+    const sag = Math.sin(((i + 0.5) / 11) * Math.PI) * h * 0.25;
+    ctx.fillStyle = i % 2 ? P.roof.dark : P.roof.light;
+    ctx.save();
+    ctx.translate(px, y - h * 0.5 + sag);
+    ctx.rotate((i % 3 - 1) * 0.08);
+    ctx.fillRect(-w * 0.08, -h * 0.35, w * 0.16, h * 0.7);
+    ctx.restore();
+  }
+  ctx.strokeStyle = P.roof.light; // a sagging handrail
+  ctx.lineWidth = w * 0.035;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.85, y - h * 1.6);
+  ctx.quadraticCurveTo(x, y - h * 1.0, x + w * 0.85, y - h * 1.7);
+  ctx.stroke();
+}
+
+// The Drowned Gallows: a half-sunken gallows, its beam leaning, frayed ropes hanging. size: half-width.
+function drawGallows(ctx, { x, y, size: w }, P) {
+  ctx.fillStyle = P.water.rim;
+  ctx.beginPath();
+  ctx.ellipse(x, y, w, w * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = P.water.deep;
+  ctx.beginPath();
+  ctx.ellipse(x, y, w * 0.9, w * 0.26, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = P.roof.dark;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = w * 0.09;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.5, y);
+  ctx.lineTo(x - w * 0.46, y - w * 1.25); // the post, leaning a little
+  ctx.lineTo(x + w * 0.55, y - w * 1.12); // the beam
+  ctx.moveTo(x - w * 0.47, y - w * 0.95);
+  ctx.lineTo(x - w * 0.18, y - w * 1.2); // the brace
+  ctx.stroke();
+  ctx.strokeStyle = '#b8a888'; // frayed ropes
+  ctx.lineWidth = w * 0.025;
+  for (const [rx, len] of [[0.05, 0.45], [0.42, 0.62]]) {
+    const top = { x: x + rx * w, y: y - w * (1.18 - rx * 0.12) };
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y);
+    ctx.lineTo(top.x + w * 0.02, top.y + w * len);
+    ctx.lineTo(top.x - w * 0.03, top.y + w * (len + 0.06));
+    ctx.moveTo(top.x + w * 0.02, top.y + w * len);
+    ctx.lineTo(top.x + w * 0.05, top.y + w * (len + 0.07));
+    ctx.stroke();
+  }
+  ctx.strokeStyle = P.water.ripple;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x - w * 0.5, y, w * 0.18, w * 0.05, 0, 0, Math.PI);
+  ctx.stroke();
+}
+
+// The Sallow Mere: a broad grey lake at the map's edge, its rim reedy, a faint sheen.
+function drawMere(ctx, f, P) {
+  ctx.fillStyle = P.water.rim;
+  ctx.beginPath();
+  ctx.ellipse(f.x, f.y, f.rx + 14, f.ry + 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = P.water.deep;
+  ctx.beginPath();
+  ctx.ellipse(f.x, f.y, f.rx, f.ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = P.water.ripple;
+  ctx.lineWidth = 2;
+  for (const [dx, dy, k] of [[-0.3, -0.2, 0.35], [0.2, 0.1, 0.45], [-0.05, 0.35, 0.25]]) {
+    ctx.beginPath();
+    ctx.ellipse(f.x + dx * f.rx, f.y + dy * f.ry, k * f.rx, k * f.ry * 0.18, 0, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+  }
+}
+
+// Bonewhite Willows / the Sallow Mere: a willow, its long strands drooping to the ground, in the
+// palette's tree colours (bone-white in Bonewhite Willows).
+function drawWillowTree(ctx, { x, y, size: s, variant }, P) {
+  drawShadow(ctx, x, y, 26 * s, 8 * s);
+  const lean = (variant - 1) * 6;
+  ctx.strokeStyle = P.treeDark.trunk;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 8 * s;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x + lean * s, y - 24 * s, x + lean * 0.5 * s, y - 44 * s);
+  ctx.stroke();
+  const top = { x: x + lean * 0.5 * s, y: y - 46 * s };
+  ctx.fillStyle = P.treeDark.canopy[variant];
+  ctx.beginPath();
+  ctx.ellipse(top.x, top.y, 26 * s, 14 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  for (let i = -5; i <= 5; i++) { // drooping strands
+    ctx.strokeStyle = P.treeLight[(i + 6) % 3];
+    ctx.lineWidth = 2.4 * s;
+    const sx = top.x + i * 4.6 * s;
+    ctx.beginPath();
+    ctx.moveTo(sx, top.y - 6 * s);
+    ctx.quadraticCurveTo(sx + i * 3 * s, top.y + 4 * s, sx + i * 3.6 * s, top.y + (30 - Math.abs(i) * 1.5) * s);
+    ctx.stroke();
+  }
+}
+
+// Wormwood Hollow: a feathery grey-green wormwood bush.
+function drawWormwoodBush(ctx, { x, y, size: s, variant }, P) {
+  drawShadow(ctx, x, y, 18 * s, 5 * s);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 12; i++) {
+    const a = -Math.PI / 2 + (i - 5.5) * 0.2;
+    const len = (14 + ((i * 5 + variant * 3) % 7)) * s;
+    ctx.strokeStyle = i % 2 ? P.vegetation.light : P.vegetation.base;
+    ctx.lineWidth = 2.2 * s;
+    const ex = x + Math.cos(a) * len;
+    const ey = y + Math.sin(a) * len;
+    ctx.beginPath();
+    ctx.moveTo(x + (i - 5.5) * 1.2 * s, y);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.lineWidth = 1.2 * s; // feathery side shoots
+    for (const k of [0.45, 0.7]) {
+      const px = x + (ex - x) * k;
+      const py = y + (ey - y) * k;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + 3.5 * s * Math.sign(i - 5.5 || 1), py - 3 * s);
+      ctx.stroke();
+    }
   }
 }
