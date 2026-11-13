@@ -37,10 +37,14 @@ export function validateTables(t, problems) {
   const resources = ids('resources');
   for (const id of RESOURCE_IDS) if (!resources.has(id)) err('resources', '', 'id', `missing resource ${id}`);
   for (const r of t.resources) if (!RESOURCE_IDS.includes(r.id)) err('resources', r, 'id', `unknown resource "${r.id}" (the game only draws ${RESOURCE_IDS.join(', ')})`);
+  // M3e §2.1: kind is material or currency; currency (gold) is never part of a cost.
+  for (const r of t.resources) if (!['material', 'currency'].includes(r.kind)) err('resources', r, 'kind', 'kind must be material or currency');
+  const currencies = new Set(t.resources.filter((r) => r.kind === 'currency').map((r) => r.id));
   const resourceColumns = (tab, r, prefix, suffixes) => {
     for (const col of Object.keys(r)) {
       const m = col.match(new RegExp(`^${prefix}([a-zA-Z0-9]+)${suffixes}$`));
       if (m && !resources.has(m[1])) err(tab, r, col, `unknown resource "${m[1]}" in the column name`);
+      else if (m && prefix === 'cost_' && currencies.has(m[1]) && r[col]) err(tab, r, col, `${m[1]} is a currency and can't be part of a cost`);
     }
   };
 
@@ -231,7 +235,7 @@ export function validateTables(t, problems) {
     if (r.baseValue <= 0) err('trade', r, 'baseValue', 'baseValue must be above 0');
     if (r.stockMin < 0 || r.stockMax < r.stockMin) err('trade', r, 'stockMax', 'need 0 ≤ stockMin ≤ stockMax');
   }
-  for (const id of RESOURCE_IDS) if (!t.trade.some((r) => r.resource === id)) err('trade', '', 'resource', `missing resource ${id}`);
+  for (const id of RESOURCE_IDS) if (!currencies.has(id) && !t.trade.some((r) => r.resource === id)) err('trade', '', 'resource', `missing resource ${id}`); // M3e: gold isn't bartered
 
   // traders (M2n §4.5): known kinds; enough names for every Trader in a run, and a line of each kind.
   for (const r of t.traders) if (!TRADER_LINE_KINDS.includes(r.kind)) err('traders', r, 'kind', `kind must be one of ${TRADER_LINE_KINDS.join(', ')}`);
@@ -245,7 +249,7 @@ export function validateTables(t, problems) {
   for (const r of t.recipes) {
     known('recipes', r, 'item', itemIds, 'item');
     if (!(r.patternWeight > 0)) err('recipes', r, 'patternWeight', 'patternWeight must be above 0');
-    for (const k of Object.keys(r)) if (k.startsWith('cost_') && !RESOURCE_IDS.includes(k.slice(5))) err('recipes', r, k, `unknown resource "${k.slice(5)}"`);
+    for (const k of Object.keys(r)) if (k.startsWith('cost_') && (!RESOURCE_IDS.includes(k.slice(5)) || currencies.has(k.slice(5)))) err('recipes', r, k, `unknown material "${k.slice(5)}"`);
   }
   for (const id of itemIds) if (!t.recipes.some((r) => r.item === id)) err('recipes', '', 'item', `item ${id} has no recipe`);
 

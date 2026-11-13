@@ -60,3 +60,12 @@ grimThrall,peat,0.075,1,1
 grimBrute,peat,0.45,1,2
 grimKnight,peat,1,2,3
 bogKing,peat,1,4,6
+ogre,gold,1,15,25
+grimOgre,gold,1,15,25
+thrall,gold,0.2,1,2
+grimThrall,gold,0.3,1,2
+brute,gold,0.4,2,4
+grimBrute,gold,0.6,2,4
+knight,gold,1,20,30
+grimKnight,gold,1,20,30
+bogKing,gold,1,60,80

@@ -3,8 +3,10 @@
 
 import * as C from './config.js';
 
-// From data/resources.csv (its `order` column).
+// From data/resources.csv (its `order` column). MATERIAL_KEYS: without currency (gold, M3e §2.1),
+// the ones costs, recipes and the Trader's barter use.
 export const RESOURCE_KEYS = C.RESOURCE_ORDER;
+export const MATERIAL_KEYS = C.MATERIAL_ORDER;
 
 export function emptyResources() {
   return Object.fromEntries(RESOURCE_KEYS.map((k) => [k, 0]));

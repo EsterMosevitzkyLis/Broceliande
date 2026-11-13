@@ -443,6 +443,11 @@ html, body {
 .res {
   transition: transform 0.08s ease-out, color 0.08s;
 }
+/* M3e §2.1: gold, the currency, a little apart from the materials. */
+.res.res-currency {
+  margin-right: 10px;
+  color: #e3cf8e;
+}
 .res.sweep-pulse {
   transform: scale(1.22);
   color: #ffe9a6;

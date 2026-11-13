@@ -75,7 +75,7 @@ export function toggleMute() {
 // Events → sounds
 // ---------------------------------------------------------------------------
 // Resources with a chime of their own (and sounds row): Shells (M2k §2.1), Peat (M3c §1).
-const OWN_CHIME = { shells: 'shellChime', peat: 'peatChime' };
+const OWN_CHIME = { shells: 'shellChime', peat: 'peatChime', gold: 'goldClink' }; // and Gold (M3e §2.1)
 const TURRET_FIRE_SOUND = { sprinkler: 'sprinklerFire', toader: 'toaderFire', cinderjaw: 'cinderjawFires' };
 // M3b §2.2: Hag's Causeway's undead: wet groans (Thrall), a deep creaking groan (Brute), a metallic,
 // sloshing roar (the Drowned Knight).
@@ -643,6 +643,17 @@ const RECIPES = {
     bell(t, out, 300 * p, 1.25, 0.6, 0.35);
     noise(t, out, { filter: 'bandpass', freq: 700 * p, to: 250 * p, q: 1.2, dur: 0.5, gain: 0.9, delay: 1.25 });
     return 1.8;
+  },
+
+  // M3e §2.1: gold gained: a small, dull clink of old coins, two touches of tarnished metal.
+  goldClink(t, out, p, data) {
+    const d = data?.delay ?? 0;
+    for (const [f, dt] of [[1450, 0], [1780, 0.055]]) {
+      tone(t, out, { type: 'sine', freq: f * p, dur: 0.09, attack: 0.002, gain: 0.45, delay: d + dt });
+      tone(t, out, { type: 'sine', freq: f * 2.7 * p, dur: 0.04, attack: 0.002, gain: 0.12, delay: d + dt });
+      noise(t, out, { freq: 3000 * p, q: 2, dur: 0.02, gain: 0.25, delay: d + dt });
+    }
+    return d + 0.16;
   },
 
   // M3c §1: Peat gained: a soft, low, earthy thud-tone.

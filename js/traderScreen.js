@@ -6,7 +6,7 @@
 import * as C from './config.js';
 import { GameState } from './states.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
-import { RESOURCE_KEYS, resourceName } from './resources.js';
+import { MATERIAL_KEYS as RESOURCE_KEYS, resourceName } from './resources.js'; // M3e: gold isn't bartered
 import { goodsTag, packTag } from './trade.js';
 import { visitRatio, visitMaxBundles, visitBlocker } from './visit.js';
 

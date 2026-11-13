@@ -47,7 +47,7 @@ const COST = { type: 'int' }; // cost_<resource> columns
 export const TABS = {
   globals: { columns: { key: { type: 'text', required: true }, value: { type: 'value' } } },
   druid: { columns: { key: { type: 'id', required: true }, value: { type: 'value' } } },
-  resources: { columns: { id: { type: 'id', required: true }, name: { type: 'text', required: true }, singular: { type: 'text', required: true }, plural: { type: 'text', required: true }, order: { type: 'number', required: true } } },
+  resources: { columns: { id: { type: 'id', required: true }, name: { type: 'text', required: true }, singular: { type: 'text', required: true }, plural: { type: 'text', required: true }, order: { type: 'number', required: true }, kind: { type: 'id', required: true } } },
   features: {
     columns: { id: { type: 'id', required: true }, name: { type: 'text', required: true }, mainResource: { type: 'id', required: true }, searchTime: { type: 'number', required: true } },
     pattern: [/^[a-z][a-zA-Z0-9]*_(min|max)$/, { type: 'int' }],

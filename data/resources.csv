@@ -1,7 +1,8 @@
-id,name,singular,plural,order
-pits,Peach Pits,Pit,Pits,1
-reeds,Reeds,Reed,Reeds,2
-feathers,Feathers,Feather,Feathers,3
-boughs,Mossy Boughs,Bough,Boughs,4
-shells,Snail Shells,Snail Shell,Snail Shells,5
-peat,Peat,Peat,Peat,6
+id,name,singular,plural,order,kind
+gold,Gold,Gold,Gold,0,currency
+pits,Peach Pits,Pit,Pits,1,material
+reeds,Reeds,Reed,Reeds,2,material
+feathers,Feathers,Feather,Feathers,3,material
+boughs,Mossy Boughs,Bough,Boughs,4,material
+shells,Snail Shells,Snail Shell,Snail Shells,5,material
+peat,Peat,Peat,Peat,6,material

@@ -7,7 +7,7 @@
 // loses a little.
 
 import * as C from './config.js';
-import { RESOURCE_KEYS } from './resources.js';
+import { MATERIAL_KEYS as RESOURCE_KEYS } from './resources.js'; // M3e: gold isn't bartered
 
 // Rolls a trader (§3.2, §3.5) from a seeded rng: a multiplier and a stock per resource, a name
 // not in usedNames (§4.5: no two traders in a run share one) and a colour variation for its look.

@@ -12,7 +12,7 @@ import { createIdleAction, updateAction, enforceActionAllowed } from './systems/
 import { createFeatures } from './entities/searchableFeature.js';
 import { generateLayout } from './layout.js';
 import { emptyDropStats, updateDrops } from './systems/dropSystem.js';
-import { emptyResources, add, RESOURCE_KEYS } from './resources.js';
+import { emptyResources, add, MATERIAL_KEYS } from './resources.js';
 import { updateEffects, addResourceFloaters } from './effects.js';
 import { updateVultures, updateBlocking, expireVultures } from './systems/vultureSystem.js';
 import { updateSquirrels, updateSquirrelStrikes, expireSquirrels } from './systems/squirrelSystem.js';
@@ -536,10 +536,10 @@ export function spawnDebugGrimWolves(game) {
   return true;
 }
 
-// Debug key G: +DEBUG_GRANT_AMOUNT of each resource.
+// Debug key G: +DEBUG_GRANT_AMOUNT of each material, and +DEBUG_GRANT_GOLD gold (M3e §8).
 export function grantResources(game) {
   const n = C.DEBUG_GRANT_AMOUNT;
-  const grant = Object.fromEntries(RESOURCE_KEYS.map((k) => [k, n])); // every resource, Boughs too (M1i §1.3)
+  const grant = { ...Object.fromEntries(MATERIAL_KEYS.map((k) => [k, n])), gold: C.DEBUG_GRANT_GOLD }; // every material, Boughs too (M1i §1.3)
   add(game.resources, grant);
   game.doubleStats.boughsGained += n;
   // On the map and in a place scene (M2n §5, M2p §4), the grant goes to the carried inventory the next encounter starts with (M2a §3).

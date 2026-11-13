@@ -314,6 +314,7 @@ export const TRADER_LOOKS = [             // per-trader colour variation (cloak,
 // ---------------------------------------------------------------------------
 export const DEBUG_SEED = null;          // null = new random seed each restart; integer = fixed seed
 export const DEBUG_START_ENABLED = false;
+export const DEBUG_GRANT_GOLD = 50; // M3e §8: debug G also grants this much gold
 export const DEBUG_GRANT_AMOUNT = 10;   // G key: +this many of each resource
 export const DEBUG_DROP_MULT = 10;      // X key toggles wolf drop chances between ×1 and ×this (M1d §3)
 
@@ -2055,7 +2056,7 @@ export const EQUIP_CLEARING_RAGGED = 0.2;
 // ===========================================================================
 
 // Code-side lists the data must match: the resources the game draws (icons, HUD) and its summons.
-export const RESOURCE_IDS = ['pits', 'reeds', 'feathers', 'boughs', 'shells', 'peat'];
+export const RESOURCE_IDS = ['gold', 'pits', 'reeds', 'feathers', 'boughs', 'shells', 'peat'];
 // M3c §1: a regional resource's HUD counter shows only from its region on (or while any is held).
 export const REGIONAL_RESOURCES = { peat: 'hags' };
 export const SUMMON_KINDS = ['vulture', 'squirrel', 'double', 'slowWisp'];
@@ -2091,8 +2092,9 @@ export let TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_
 export let DRUID_HP, DRUID_RADIUS, DRUID_MELEE_RADIUS, DRUID_MELEE_SLOTS, DRUID_MELEE_DAMAGE, DRUID_MELEE_INTERVAL,
   STRIKE_WINDUP_TIME, STRIKE_SWING_TIME, DRUID_REGEN_AMOUNT, DRUID_REGEN_INTERVAL;
 
-// resources: id → { name, singular, plural, order }; RESOURCE_ORDER: ids in display order
-export let RESOURCES, RESOURCE_ORDER;
+// resources: id → { name, singular, plural, order, kind }; RESOURCE_ORDER: ids in display order;
+// MATERIAL_ORDER: the same without currency (M3e §2.1: gold is never part of a cost)
+export let RESOURCES, RESOURCE_ORDER, MATERIAL_ORDER;
 // features: id → { name, searchTime, yields: { resource: [min, max] }, mainResource }
 export let FEATURE_TYPES;
 // enemies + drops: id → { baseType (its own id for a base row), variant (e.g. 'grim', or null), name, plural, hp, speed, radius, damage, attackInterval, meleeSlotsUsed,
@@ -2174,8 +2176,9 @@ export function applyData(t) {
     strikeSwingTime: STRIKE_SWING_TIME, regenAmount: DRUID_REGEN_AMOUNT, regenInterval: DRUID_REGEN_INTERVAL,
   } = keyed(t.druid));
 
-  RESOURCES = byId(t.resources, (r) => ({ name: r.name, singular: r.singular, plural: r.plural, order: r.order }));
+  RESOURCES = byId(t.resources, (r) => ({ name: r.name, singular: r.singular, plural: r.plural, order: r.order, kind: r.kind }));
   RESOURCE_ORDER = [...t.resources].sort((a, b) => a.order - b.order).map((r) => r.id);
+  MATERIAL_ORDER = RESOURCE_ORDER.filter((k) => RESOURCES[k].kind === 'material');
 
   FEATURE_TYPES = byId(t.features, (r) => {
     const yields = {};

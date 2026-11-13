@@ -13,7 +13,7 @@ import { createRng } from './rng.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
 import { costRowsElement, costRowsKey } from './costRows.js';
 import { portraitCanvas } from './render/portraits.js';
-import { canAfford, RESOURCE_KEYS, resourceName, formatCost } from './resources.js';
+import { canAfford, RESOURCE_KEYS, MATERIAL_KEYS, resourceName, formatCost } from './resources.js';
 import { canStartBuild, summonAvailability, summonMax, isTravelling, SUMMONS } from './systems/actionSystem.js';
 import { isDoubleTargeting, isDoubleTarget, doubleOnSlot, doubleJob } from './systems/doubleSystem.js';
 import { DoubleState } from './entities/boughDouble.js';
@@ -276,6 +276,7 @@ export function createUI(callbacks) {
     hpFill: document.getElementById('hud-hp-fill'),
     hpText: document.getElementById('hud-hp-text'),
     res: {
+      gold: document.getElementById('res-gold'), // M3e §2.1
       pits: document.getElementById('res-pits'),
       reeds: document.getElementById('res-reeds'),
       feathers: document.getElementById('res-feathers'),
@@ -826,7 +827,7 @@ function mapTooltip(run, nodeId) {
 // cheap, resources it pays well for) and its Bough stock, each line left out when empty. The
 // prices and stock were rolled with the run, so the hints are accurate.
 function traderTooltip(trader, anchor) {
-  const names = (tag) => RESOURCE_KEYS.filter((k) => tag(trader, k)).map((k) => C.RESOURCES[k].plural);
+  const names = (tag) => MATERIAL_KEYS.filter((k) => tag(trader, k)).map((k) => C.RESOURCES[k].plural);
   const cheap = names((t, k) => goodsTag(t, k) === 'cheap');
   const paysWell = names((t, k) => packTag(t, k) === 'sellsWell');
   const lines = [];
@@ -1320,7 +1321,7 @@ function updateSpeedButtons(el, game) {
 function traderDebugLines(v) {
   if (!v) return [];
   const lines = [`Trader: ${v.trader.name}${v.nodeId ? ` (node ${v.nodeId})` : ' (debug Shift+T)'}   trades this visit: ${v.trades.length}`];
-  for (const k of RESOURCE_KEYS) {
+  for (const k of MATERIAL_KEYS) {
     lines.push(`  ${k.padEnd(9)} ×${v.trader.mult[k].toFixed(2)}  value ${tradeValue(v.trader, k).toFixed(2).padStart(5)}  stock ${v.trader.stock[k]}`);
   }
   if (v.give && v.get) {

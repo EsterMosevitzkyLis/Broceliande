@@ -26,6 +26,15 @@ export const RESOURCE_ICON_SVG = {
     + '<path d="M12 12.2 Q12.2 10.6 13.6 10.8 Q15.4 11.2 15 13.2 Q14.4 15.6 11.6 15.4 Q8.4 14.8 8.8 11.4 Q9.4 7.6 13.6 7.6 Q18 8 18.2 12.6 Q18.2 17.2 13 18"'
     + ' stroke="#8a5a2e" stroke-width="1.6" stroke-linecap="round" fill="none"/>'
     + '<path d="M3.5 19.5 L13 19.5" stroke="#8a5a2e" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  // Gold (M3e §1): a worn old coin, dull and tarnished green at the edges, not shiny.
+  gold: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">'
+    + '<circle cx="12" cy="12.5" r="8.6" fill="#7a6224"/>'
+    + '<circle cx="12" cy="11.8" r="8.4" fill="#a88a3e"/>'
+    + '<circle cx="12" cy="11.8" r="6.3" fill="none" stroke="#806828" stroke-width="1.2"/>'
+    + '<path d="M9.4 9.6 Q12 7.8 14.6 9.8 M9.8 14.2 Q12 15.6 14.2 14" stroke="#806828" stroke-width="1.1" stroke-linecap="round" fill="none"/>'
+    + '<ellipse cx="7.4" cy="14.6" rx="2.3" ry="1.7" fill="#6e8a5a" opacity="0.8"/>'
+    + '<ellipse cx="16.2" cy="6.9" rx="1.6" ry="1.1" fill="#6e8a5a" opacity="0.65"/>'
+    + '<path d="M6.6 9 Q8 5.8 11.4 4.9" stroke="#c8ae66" stroke-width="1" stroke-linecap="round" fill="none"/></svg>',
   // Peat (M3c §1): a dark brown cut block with fibrous edges and a wisp of moss on top.
   peat: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">'
     + '<path d="M4 9 L18 6.5 L20.5 9.5 L20 18.5 L6 20.5 L3.5 17.5 Z" fill="#3b2a1c"/>'
