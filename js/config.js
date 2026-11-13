@@ -192,6 +192,15 @@ export const DECOR = {
     reedWall: { lift: 20, r: 14 },     // along The Corpse Reedbeds' corridors
     footbridge: { lift: 8, r: 60 },    // The Rotting Ford (landmark)
     gallows: { lift: 40, r: 50 },      // The Drowned Gallows (landmark)
+    tanneryVats: { lift: 12, r: 60 },  // The Drowned Tannery (landmark)
+    dryingRack: { lift: 20, r: 22 },
+    ossuary: { lift: 30, r: 52 },      // The Sunken Ossuary (landmark)
+    widowTree: { lift: 50, r: 30 },    // The Widow's Mire (landmark, on the mire)
+    plagueCart: { lift: 14, r: 42 },   // The Plague Carts (landmarks)
+    sluiceGate: { lift: 24, r: 55 },   // The Weeping Sluice (landmark)
+    sunkenBelfry: { lift: 40, r: 46 }, // The Drowned Bell Tower (landmark)
+    altarStone: { lift: 12, r: 44 },   // The Blackwater Shrine (landmark)
+    peatThrone: { lift: 45, r: 50 },   // Bog King's Rest (landmark, at a lane's far end)
     charredRoof: { lift: 15, r: 40 },  // M3a §2: The Burnt Hamlet's ash pits
     charredBeams: { lift: 10, r: 32 },
     scorchedStones: { lift: 8, r: 36 }, // M3a §2: The Ember Road's ash pits
@@ -1503,18 +1512,408 @@ export const LEVEL_GEOMETRY = {
     mere: { rx: 210, ry: 130 },           // TUNING — placed at an edge, clear of the corridors (scene.js)
     willowTrees: true,                    // sallow (willow) trees
   },
+  // Hag's Causeway rows 5–8 (M3d §2): generated layouts (lanes winding from three edges to an
+  // off-centre Druid, candidates spaced by the M1c rules), checked by the start-up checks.
+  // drownedTannery (M3d §2): its own layout. Signature: sunken tanning vats and drying racks.
+  drownedTannery: {
+    druidPos: { x: 860, y: 480 },
+    lanes: [
+      {
+        id: 'east',
+        name: 'East',
+        waypoints: [
+          { x: 1960, y: 680 }, { x: 1850, y: 493 }, { x: 1850, y: 321 }, { x: 1835, y: 249 }, { x: 1752, y: 335 },
+          { x: 1641, y: 570 }, { x: 1595, y: 679 }, { x: 1630, y: 694 }, { x: 1577, y: 671 }, { x: 1412, y: 601 },
+          { x: 1323, y: 458 }, { x: 1299, y: 217 }, { x: 1236, y: 192 }, { x: 1139, y: 354 }, { x: 1042, y: 446 },
+          { x: 970, y: 434 }, { x: 911, y: 489 },
+        ],
+      },
+      {
+        id: 'south',
+        name: 'South',
+        waypoints: [
+          { x: 1760, y: 1120 }, { x: 1793, y: 985 }, { x: 1767, y: 974 }, { x: 1682, y: 938 }, { x: 1515, y: 1010 },
+          { x: 1279, y: 1020 }, { x: 1184, y: 1020 }, { x: 1286, y: 992 }, { x: 1389, y: 814 }, { x: 1433, y: 833 },
+          { x: 1283, y: 770 }, { x: 1099, y: 801 }, { x: 927, y: 929 }, { x: 945, y: 790 }, { x: 960, y: 634 },
+          { x: 893, y: 593 }, { x: 902, y: 510 },
+        ],
+      },
+      {
+        id: 'northWest',
+        name: 'North-west',
+        waypoints: [
+          { x: 80, y: -40 }, { x: 70, y: 150 }, { x: 70, y: 281 }, { x: 70, y: 337 }, { x: 144, y: 263 },
+          { x: 329, y: 150 }, { x: 520, y: 150 }, { x: 642, y: 150 }, { x: 651, y: 150 }, { x: 566, y: 150 },
+          { x: 457, y: 392 }, { x: 409, y: 564 }, { x: 464, y: 582 }, { x: 598, y: 480 }, { x: 725, y: 390 },
+          { x: 771, y: 420 }, { x: 817, y: 451 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [24,  124,  255], // TUNING
+    sectorNames: ['S',  'W',  'NE'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8110,
+    decorDensity: 0.85,                   // TUNING
+    landmarks: [{ kind: 'tanneryVats', size: 60 }], // TUNING — placed where it fits (scene.js)
+    flats: { kind: 'water', count: 5, rx: [40, 70], ry: [22, 38], edge: 8 }, // TUNING
+    decorProps: { dryingRack: 0.035 },    // TUNING
+  },
+  // sunkenOssuary (M3d §2): its own layout. Signature: a tilted stone ossuary with skulls in its niches.
+  sunkenOssuary: {
+    druidPos: { x: 1120, y: 640 },
+    lanes: [
+      {
+        id: 'west',
+        name: 'West',
+        waypoints: [
+          { x: -40, y: 420 }, { x: 70, y: 601 }, { x: 70, y: 681 }, { x: 136, y: 625 }, { x: 252, y: 395 },
+          { x: 363, y: 186 }, { x: 435, y: 189 }, { x: 460, y: 436 }, { x: 464, y: 625 }, { x: 481, y: 623 },
+          { x: 619, y: 604 }, { x: 744, y: 448 }, { x: 839, y: 330 }, { x: 889, y: 443 }, { x: 944, y: 560 },
+          { x: 1017, y: 573 }, { x: 1069, y: 630 },
+        ],
+      },
+      {
+        id: 'north',
+        name: 'North',
+        waypoints: [
+          { x: 1840, y: -40 }, { x: 1850, y: 150 }, { x: 1850, y: 251 }, { x: 1850, y: 312 }, { x: 1806, y: 266 },
+          { x: 1605, y: 150 }, { x: 1396, y: 150 }, { x: 1267, y: 150 }, { x: 1266, y: 150 }, { x: 1375, y: 236 },
+          { x: 1510, y: 464 }, { x: 1575, y: 619 }, { x: 1522, y: 648 }, { x: 1378, y: 581 }, { x: 1243, y: 524 },
+          { x: 1207, y: 571 }, { x: 1158, y: 604 },
+        ],
+      },
+      {
+        id: 'southWest',
+        name: 'South-west',
+        waypoints: [
+          { x: 140, y: 1120 }, { x: 327, y: 1020 }, { x: 416, y: 1020 }, { x: 344, y: 1020 }, { x: 243, y: 862 },
+          { x: 232, y: 863 }, { x: 415, y: 839 }, { x: 663, y: 1020 }, { x: 835, y: 1020 }, { x: 833, y: 1020 },
+          { x: 721, y: 830 }, { x: 649, y: 807 }, { x: 654, y: 806 }, { x: 838, y: 781 }, { x: 985, y: 762 },
+          { x: 1073, y: 747 }, { x: 1073, y: 663 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [73,  186,  287], // TUNING
+    sectorNames: ['SW',  'NW',  'E'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8111,
+    decorDensity: 0.85,                   // TUNING
+    landmarks: [{ kind: 'ossuary', size: 52 }], // TUNING — placed where it fits (scene.js)
+    flats: { kind: 'mist', count: 8, rx: [90, 170], ry: [28, 50], edge: 0 }, // TUNING
+  },
+  // widowsMire (M3d §2): its own layout. Signature: a lone, veiled, figure-shaped dead tree standing in the mire.
+  widowsMire: {
+    druidPos: { x: 980, y: 560 },
+    lanes: [
+      {
+        id: 'northWest',
+        name: 'North-west',
+        waypoints: [
+          { x: 80, y: -40 }, { x: 225, y: 150 }, { x: 360, y: 150 }, { x: 439, y: 150 }, { x: 433, y: 150 },
+          { x: 354, y: 150 }, { x: 257, y: 391 }, { x: 226, y: 446 }, { x: 298, y: 447 }, { x: 466, y: 425 },
+          { x: 682, y: 217 }, { x: 843, y: 150 }, { x: 897, y: 150 }, { x: 861, y: 297 }, { x: 833, y: 455 },
+          { x: 922, y: 459 }, { x: 937, y: 531 },
+        ],
+      },
+      {
+        id: 'east',
+        name: 'East',
+        waypoints: [
+          { x: 1960, y: 1000 }, { x: 1850, y: 806 }, { x: 1850, y: 674 }, { x: 1850, y: 699 }, { x: 1736, y: 875 },
+          { x: 1570, y: 1020 }, { x: 1450, y: 1020 }, { x: 1409, y: 1020 }, { x: 1432, y: 927 }, { x: 1476, y: 675 },
+          { x: 1491, y: 485 }, { x: 1452, y: 415 }, { x: 1363, y: 457 }, { x: 1247, y: 561 }, { x: 1144, y: 634 },
+          { x: 1086, y: 607 }, { x: 1027, y: 581 },
+        ],
+      },
+      {
+        id: 'southWest',
+        name: 'South-west',
+        waypoints: [
+          { x: 80, y: 1120 }, { x: 70, y: 924 }, { x: 70, y: 719 }, { x: 70, y: 646 }, { x: 70, y: 647 },
+          { x: 96, y: 649 }, { x: 264, y: 701 }, { x: 473, y: 918 }, { x: 677, y: 1020 }, { x: 836, y: 1020 },
+          { x: 925, y: 1020 }, { x: 920, y: 1020 }, { x: 906, y: 1016 }, { x: 850, y: 808 }, { x: 833, y: 660 },
+          { x: 901, y: 643 }, { x: 936, y: 587 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [54,  181,  301], // TUNING
+    sectorNames: ['SW',  'NW',  'E'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8112,
+    decorDensity: 0.8,                    // TUNING
+    landmarks: [{ kind: 'widowTree', size: 30, near: 'mire' }], // TUNING — placed on a mire patch (scene.js)
+    flats: { kind: 'mist', count: 9, rx: [90, 170], ry: [28, 50], edge: 0 }, // TUNING
+  },
+  // plagueCarts (M3d §2): its own layout. Signature: overturned carts with sacking and wheels.
+  plagueCarts: {
+    druidPos: { x: 760, y: 720 },
+    lanes: [
+      {
+        id: 'north',
+        name: 'North',
+        waypoints: [
+          { x: 1520, y: -40 }, { x: 1598, y: 150 }, { x: 1555, y: 176 }, { x: 1352, y: 150 }, { x: 1155, y: 150 },
+          { x: 1162, y: 150 }, { x: 1332, y: 314 }, { x: 1326, y: 317 }, { x: 1219, y: 371 }, { x: 982, y: 236 },
+          { x: 889, y: 233 }, { x: 1006, y: 440 }, { x: 1022, y: 470 }, { x: 948, y: 507 }, { x: 843, y: 560 },
+          { x: 791, y: 608 }, { x: 797, y: 683 },
+        ],
+      },
+      {
+        id: 'east',
+        name: 'East',
+        waypoints: [
+          { x: 1960, y: 540 }, { x: 1850, y: 731 }, { x: 1850, y: 900 }, { x: 1802, y: 957 }, { x: 1712, y: 846 },
+          { x: 1601, y: 594 }, { x: 1544, y: 442 }, { x: 1559, y: 434 }, { x: 1483, y: 473 }, { x: 1323, y: 553 },
+          { x: 1263, y: 786 }, { x: 1222, y: 1001 }, { x: 1149, y: 1007 }, { x: 1051, y: 844 }, { x: 956, y: 739 },
+          { x: 873, y: 772 }, { x: 811, y: 712 },
+        ],
+      },
+      {
+        id: 'west',
+        name: 'West',
+        waypoints: [
+          { x: -40, y: 1000 }, { x: 70, y: 1020 }, { x: 161, y: 1020 }, { x: 261, y: 1020 }, { x: 343, y: 1020 },
+          { x: 392, y: 1020 }, { x: 400, y: 1020 }, { x: 369, y: 1020 }, { x: 317, y: 815 }, { x: 270, y: 530 },
+          { x: 258, y: 346 }, { x: 300, y: 315 }, { x: 393, y: 431 }, { x: 514, y: 627 }, { x: 617, y: 770 },
+          { x: 666, y: 760 }, { x: 711, y: 737 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [347,  114,  260], // TUNING
+    sectorNames: ['E',  'NW',  'NE'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8113,
+    decorDensity: 0.9,                    // TUNING
+    landmarks: [{ kind: 'plagueCart', size: 42, variant: 0 }, { kind: 'plagueCart', size: 40, variant: 1 }, { kind: 'plagueCart', size: 38, variant: 2 }], // TUNING — placed where they fit (scene.js)
+    flats: { kind: 'mist', count: 6, rx: [90, 170], ry: [28, 50], edge: 0 }, // TUNING
+  },
+  // weepingSluice (M3d §2): its own layout. Signature: a broken wooden sluice gate with water running through it.
+  weepingSluice: {
+    druidPos: { x: 1080, y: 620 },
+    lanes: [
+      {
+        id: 'west',
+        name: 'West',
+        waypoints: [
+          { x: -40, y: 460 }, { x: 70, y: 321 }, { x: 131, y: 218 }, { x: 197, y: 233 }, { x: 243, y: 388 },
+          { x: 278, y: 622 }, { x: 318, y: 818 }, { x: 377, y: 877 }, { x: 461, y: 771 }, { x: 558, y: 566 },
+          { x: 654, y: 373 }, { x: 734, y: 288 }, { x: 795, y: 337 }, { x: 844, y: 476 }, { x: 895, y: 594 },
+          { x: 962, y: 603 }, { x: 1029, y: 613 },
+        ],
+      },
+      {
+        id: 'south',
+        name: 'South',
+        waypoints: [
+          { x: 1840, y: 1120 }, { x: 1850, y: 922 }, { x: 1850, y: 720 }, { x: 1850, y: 645 }, { x: 1850, y: 647 },
+          { x: 1848, y: 656 }, { x: 1666, y: 800 }, { x: 1457, y: 1020 }, { x: 1267, y: 1020 }, { x: 1132, y: 1020 },
+          { x: 1069, y: 1020 }, { x: 1074, y: 1020 }, { x: 1123, y: 1020 }, { x: 1186, y: 847 }, { x: 1213, y: 708 },
+          { x: 1143, y: 705 }, { x: 1123, y: 649 },
+        ],
+      },
+      {
+        id: 'northEast',
+        name: 'North-east',
+        waypoints: [
+          { x: 1820, y: -40 }, { x: 1850, y: 150 }, { x: 1850, y: 204 }, { x: 1800, y: 202 }, { x: 1630, y: 150 },
+          { x: 1449, y: 150 }, { x: 1367, y: 150 }, { x: 1431, y: 150 }, { x: 1563, y: 377 }, { x: 1605, y: 489 },
+          { x: 1495, y: 478 }, { x: 1290, y: 336 }, { x: 1155, y: 273 }, { x: 1163, y: 370 }, { x: 1206, y: 507 },
+          { x: 1143, y: 529 }, { x: 1119, y: 585 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [358,  144,  250], // TUNING
+    sectorNames: ['S',  'NW',  'N'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8114,
+    decorDensity: 0.9,                    // TUNING
+    landmarks: [{ kind: 'sluiceGate', size: 55 }], // TUNING — placed where it fits (scene.js)
+    flats: { kind: 'water', count: 7, rx: [40, 70], ry: [22, 38], edge: 8 }, // TUNING
+    decorProps: { reeds: 0.1 },           // TUNING
+  },
+  // carrionOrchard (M3d §2): its own layout. Signature: twisted orchard trees with black, rotting fruit.
+  carrionOrchard: {
+    druidPos: { x: 900, y: 600 },
+    lanes: [
+      {
+        id: 'northEast',
+        name: 'North-east',
+        waypoints: [
+          { x: 1800, y: -40 }, { x: 1847, y: 150 }, { x: 1829, y: 227 }, { x: 1689, y: 150 }, { x: 1485, y: 150 },
+          { x: 1349, y: 150 }, { x: 1361, y: 150 }, { x: 1471, y: 292 }, { x: 1535, y: 459 }, { x: 1466, y: 463 },
+          { x: 1296, y: 386 }, { x: 1110, y: 238 }, { x: 1018, y: 223 }, { x: 1029, y: 351 }, { x: 1044, y: 487 },
+          { x: 977, y: 511 }, { x: 942, y: 570 },
+        ],
+      },
+      {
+        id: 'southEast',
+        name: 'South-east',
+        waypoints: [
+          { x: 1840, y: 1120 }, { x: 1850, y: 936 }, { x: 1850, y: 736 }, { x: 1850, y: 647 }, { x: 1850, y: 648 },
+          { x: 1831, y: 653 }, { x: 1680, y: 661 }, { x: 1492, y: 825 }, { x: 1291, y: 1020 }, { x: 1118, y: 1020 },
+          { x: 1006, y: 1020 }, { x: 967, y: 1020 }, { x: 989, y: 1020 }, { x: 1038, y: 854 }, { x: 1052, y: 697 },
+          { x: 963, y: 697 }, { x: 946, y: 625 },
+        ],
+      },
+      {
+        id: 'west',
+        name: 'West',
+        waypoints: [
+          { x: -40, y: 140 }, { x: 82, y: 150 }, { x: 193, y: 150 }, { x: 259, y: 150 }, { x: 264, y: 150 },
+          { x: 221, y: 314 }, { x: 177, y: 546 }, { x: 183, y: 675 }, { x: 268, y: 642 }, { x: 417, y: 478 },
+          { x: 580, y: 287 }, { x: 699, y: 184 }, { x: 748, y: 227 }, { x: 742, y: 381 }, { x: 742, y: 523 },
+          { x: 792, y: 564 }, { x: 853, y: 577 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [359,  152,  267], // TUNING
+    sectorNames: ['SE',  'NW',  'NE'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8115,
+    decorDensity: 1,                      // TUNING
+    orchardTrees: true,                   // twisted orchard trees with black, rotting fruit
+    flats: { kind: 'mist', count: 6, rx: [90, 170], ry: [28, 50], edge: 0 }, // TUNING
+  },
+  // drownedBellTower (M3d §2): its own layout. Signature: a bell tower's top poking out of the water.
+  drownedBellTower: {
+    druidPos: { x: 1050, y: 520 },
+    lanes: [
+      {
+        id: 'north',
+        name: 'North',
+        waypoints: [
+          { x: 120, y: -40 }, { x: 70, y: 184 }, { x: 70, y: 350 }, { x: 109, y: 353 }, { x: 289, y: 179 },
+          { x: 515, y: 150 }, { x: 693, y: 150 }, { x: 757, y: 150 }, { x: 704, y: 150 }, { x: 597, y: 295 },
+          { x: 524, y: 426 }, { x: 505, y: 426 }, { x: 607, y: 424 }, { x: 781, y: 420 }, { x: 900, y: 418 },
+          { x: 991, y: 420 }, { x: 1005, y: 493 },
+        ],
+      },
+      {
+        id: 'east',
+        name: 'East',
+        waypoints: [
+          { x: 1960, y: 1020 }, { x: 1821, y: 1020 }, { x: 1676, y: 1020 }, { x: 1555, y: 1020 }, { x: 1483, y: 1020 },
+          { x: 1474, y: 1020 }, { x: 1520, y: 1020 }, { x: 1598, y: 783 }, { x: 1671, y: 522 }, { x: 1706, y: 331 },
+          { x: 1682, y: 247 }, { x: 1596, y: 274 }, { x: 1467, y: 381 }, { x: 1321, y: 519 }, { x: 1204, y: 604 },
+          { x: 1157, y: 559 }, { x: 1096, y: 545 },
+        ],
+      },
+      {
+        id: 'southWest',
+        name: 'South-west',
+        waypoints: [
+          { x: 140, y: 1120 }, { x: 287, y: 1020 }, { x: 423, y: 1020 }, { x: 499, y: 1020 }, { x: 490, y: 1020 },
+          { x: 408, y: 937 }, { x: 312, y: 674 }, { x: 287, y: 641 }, { x: 368, y: 639 }, { x: 540, y: 666 },
+          { x: 755, y: 874 }, { x: 913, y: 996 }, { x: 962, y: 955 }, { x: 928, y: 783 }, { x: 904, y: 628 },
+          { x: 970, y: 605 }, { x: 1007, y: 549 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [54,  156,  277], // TUNING
+    sectorNames: ['SW',  'W',  'E'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8116,
+    decorDensity: 0.85,                   // TUNING
+    landmarks: [{ kind: 'sunkenBelfry', size: 46 }], // TUNING — placed where it fits (scene.js)
+    flats: { kind: 'water', count: 6, rx: [40, 70], ry: [22, 38], edge: 8 }, // TUNING
+    tollSound: 'drownedToll',             // M3d §2: its tolls ring deeper and wetter than the Hollow of Bells'
+  },
+  // blackwaterShrine (M3d §2): its own layout. Signature: a moss-covered altar stone with carved spirals.
+  blackwaterShrine: {
+    druidPos: { x: 760, y: 520 },
+    lanes: [
+      {
+        id: 'north',
+        name: 'North',
+        waypoints: [
+          { x: 1700, y: -40 }, { x: 1738, y: 151 }, { x: 1706, y: 224 }, { x: 1557, y: 150 }, { x: 1365, y: 150 },
+          { x: 1258, y: 150 }, { x: 1290, y: 150 }, { x: 1386, y: 324 }, { x: 1413, y: 431 }, { x: 1317, y: 429 },
+          { x: 1143, y: 298 }, { x: 981, y: 152 }, { x: 904, y: 151 }, { x: 909, y: 286 }, { x: 913, y: 421 },
+          { x: 819, y: 419 }, { x: 805, y: 493 },
+        ],
+      },
+      {
+        id: 'southEast',
+        name: 'South-east',
+        waypoints: [
+          { x: 1680, y: 1120 }, { x: 1734, y: 918 }, { x: 1792, y: 709 }, { x: 1809, y: 644 }, { x: 1767, y: 643 },
+          { x: 1646, y: 641 }, { x: 1466, y: 729 }, { x: 1248, y: 945 }, { x: 1043, y: 1020 }, { x: 889, y: 1020 },
+          { x: 849, y: 1020 }, { x: 851, y: 1020 }, { x: 854, y: 971 }, { x: 893, y: 770 }, { x: 909, y: 626 },
+          { x: 841, y: 605 }, { x: 804, y: 548 },
+        ],
+      },
+      {
+        id: 'west',
+        name: 'West',
+        waypoints: [
+          { x: -40, y: 1000 }, { x: 78, y: 1020 }, { x: 208, y: 1020 }, { x: 333, y: 1020 }, { x: 433, y: 1020 },
+          { x: 487, y: 1020 }, { x: 481, y: 1020 }, { x: 417, y: 1013 }, { x: 319, y: 743 }, { x: 227, y: 482 },
+          { x: 185, y: 305 }, { x: 222, y: 259 }, { x: 335, y: 341 }, { x: 492, y: 495 }, { x: 621, y: 603 },
+          { x: 657, y: 549 }, { x: 715, y: 547 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [2,  127,  245], // TUNING
+    sectorNames: ['SE',  'W',  'NE'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8117,
+    decorDensity: 0.9,                    // TUNING
+    landmarks: [{ kind: 'altarStone', size: 44 }], // TUNING — placed where it fits (scene.js)
+    flats: { kind: 'water', count: 7, rx: [40, 70], ry: [22, 38], edge: 8 }, // TUNING
+  },
+  // bogKingsRest (M3d §2): its own layout. Signature: a throne of peat and roots at the far end of one lane.
+  bogKingsRest: {
+    druidPos: { x: 1000, y: 620 },
+    lanes: [
+      {
+        id: 'north',
+        name: 'North',
+        waypoints: [
+          { x: 120, y: -40 }, { x: 71, y: 150 }, { x: 70, y: 326 }, { x: 70, y: 440 }, { x: 70, y: 440 },
+          { x: 70, y: 445 }, { x: 206, y: 456 }, { x: 410, y: 337 }, { x: 645, y: 150 }, { x: 850, y: 150 },
+          { x: 972, y: 150 }, { x: 965, y: 150 }, { x: 946, y: 150 }, { x: 897, y: 344 }, { x: 862, y: 500 },
+          { x: 925, y: 530 }, { x: 958, y: 589 },
+        ],
+      },
+      {
+        id: 'east',
+        name: 'East',
+        waypoints: [
+          { x: 1960, y: 200 }, { x: 1828, y: 150 }, { x: 1692, y: 150 }, { x: 1581, y: 150 }, { x: 1516, y: 150 },
+          { x: 1505, y: 150 }, { x: 1540, y: 172 }, { x: 1597, y: 456 }, { x: 1643, y: 718 }, { x: 1654, y: 897 },
+          { x: 1613, y: 961 }, { x: 1525, y: 913 }, { x: 1403, y: 790 }, { x: 1270, y: 642 }, { x: 1162, y: 549 },
+          { x: 1113, y: 600 }, { x: 1048, y: 599 },
+        ],
+      },
+      {
+        id: 'southWest',
+        name: 'South-west',
+        waypoints: [
+          { x: 100, y: 1120 }, { x: 87, y: 971 }, { x: 70, y: 797 }, { x: 70, y: 664 }, { x: 70, y: 663 },
+          { x: 70, y: 665 }, { x: 140, y: 672 }, { x: 310, y: 683 }, { x: 506, y: 845 }, { x: 711, y: 1020 },
+          { x: 872, y: 1020 }, { x: 950, y: 1020 }, { x: 943, y: 1020 }, { x: 882, y: 893 }, { x: 858, y: 721 },
+          { x: 937, y: 714 }, { x: 955, y: 645 },
+        ],
+      },
+    ],
+    sectorBoundaryAngles: [310,  61,  182], // TUNING
+    sectorNames: ['E',  'SW',  'N'],
+    nearRadius: 440,                      // TUNING
+    zoneQuotaOverrides: {},
+    decorSeed: 8118,
+    decorDensity: 0.9,                    // TUNING
+    landmarks: [{ kind: 'peatThrone', size: 50, near: 'laneStart' }], // TUNING — beside a lane's far end (scene.js)
+    flats: { kind: 'mist', count: 9, rx: [90, 170], ry: [28, 50], edge: 0 }, // TUNING
+  },
 };
-
-// M3a §1.3: Hag's Causeway's placeholder levels until M3d. Each borrows an existing level's
-// geometry, decoration, candidates, palette and waves (its name, row, type and HP multiplier are
-// its own, in the levels tab).
-export const PLACEHOLDER_LEVELS = {
-  drownedTannery: 'stags', sunkenOssuary: 'ashen',
-  widowsMire: 'widows', plagueCarts: 'causeway', weepingSluice: 'mossbound',
-  carrionOrchard: 'bone', drownedBellTower: 'ashen', blackwaterShrine: 'weeping',
-  bogKingsRest: 'heartwood',
-};
-for (const [id, src] of Object.entries(PLACEHOLDER_LEVELS)) LEVEL_GEOMETRY[id] = LEVEL_GEOMETRY[src];
 
 // ---------------------------------------------------------------------------
 // Level map and run (M2a §2–§4, M3a). A run crosses the regions in order; in each, a path through
@@ -1853,17 +2252,15 @@ export function applyData(t) {
 
   const featureIds = Object.keys(FEATURE_TYPES);
   LEVELS = byId(t.levels, (r) => {
-    const src = PLACEHOLDER_LEVELS[r.id] ?? r.id; // M3a §1.3: a placeholder's candidates, palette and waves
-    const waveSrc = t.waves.some((w) => w.level === r.id) ? r.id : src; // M3b §5: unless it has waves of its own (Bog King's Rest)
     const level = { ...LEVEL_GEOMETRY[r.id], name: r.name, description: r.description, region: r.region, row: r.row, nodeType: r.nodeType, stepBudget: r.stepBudget };
     for (const k of ['enemyHpMult', 'corridorWidth', 'stuckTime', 'mireCoverage']) opt(level, k, r[k]);
     level.featureMix = Object.fromEntries(featureIds.map((f) => [f, r[`mix_${f}`] ?? 0]));
     level.zoneQuotas = { near: { turret: ZONE_NEAR_TURRET, feature: ZONE_NEAR_FEATURE }, far: { turret: ZONE_FAR_TURRET, feature: ZONE_FAR_FEATURE } };
-    level.candidateLocations = t.candidates.filter((c) => c.level === src).sort((a, b) => a.index - b.index).map((c) => ({ x: c.x, y: c.y, zone: c.zone }));
-    level.palette = unflatten(t.palettes.find((p) => p.level === src) ?? {}, ['level', '_row']);
-    level.waves = t.waves.filter((w) => w.level === waveSrc).map((w) => {
+    level.candidateLocations = t.candidates.filter((c) => c.level === r.id).sort((a, b) => a.index - b.index).map((c) => ({ x: c.x, y: c.y, zone: c.zone }));
+    level.palette = unflatten(t.palettes.find((p) => p.level === r.id) ?? {}, ['level', '_row']);
+    level.waves = t.waves.filter((w) => w.level === r.id).map((w) => {
       // M3b §1: each spawn is its region's enemy for the role (a wolf in Hag's Causeway is a Drowned Thrall).
-      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === waveSrc && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
+      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === r.id && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
       return opt(wave, 'tolls', w.tolls);
     });
     return level;

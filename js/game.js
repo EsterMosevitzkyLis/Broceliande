@@ -434,11 +434,11 @@ function updateMapAmbience(game, dt) {
 }
 
 // Bell tolls (M2f §4.10): at each of the level's toll times in Combat, a bellToll event (heard as a
-// deep bell just before a surge). No gameplay effect.
+// deep bell just before a surge; The Drowned Bell Tower's own tollSound, M3d §2). No gameplay effect.
 function updateTolls(game) {
   while (game.tolls.length && game.tolls[0] <= game.waveTime) {
     game.tolls.shift();
-    events.emit('bellToll', {});
+    events.emit('bellToll', { sound: game.scene.level.tollSound ?? 'bellToll' });
   }
 }
 

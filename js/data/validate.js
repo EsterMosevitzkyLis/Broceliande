@@ -3,7 +3,7 @@
 // per-level start-up checks (candidates, corridors, zones, Ogre widths…) run later, on the applied
 // data, as before.
 
-import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, LEVEL_GEOMETRY, PLACE_PALETTES, TRADER_LINE_KINDS, PLACEHOLDER_LEVELS } from '../config.js';
+import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, LEVEL_GEOMETRY, PLACE_PALETTES, TRADER_LINE_KINDS } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 
 const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss']; // M3b §1
@@ -158,7 +158,6 @@ export function validateTables(t, problems) {
   for (const r of t.enemies) known('enemies', r, 'region', regions, 'region'); // M3b §1: blank = every region
 
   // levels: each has its geometry in code, and vice versa; candidates, a palette, waves.
-  // A placeholder level (M3a §1.3, config.js PLACEHOLDER_LEVELS) uses another level's.
   const levels = ids('levels');
   for (const r of t.levels) {
     known('levels', r, 'region', regions, 'region');
@@ -253,10 +252,9 @@ export function validateTables(t, problems) {
   ids('sounds');
 
   for (const r of t.levels) {
-    const src = PLACEHOLDER_LEVELS[r.id] ?? r.id;
-    if (!waveCounts[r.id] && !waveCounts[src]) err('levels', r, 'id', `${r.id} has no waves`);
-    if (!candidateCounts[src]) err('levels', r, 'id', `${r.id} has no candidates`);
-    if (!palettes.has(src)) err('levels', r, 'id', `${r.id} has no palette`);
+    if (!waveCounts[r.id]) err('levels', r, 'id', `${r.id} has no waves`);
+    if (!candidateCounts[r.id]) err('levels', r, 'id', `${r.id} has no candidates`);
+    if (!palettes.has(r.id)) err('levels', r, 'id', `${r.id} has no palette`);
   }
   return problems;
 }

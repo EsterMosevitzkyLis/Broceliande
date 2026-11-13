@@ -121,7 +121,7 @@ function subscribe() {
   events.on('magicFound', (e) => play(e.pattern ? 'patternFound' : 'magicFound', e)); // M2p §4.4: a pattern has its own sound
   // M2p §4.4: the Tinker's Rest.
   for (const name of ['forgeAmbience', 'craftHammer', 'craftComplete']) events.on(name, (e) => play(name, e));
-  events.on('bellToll', (e) => play('bellToll', e));
+  events.on('bellToll', (e) => play(e.sound, e)); // M3d §2: bellToll, or the level's own (drownedToll)
   events.on('waveStarts', (e) => play('waveStarts', e));   // M2i §4.3
   events.on('waveCleared', (e) => play('waveCleared', e));
   events.on('summonDenied', (e) => play('summonDenied', e));
@@ -525,6 +525,18 @@ const RECIPES = {
     }
     noise(t, out, { filter: 'lowpass', freq: 900 * p, dur: 0.08, gain: 0.6 });
     return 3.3;
+  },
+
+  // The Drowned Bell Tower's toll (M3d §2): the bell under water, deeper and wetter, its partials
+  // muffled and wavering, with a low gulp of water after the strike.
+  drownedToll(t, out, p) {
+    for (const [ratio, gain, dur] of [[1, 1, 3.6], [2.0, 0.4, 2.6], [2.4, 0.22, 2.0], [3.0, 0.12, 1.4]]) {
+      tone(t, out, { type: 'sine', freq: 73 * ratio * p, to: 70 * ratio * p, dur, gain, attack: 0.01 });
+    }
+    noise(t, out, { filter: 'lowpass', freq: 500 * p, dur: 0.12, gain: 0.6 });
+    tone(t, out, { type: 'sine', freq: 140 * p, to: 60 * p, dur: 0.25, gain: 0.35, delay: 0.18 }); // the gulp
+    noise(t, out, { filter: 'lowpass', freq: 380 * p, to: 180 * p, dur: 1.2, attack: 0.3, gain: 0.25, delay: 0.1 });
+    return 3.7;
   },
 
   // The Ogre (M2c §2.9). Deep, long roar: two detuned growls swelling and falling, with breath.

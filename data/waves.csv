@@ -1,115 +1,155 @@
-level,wave,gapAfter,tolls,_wolves,_stirges,_bears,_ogres,_grims,_thralls,_brutes,_knights
-tornville,1,13,,10,0,0,0,0,0,0,0
-tornville,2,15,,14,0,1,0,0,0,0,0
-tornville,3,15,,18,4,2,0,0,0,0,0
-gallows,1,13,,14,4,0,0,0,0,0,0
-gallows,2,15,,18,6,1,0,0,0,0,0
-gallows,3,15,,22,8,2,0,0,0,0,0
-blackthorn,1,13,,10,0,1,0,0,0,0,0
-blackthorn,2,15,,12,4,2,0,0,0,0,0
-blackthorn,3,15,,14,6,3,0,0,0,0,0
-drowned,1,15,,14,4,0,0,0,0,0,0
-drowned,2,15,,16,6,1,0,0,0,0,0
-drowned,3,15,,20,10,3,0,0,0,0,0
-wychwood,1,13,,16,6,0,0,0,0,0,0
-wychwood,2,15,,20,8,1,0,0,0,0,0
-wychwood,3,17,,26,12,2,0,0,0,0,0
-barrow,1,13,,12,4,1,0,0,0,0,0
-barrow,2,15,,16,6,2,0,0,0,0,0
-barrow,3,15,,14,6,1,1,0,0,0,0
-charcoal,1,13,,12,4,0,0,0,0,0,0
-charcoal,2,15,,14,6,1,0,0,0,0,0
-charcoal,3,15,,16,8,2,0,0,0,0,0
-charcoal,4,17,,14,10,2,0,4,0,0,0
-stags,1,13,,14,6,0,0,0,0,0,0
-stags,2,15,,16,8,1,0,0,0,0,0
-stags,3,15,,18,10,1,0,0,0,0,0
-stags,4,17,,18,12,2,0,4,0,0,0
-briar,1,13,,12,4,1,0,0,0,0,0
-briar,2,15,,14,6,2,0,0,0,0,0
-briar,3,15,,13,8,2,0,3,0,0,0
-briar,4,17,,12,6,3,0,10,0,0,0
-causeway,1,13,,14,8,0,0,0,0,0,0
-causeway,2,15,,16,10,1,0,0,0,0,0
-causeway,3,15,,15,12,2,0,3,0,0,0
-causeway,4,17,,14,10,2,0,10,0,0,0
-widows,1,13,,16,4,0,0,0,0,0,0
-widows,2,15,,20,6,1,0,0,0,0,0
-widows,3,15,,21,8,2,0,3,0,0,0
-widows,4,17,,22,6,2,0,10,0,0,0
-mossbound,1,13,,12,6,0,0,0,0,0,0
-mossbound,2,15,,14,8,1,0,0,0,0,0
-mossbound,3,15,,12,6,2,0,6,0,0,0
-mossbound,4,17,,12,6,1,0,11,0,0,0
-mossbound,5,17,,12,6,2,0,15,0,0,0
-ashen,1,13,,12,6,0,0,0,0,0,0
-ashen,2,15,,14,8,1,0,0,0,0,0
-ashen,3,15,,12,8,2,0,6,0,0,0
-ashen,4,17,,12,8,1,0,11,0,0,0
-ashen,5,17,,8,4,1,1,15,0,0,0
-bone,1,13,,14,8,0,0,0,0,0,0
-bone,2,15,,14,8,1,0,6,0,0,0
-bone,3,15,,14,8,1,0,11,0,0,0
-bone,4,17,,14,8,1,0,15,0,0,0
-bone,5,17,,16,8,1,0,20,0,0,0
-weeping,1,13,,10,6,2,0,0,0,0,0
-weeping,2,15,,8,6,2,0,6,0,0,0
-weeping,3,15,,8,4,1,0,12,0,0,0
-weeping,4,17,,6,4,1,0,16,0,0,0
-weeping,5,17,,6,4,1,0,21,0,0,0
-bells,1,13,0.5,18,10,0,0,0,0,0,0
-bells,2,15,4.5,16,10,1,0,6,0,0,0
-bells,3,15,"0.5, 10.5",16,10,0,0,11,0,0,0
-bells,4,17,"0.5, 12.5",16,10,1,0,15,0,0,0
-bells,5,17,"0.5, 14.5",18,12,0,0,20,0,0,0
-heartwood,1,13,,14,8,0,0,0,0,0,0
-heartwood,2,15,,12,8,2,0,6,0,0,0
-heartwood,3,15,,12,8,1,1,11,0,0,0
-heartwood,4,17,,10,8,1,0,15,0,0,0
-heartwood,5,17,,10,8,1,0,20,0,0,0
-heartwood,6,17,,10,8,1,0,25,0,0,0
-bogKingsRest,1,13,,14,8,0,0,0,0,0,0
-bogKingsRest,2,15,,12,8,2,0,6,0,0,0
-bogKingsRest,3,15,,12,8,1,1,11,0,0,0
-bogKingsRest,4,17,,10,8,1,0,15,0,0,0
-bogKingsRest,5,17,,10,8,1,0,20,0,0,0
-bogKingsRest,6,17,,10,8,1,0,24,0,0,0
-tallowFen,1,13,,0,0,0,0,0,10,0,0
-tallowFen,2,15,,0,4,0,0,0,12,0,0
-tallowFen,3,15,,0,6,0,0,0,14,1,0
-tallowFen,4,17,,0,8,0,0,0,16,2,0
-lanternFen,1,13,,0,6,0,0,0,10,0,0
-lanternFen,2,15,,0,8,0,0,0,12,0,0
-lanternFen,3,15,,0,10,0,0,0,14,1,0
-lanternFen,4,17,,0,12,0,0,2,16,1,0
-rottingFord,1,13,,0,0,0,0,0,8,1,0
-rottingFord,2,15,,0,4,0,0,0,10,2,0
-rottingFord,3,15,,0,6,0,0,0,12,2,0
-rottingFord,4,17,,0,6,0,0,0,14,3,0
-bonewhiteWillows,1,13,,0,0,0,0,0,14,0,0
-bonewhiteWillows,2,15,,0,4,0,0,0,16,0,0
-bonewhiteWillows,3,15,,0,6,0,0,0,18,1,0
-bonewhiteWillows,4,17,,0,8,0,0,0,22,2,0
-corpseReedbeds,1,13,,0,4,0,0,0,14,0,0
-corpseReedbeds,2,15,,0,6,0,0,0,16,1,0
-corpseReedbeds,3,15,,0,8,0,0,2,18,2,0
-corpseReedbeds,4,17,,0,10,0,0,4,20,2,0
-drownedGallows,1,13,,0,4,0,0,0,12,1,0
-drownedGallows,2,15,,0,6,0,0,0,14,2,0
-drownedGallows,3,15,,0,6,0,0,2,16,2,0
-drownedGallows,4,17,,0,6,0,0,0,12,1,1
-leechwaterPools,1,13,,0,8,0,0,0,10,0,0
-leechwaterPools,2,15,,0,10,0,0,0,12,1,0
-leechwaterPools,3,15,,0,12,0,0,2,14,1,0
-leechwaterPools,4,17,,0,12,0,0,4,16,2,0
-leechwaterPools,5,17,,0,14,0,0,6,18,2,0
-wormwoodHollow,1,13,,0,4,0,0,0,14,0,0
-wormwoodHollow,2,15,,0,6,0,0,0,16,1,0
-wormwoodHollow,3,15,,0,8,0,0,2,18,2,0
-wormwoodHollow,4,17,,0,8,0,0,4,20,2,0
-wormwoodHollow,5,17,,0,10,0,0,6,22,3,0
-sallowMere,1,13,,0,6,0,0,0,16,0,0
-sallowMere,2,15,,0,8,0,0,0,18,1,0
-sallowMere,3,15,,0,10,0,0,2,20,1,0
-sallowMere,4,17,,0,10,0,0,4,24,2,0
-sallowMere,5,17,,0,12,0,0,6,28,2,0
+level,wave,gapAfter,tolls,_wolves,_stirges,_bears,_ogres,_grims,_thralls,_brutes,_knights,notes
+tornville,1,13,,10,0,0,0,0,0,0,0,
+tornville,2,15,,14,0,1,0,0,0,0,0,
+tornville,3,15,,18,4,2,0,0,0,0,0,
+gallows,1,13,,14,4,0,0,0,0,0,0,
+gallows,2,15,,18,6,1,0,0,0,0,0,
+gallows,3,15,,22,8,2,0,0,0,0,0,
+blackthorn,1,13,,10,0,1,0,0,0,0,0,
+blackthorn,2,15,,12,4,2,0,0,0,0,0,
+blackthorn,3,15,,14,6,3,0,0,0,0,0,
+drowned,1,15,,14,4,0,0,0,0,0,0,
+drowned,2,15,,16,6,1,0,0,0,0,0,
+drowned,3,15,,20,10,3,0,0,0,0,0,
+wychwood,1,13,,16,6,0,0,0,0,0,0,
+wychwood,2,15,,20,8,1,0,0,0,0,0,
+wychwood,3,17,,26,12,2,0,0,0,0,0,
+barrow,1,13,,12,4,1,0,0,0,0,0,
+barrow,2,15,,16,6,2,0,0,0,0,0,
+barrow,3,15,,14,6,1,1,0,0,0,0,
+charcoal,1,13,,12,4,0,0,0,0,0,0,
+charcoal,2,15,,14,6,1,0,0,0,0,0,
+charcoal,3,15,,16,8,2,0,0,0,0,0,
+charcoal,4,17,,14,10,2,0,4,0,0,0,
+stags,1,13,,14,6,0,0,0,0,0,0,
+stags,2,15,,16,8,1,0,0,0,0,0,
+stags,3,15,,18,10,1,0,0,0,0,0,
+stags,4,17,,18,12,2,0,4,0,0,0,
+briar,1,13,,12,4,1,0,0,0,0,0,
+briar,2,15,,14,6,2,0,0,0,0,0,
+briar,3,15,,13,8,2,0,3,0,0,0,
+briar,4,17,,12,6,3,0,10,0,0,0,
+causeway,1,13,,14,8,0,0,0,0,0,0,
+causeway,2,15,,16,10,1,0,0,0,0,0,
+causeway,3,15,,15,12,2,0,3,0,0,0,
+causeway,4,17,,14,10,2,0,10,0,0,0,
+widows,1,13,,16,4,0,0,0,0,0,0,
+widows,2,15,,20,6,1,0,0,0,0,0,
+widows,3,15,,21,8,2,0,3,0,0,0,
+widows,4,17,,22,6,2,0,10,0,0,0,
+mossbound,1,13,,12,6,0,0,0,0,0,0,
+mossbound,2,15,,14,8,1,0,0,0,0,0,
+mossbound,3,15,,12,6,2,0,6,0,0,0,
+mossbound,4,17,,12,6,1,0,11,0,0,0,
+mossbound,5,17,,12,6,2,0,15,0,0,0,
+ashen,1,13,,12,6,0,0,0,0,0,0,
+ashen,2,15,,14,8,1,0,0,0,0,0,
+ashen,3,15,,12,8,2,0,6,0,0,0,
+ashen,4,17,,12,8,1,0,11,0,0,0,
+ashen,5,17,,8,4,1,1,15,0,0,0,
+bone,1,13,,14,8,0,0,0,0,0,0,
+bone,2,15,,14,8,1,0,6,0,0,0,
+bone,3,15,,14,8,1,0,11,0,0,0,
+bone,4,17,,14,8,1,0,15,0,0,0,
+bone,5,17,,16,8,1,0,20,0,0,0,
+weeping,1,13,,10,6,2,0,0,0,0,0,
+weeping,2,15,,8,6,2,0,6,0,0,0,
+weeping,3,15,,8,4,1,0,12,0,0,0,
+weeping,4,17,,6,4,1,0,16,0,0,0,
+weeping,5,17,,6,4,1,0,21,0,0,0,
+bells,1,13,0.5,18,10,0,0,0,0,0,0,
+bells,2,15,4.5,16,10,1,0,6,0,0,0,
+bells,3,15,"0.5, 10.5",16,10,0,0,11,0,0,0,
+bells,4,17,"0.5, 12.5",16,10,1,0,15,0,0,0,
+bells,5,17,"0.5, 14.5",18,12,0,0,20,0,0,0,
+heartwood,1,13,,14,8,0,0,0,0,0,0,
+heartwood,2,15,,12,8,2,0,6,0,0,0,
+heartwood,3,15,,12,8,1,1,11,0,0,0,
+heartwood,4,17,,10,8,1,0,15,0,0,0,
+heartwood,5,17,,10,8,1,0,20,0,0,0,
+heartwood,6,17,,10,8,1,0,25,0,0,0,
+tallowFen,1,13,,0,0,0,0,0,10,0,0,"Wave 1: 10T, even small bursts on every lane."
+tallowFen,2,15,,0,4,0,0,0,12,0,0,"Wave 2: 12T 4S, even small bursts on every lane."
+tallowFen,3,15,,0,6,0,0,0,14,1,0,"Wave 3: 14T 6S 1B, even small bursts on every lane."
+tallowFen,4,17,,0,8,0,0,0,16,2,0,"Wave 4: 16T 8S 2B, even small bursts on every lane."
+lanternFen,1,13,,0,6,0,0,0,10,0,0,"Wave 1: 10T 6S, Stirge flocks drifting in with every burst."
+lanternFen,2,15,,0,8,0,0,0,12,0,0,"Wave 2: 12T 8S, Stirge flocks drifting in with every burst."
+lanternFen,3,15,,0,10,0,0,0,14,1,0,"Wave 3: 14T 10S 1B, Stirge flocks drifting in with every burst."
+lanternFen,4,17,,0,12,0,0,2,16,1,0,"Wave 4: 16T 12S 1B 2GS, Stirge flocks drifting in with every burst."
+rottingFord,1,13,,0,0,0,0,0,8,1,0,"Wave 1: 8T 1B, Brutes lead, Thralls follow behind them."
+rottingFord,2,15,,0,4,0,0,0,10,2,0,"Wave 2: 10T 4S 2B, Brutes lead, Thralls follow behind them."
+rottingFord,3,15,,0,6,0,0,0,12,2,0,"Wave 3: 12T 6S 2B, Brutes lead, Thralls follow behind them."
+rottingFord,4,17,,0,6,0,0,0,14,3,0,"Wave 4: 14T 6S 3B, Brutes lead, Thralls follow behind them."
+bonewhiteWillows,1,13,,0,0,0,0,0,14,0,0,"Wave 1: 14T, one Thrall surge on all lanes."
+bonewhiteWillows,2,15,,0,4,0,0,0,16,0,0,"Wave 2: 16T 4S, one Thrall surge on all lanes."
+bonewhiteWillows,3,15,,0,6,0,0,0,18,1,0,"Wave 3: 18T 6S 1B, one Thrall surge on all lanes."
+bonewhiteWillows,4,17,,0,8,0,0,0,22,2,0,"Wave 4: 22T 8S 2B, one Thrall surge on all lanes."
+corpseReedbeds,1,13,,0,4,0,0,0,14,0,0,"Wave 1: 14T 4S, a steady stream that jams the narrow lanes."
+corpseReedbeds,2,15,,0,6,0,0,0,16,1,0,"Wave 2: 16T 6S 1B, a steady stream that jams the narrow lanes."
+corpseReedbeds,3,15,,0,8,0,0,2,18,2,0,"Wave 3: 18T 8S 2B 2GT, a steady stream that jams the narrow lanes."
+corpseReedbeds,4,17,,0,10,0,0,4,20,2,0,"Wave 4: 20T 10S 2B 4GT, a steady stream that jams the narrow lanes."
+drownedGallows,1,13,,0,4,0,0,0,12,1,0,"Wave 1: 12T 4S 1B, balanced."
+drownedGallows,2,15,,0,6,0,0,0,14,2,0,"Wave 2: 14T 6S 2B, balanced."
+drownedGallows,3,15,,0,6,0,0,2,16,2,0,"Wave 3: 16T 6S 2B 2GT, balanced."
+drownedGallows,4,17,,0,6,0,0,0,12,1,1,"Wave 4: 12T 6S 1B 1K, balanced, The Drowned Knight opens the wave."
+leechwaterPools,1,13,,0,8,0,0,0,10,0,0,"Wave 1: 10T 8S, Stirge-heavy."
+leechwaterPools,2,15,,0,10,0,0,0,12,1,0,"Wave 2: 12T 10S 1B, Stirge-heavy."
+leechwaterPools,3,15,,0,12,0,0,2,14,1,0,"Wave 3: 14T 12S 1B 2GS, Stirge-heavy."
+leechwaterPools,4,17,,0,12,0,0,4,16,2,0,"Wave 4: 16T 12S 2B 4GS, Stirge-heavy."
+leechwaterPools,5,17,,0,14,0,0,6,18,2,0,"Wave 5: 18T 14S 2B 6GS, Stirge-heavy."
+wormwoodHollow,1,13,,0,4,0,0,0,14,0,0,"Wave 1: 14T 4S, two lanes busy, one quiet."
+wormwoodHollow,2,15,,0,6,0,0,0,16,1,0,"Wave 2: 16T 6S 1B, two lanes busy, one quiet."
+wormwoodHollow,3,15,,0,8,0,0,2,18,2,0,"Wave 3: 18T 8S 2B 2GT, two lanes busy, one quiet."
+wormwoodHollow,4,17,,0,8,0,0,4,20,2,0,"Wave 4: 20T 8S 2B 4GT, two lanes busy, one quiet."
+wormwoodHollow,5,17,,0,10,0,0,6,22,3,0,"Wave 5: 22T 10S 3B 6GT, two lanes busy, one quiet."
+sallowMere,1,13,,0,6,0,0,0,16,0,0,"Wave 1: 16T 6S, big surges down the wide lanes."
+sallowMere,2,15,,0,8,0,0,0,18,1,0,"Wave 2: 18T 8S 1B, big surges down the wide lanes."
+sallowMere,3,15,,0,10,0,0,2,20,1,0,"Wave 3: 20T 10S 1B 2GT, big surges down the wide lanes."
+sallowMere,4,17,,0,10,0,0,4,24,2,0,"Wave 4: 24T 10S 2B 4GT, big surges down the wide lanes."
+sallowMere,5,17,,0,12,0,0,6,28,2,0,"Wave 5: 28T 12S 2B 6GT, big surges down the wide lanes."
+drownedTannery,1,13,,0,4,0,0,0,12,2,0,"Wave 1: 12T 4S 2B, Brutes spread evenly through the wave."
+drownedTannery,2,15,,0,6,0,0,0,14,2,0,"Wave 2: 14T 6S 2B, Brutes spread evenly through the wave."
+drownedTannery,3,15,,0,6,0,0,1,14,3,0,"Wave 3: 14T 6S 3B 1GB, Brutes spread evenly through the wave."
+drownedTannery,4,17,,0,8,0,0,1,16,3,0,"Wave 4: 16T 8S 3B 1GB, Brutes spread evenly through the wave."
+drownedTannery,5,17,,0,8,0,0,2,18,3,0,"Wave 5: 18T 8S 3B 2GB, Brutes spread evenly through the wave."
+sunkenOssuary,1,13,,0,6,0,0,0,14,0,0,"Wave 1: 14T 6S, lots of Thralls in quick bursts."
+sunkenOssuary,2,15,,0,8,0,0,0,16,1,0,"Wave 2: 16T 8S 1B, lots of Thralls in quick bursts."
+sunkenOssuary,3,15,,0,8,0,0,2,18,2,0,"Wave 3: 18T 8S 2B 2GT, lots of Thralls in quick bursts."
+sunkenOssuary,4,17,,0,10,0,0,4,20,2,0,"Wave 4: 20T 10S 2B 4GT, lots of Thralls in quick bursts."
+sunkenOssuary,5,17,,0,8,0,0,0,14,2,1,"Wave 5: 14T 8S 2B 1K, lots of Thralls in quick bursts, The Drowned Knight opens the wave."
+widowsMire,1,13,,0,6,0,0,0,14,0,0,"Wave 1: 14T 6S, balanced."
+widowsMire,2,15,,0,8,0,0,2,16,1,0,"Wave 2: 16T 8S 1B 2GT, balanced."
+widowsMire,3,15,,0,10,0,0,4,18,2,0,"Wave 3: 18T 10S 2B 4GT, balanced."
+widowsMire,4,17,,0,10,0,0,7,20,2,0,"Wave 4: 20T 10S 2B 6GT 1GB, balanced."
+widowsMire,5,17,,0,12,0,0,9,22,3,0,"Wave 5: 22T 12S 3B 8GT 1GB, balanced."
+plagueCarts,1,13,,0,6,0,0,0,16,0,0,"Wave 1: 16T 6S, two surges."
+plagueCarts,2,15,,0,8,0,0,2,18,1,0,"Wave 2: 18T 8S 1B 2GT, two surges."
+plagueCarts,3,15,,0,10,0,0,4,20,2,0,"Wave 3: 20T 10S 2B 4GT, two surges."
+plagueCarts,4,17,,0,12,0,0,6,22,2,0,"Wave 4: 22T 12S 2B 6GT, two surges."
+plagueCarts,5,17,,0,14,0,0,9,26,2,0,"Wave 5: 26T 14S 2B 8GT 1GB, two surges."
+weepingSluice,1,13,,0,6,0,0,0,14,1,0,"Wave 1: 14T 6S 1B, a steady stream, Brutes jam the narrow lanes."
+weepingSluice,2,15,,0,8,0,0,2,16,2,0,"Wave 2: 16T 8S 2B 2GT, a steady stream, Brutes jam the narrow lanes."
+weepingSluice,3,15,,0,10,0,0,5,18,2,0,"Wave 3: 18T 10S 2B 4GT 1GB, a steady stream, Brutes jam the narrow lanes."
+weepingSluice,4,17,,0,10,0,0,5,20,3,0,"Wave 4: 20T 10S 3B 4GT 1GB, a steady stream, Brutes jam the narrow lanes."
+weepingSluice,5,17,,0,12,0,0,8,22,3,0,"Wave 5: 22T 12S 3B 6GT 2GB, a steady stream, Brutes jam the narrow lanes."
+carrionOrchard,1,13,,0,8,0,0,2,16,0,0,"Wave 1: 16T 8S 2GT, three surges."
+carrionOrchard,2,15,,0,10,0,0,6,18,1,0,"Wave 2: 18T 10S 1B 4GT 2GS, three surges."
+carrionOrchard,3,15,,0,12,0,0,8,20,2,0,"Wave 3: 20T 12S 2B 6GT 2GS, three surges."
+carrionOrchard,4,17,,0,12,0,0,13,22,2,0,"Wave 4: 22T 12S 2B 8GT 4GS 1GB, three surges."
+carrionOrchard,5,17,,0,14,0,0,15,26,3,0,"Wave 5: 26T 14S 3B 10GT 4GS 1GB, three surges."
+drownedBellTower,1,13,"0.5, 10.5",0,8,0,0,0,16,0,0,"Wave 1: 16T 8S, a toll before each of two synchronised surges."
+drownedBellTower,2,15,"1.5, 11.5",0,10,0,0,2,18,1,0,"Wave 2: 18T 10S 1B 2GT, a toll before each of two synchronised surges."
+drownedBellTower,3,15,"1.5, 11.5",0,12,0,0,6,20,2,0,"Wave 3: 20T 12S 2B 4GT 2GS, a toll before each of two synchronised surges."
+drownedBellTower,4,17,"1.5, 11.5",0,12,0,0,11,22,2,0,"Wave 4: 22T 12S 2B 6GT 4GS 1GB, a toll before each of two synchronised surges."
+drownedBellTower,5,17,"2.5, 12.5",0,10,0,0,4,16,2,1,"Wave 5: 16T 10S 2B 4GT 1K, a toll before each of two synchronised surges, The Drowned Knight opens the wave."
+blackwaterShrine,1,13,,0,6,0,0,0,12,2,0,"Wave 1: 12T 6S 2B, Brute-heavy, Brutes evenly through the wave."
+blackwaterShrine,2,15,,0,8,0,0,1,14,2,0,"Wave 2: 14T 8S 2B 1GB, Brute-heavy, Brutes evenly through the wave."
+blackwaterShrine,3,15,,0,8,0,0,3,16,3,0,"Wave 3: 16T 8S 3B 2GT 1GB, Brute-heavy, Brutes evenly through the wave."
+blackwaterShrine,4,17,,0,10,0,0,6,16,3,0,"Wave 4: 16T 10S 3B 4GT 2GB, Brute-heavy, Brutes evenly through the wave."
+blackwaterShrine,5,17,,0,12,0,0,8,18,4,0,"Wave 5: 18T 12S 4B 6GT 2GB, Brute-heavy, Brutes evenly through the wave."
+bogKingsRest,1,13,,0,8,0,0,2,16,0,0,"Wave 1: 16T 8S 2GT, builds steadily."
+bogKingsRest,2,15,,0,10,0,0,4,18,2,0,"Wave 2: 18T 10S 2B 4GT, builds steadily."
+bogKingsRest,3,15,,0,12,0,0,6,20,2,1,"Wave 3: 20T 12S 2B 4GT 2GS 1K, builds steadily, The Drowned Knight opens the wave."
+bogKingsRest,4,17,,0,12,0,0,11,22,3,0,"Wave 4: 22T 12S 3B 6GT 4GS 1GB, builds steadily."
+bogKingsRest,5,17,,0,10,0,0,4,16,2,0,"Wave 5: Bog King 16T 10S 2B 4GT, builds steadily, the Bog King rises at the start."
+bogKingsRest,6,17,,0,14,0,0,17,24,3,0,"Wave 6: 24T 14S 3B 8GT 6GS 2GB 1GK, builds steadily, the final push, with a Grim Drowned Knight."

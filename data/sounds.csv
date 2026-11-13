@@ -27,6 +27,7 @@ stirgeBite,0.25,1,0.15,2,TRUE
 stirgeDies,0.4,1,0.08,3,TRUE
 summonDenied,0.35,1,0.15,1,TRUE
 bellToll,0.8,1,2,1,TRUE
+drownedToll,0.8,1,2,1,TRUE
 waveStarts,0.7,1,0.5,1,TRUE
 waveCleared,0.5,1,0.5,1,TRUE
 ogreSpawns,0.9,1,1,1,TRUE

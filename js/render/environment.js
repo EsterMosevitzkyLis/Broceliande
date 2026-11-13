@@ -72,7 +72,7 @@ export function drawShadow(ctx, x, y, rx, ry) {
 // feathery grey-green wormwood.
 export function drawDecor(ctx, item, level) {
   const palette = level.palette;
-  if (item.kind === 'tree') (level.bareTrees ? drawBareTree : level.charredTrees ? drawCharredTree : level.willowTrees ? drawWillowTree : level.gnarledTrees ? drawGnarledTree : drawTree)(ctx, item, palette);
+  if (item.kind === 'tree') (level.bareTrees ? drawBareTree : level.charredTrees ? drawCharredTree : level.willowTrees ? drawWillowTree : level.orchardTrees ? drawOrchardTree : level.gnarledTrees ? drawGnarledTree : drawTree)(ctx, item, palette);
   else if (item.kind === 'bush') (level.thornBushes ? drawThornBush : level.wormwoodBushes ? drawWormwoodBush : drawBush)(ctx, item, palette);
   else if (item.kind === 'rock') drawRock(ctx, item, palette);
   else THEMED[item.kind](ctx, item, palette);
@@ -181,6 +181,15 @@ const THEMED = {
   reedWall: drawReedWall,
   footbridge: drawFootbridge,
   gallows: drawGallows,
+  tanneryVats: drawTanneryVats,
+  dryingRack: drawDryingRack,
+  ossuary: drawOssuary,
+  widowTree: drawWidowTree,
+  plagueCart: drawPlagueCart,
+  sluiceGate: drawSluiceGate,
+  sunkenBelfry: drawSunkenBelfry,
+  altarStone: drawAltarStone,
+  peatThrone: drawPeatThrone,
   charredBeams: drawCharredBeams,
   scorchedStones: drawScorchedStones,
 };
@@ -1250,4 +1259,355 @@ function drawWormwoodBush(ctx, { x, y, size: s, variant }, P) {
       ctx.stroke();
     }
   }
+}
+
+// Carrion Orchard: a twisted orchard tree hung with black, rotting fruit.
+function drawOrchardTree(ctx, item, P) {
+  drawGnarledTree(ctx, item, P);
+  const { x, y, size: s, variant } = item;
+  ctx.fillStyle = '#1c1418';
+  for (const [dx, dy] of [[-30, -48], [-18, -50], [16, -50], [28, -52], [-2, -60], [10, -64], [-26, -62]].slice(0, 5 + variant)) {
+    ctx.beginPath();
+    ctx.ellipse(x + dx * s, y + dy * s, 2.6 * s, 3.2 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(28, 20, 24, 0.7)'; // fallen fruit
+  for (const dx of [-14, 9, 20].slice(0, 1 + variant)) {
+    ctx.beginPath();
+    ctx.ellipse(x + dx * s, y + 3 * s, 3 * s, 1.6 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// A pool of still water under a sunken landmark. w: half-width.
+function drawSunkPool(ctx, x, y, w, P) {
+  ctx.fillStyle = P.water.rim;
+  ctx.beginPath();
+  ctx.ellipse(x, y, w, w * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = P.water.deep;
+  ctx.beginPath();
+  ctx.ellipse(x, y, w * 0.9, w * 0.26, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// The Drowned Tannery: three tanning vats sunk to their rims in water, and a drying rack with a
+// hide. size: half-width.
+function drawTanneryVats(ctx, { x, y, size: w }, P) {
+  drawSunkPool(ctx, x, y, w, P);
+  drawDryingRack(ctx, { x: x - w * 0.15, y: y - w * 0.2, size: w / 60, variant: 1 }, P);
+  for (const [dx, dy, r] of [[-0.5, 0.02, 0.24], [0.08, 0.08, 0.27], [0.58, 0, 0.2]]) {
+    const cx = x + dx * w;
+    const cy = y + dy * w;
+    ctx.fillStyle = P.roof.dark; // the staves
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r * w, r * w * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#3a2a16'; // the brown liquor
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - r * w * 0.04, r * w * 0.8, r * w * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = P.roof.light;
+    ctx.lineWidth = Math.max(1.5, w * 0.025);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r * w, r * w * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+// The Drowned Tannery: a drying rack, two posts and a pole, a stiff hide hanging over it.
+function drawDryingRack(ctx, { x, y, size: s, variant }, P) {
+  drawShadow(ctx, x, y, 20 * s, 4 * s);
+  ctx.strokeStyle = P.roof.dark;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 3 * s;
+  ctx.beginPath();
+  ctx.moveTo(x - 16 * s, y);
+  ctx.lineTo(x - 15 * s, y - 30 * s);
+  ctx.moveTo(x + 16 * s, y);
+  ctx.lineTo(x + 15 * s, y - 29 * s);
+  ctx.moveTo(x - 19 * s, y - 29 * s);
+  ctx.lineTo(x + 19 * s, y - 30 * s);
+  ctx.stroke();
+  ctx.fillStyle = variant === 2 ? '#8a7254' : '#7a5e42'; // the hide
+  ctx.beginPath();
+  ctx.moveTo(x - 11 * s, y - 29 * s);
+  ctx.lineTo(x + 10 * s, y - 29 * s);
+  ctx.lineTo(x + 12 * s, y - 14 * s);
+  ctx.lineTo(x + 5 * s, y - 11 * s);
+  ctx.lineTo(x - 3 * s, y - 15 * s);
+  ctx.lineTo(x - 12 * s, y - 12 * s);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// The Sunken Ossuary: a stone bone-house tilted into the bog, skulls in the niches of its front.
+// size: half-width.
+function drawOssuary(ctx, { x, y, size: w }, P) {
+  drawSunkPool(ctx, x + w * 0.1, y, w * 0.95, P);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.12);
+  const bw = w * 0.62;
+  const bh = w * 0.62;
+  ctx.fillStyle = P.rock.dark;
+  ctx.fillRect(-bw, -bh, bw * 2, bh);
+  ctx.fillStyle = P.rock.base;
+  ctx.fillRect(-bw, -bh, bw * 2, bh * 0.82);
+  ctx.fillStyle = P.rock.light; // the gable
+  ctx.beginPath();
+  ctx.moveTo(-bw * 1.12, -bh);
+  ctx.lineTo(0, -bh * 1.6);
+  ctx.lineTo(bw * 1.12, -bh);
+  ctx.closePath();
+  ctx.fill();
+  for (let i = 0; i < 3; i++) { // niches, a skull in each
+    const nx = -bw * 0.62 + i * bw * 0.62;
+    const ny = -bh * 0.62;
+    ctx.fillStyle = '#141616';
+    ctx.beginPath();
+    ctx.moveTo(nx - bw * 0.2, ny + bh * 0.3);
+    ctx.lineTo(nx - bw * 0.2, ny - bh * 0.05);
+    ctx.arc(nx, ny - bh * 0.05, bw * 0.2, Math.PI, 0);
+    ctx.lineTo(nx + bw * 0.2, ny + bh * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#d8d2bc';
+    ctx.beginPath();
+    ctx.arc(nx, ny + bh * 0.08, bw * 0.11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(nx - bw * 0.06, ny + bh * 0.14, bw * 0.12, bh * 0.08);
+    ctx.fillStyle = '#141616';
+    ctx.fillRect(nx - bw * 0.07, ny + bh * 0.06, bw * 0.05, bw * 0.05);
+    ctx.fillRect(nx + bw * 0.02, ny + bh * 0.06, bw * 0.05, bw * 0.05);
+  }
+  ctx.restore();
+  ctx.fillStyle = P.water.deep; // the bog swallows its lower edge
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.1, y + w * 0.04, w * 0.8, w * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// The Widow's Mire: a lone dead tree shaped like a veiled woman, grey moss hanging like a veil
+// from a head-like knot, two branches held out like arms. size: half-width.
+function drawWidowTree(ctx, { x, y, size: w }, P) {
+  drawShadow(ctx, x, y, w * 0.8, w * 0.22);
+  ctx.strokeStyle = P.treeDark.trunk;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = w * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x + w * 0.1, y - w * 1.2, x, y - w * 2.1);
+  ctx.stroke();
+  ctx.lineWidth = w * 0.1; // arms
+  ctx.beginPath();
+  ctx.moveTo(x, y - w * 1.6);
+  ctx.quadraticCurveTo(x - w * 0.5, y - w * 1.5, x - w * 0.75, y - w * 1.15);
+  ctx.moveTo(x, y - w * 1.55);
+  ctx.quadraticCurveTo(x + w * 0.45, y - w * 1.6, x + w * 0.7, y - w * 1.25);
+  ctx.stroke();
+  ctx.fillStyle = P.treeDark.trunk; // the head
+  ctx.beginPath();
+  ctx.ellipse(x, y - w * 2.2, w * 0.22, w * 0.26, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(190, 200, 192, 0.55)'; // the veil of moss
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.24, y - w * 2.35);
+  ctx.quadraticCurveTo(x, y - w * 2.6, x + w * 0.24, y - w * 2.35);
+  ctx.quadraticCurveTo(x + w * 0.5, y - w * 1.7, x + w * 0.42, y - w * 1.0);
+  ctx.lineTo(x + w * 0.2, y - w * 1.15);
+  ctx.lineTo(x + w * 0.05, y - w * 0.95);
+  ctx.lineTo(x - w * 0.15, y - w * 1.12);
+  ctx.lineTo(x - w * 0.4, y - w * 0.98);
+  ctx.quadraticCurveTo(x - w * 0.5, y - w * 1.7, x - w * 0.24, y - w * 2.35);
+  ctx.fill();
+}
+
+// The Plague Carts: an overturned cart, its box on its side, sacking spilling out, one wheel in the
+// air and one fallen. size: half-width; variant: which way it lies.
+function drawPlagueCart(ctx, { x, y, size: w, variant }, P) {
+  drawShadow(ctx, x, y, w, w * 0.25);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(variant === 1 ? -1 : 1, 1);
+  ctx.rotate(variant === 2 ? 0.08 : -0.05);
+  ctx.fillStyle = P.roof.dark; // the box on its side
+  ctx.fillRect(-w * 0.75, -w * 0.62, w * 1.2, w * 0.62);
+  ctx.strokeStyle = P.roof.light;
+  ctx.lineWidth = Math.max(1.5, w * 0.04);
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.75, -w * 0.62 + i * w * 0.155);
+    ctx.lineTo(w * 0.45, -w * 0.62 + i * w * 0.155);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#9a8a68'; // sacking spilling out
+  for (const [dx, r] of [[0.6, 0.2], [0.82, 0.16], [0.7, 0.13]]) {
+    ctx.beginPath();
+    ctx.ellipse(dx * w, -r * w * 0.8, r * w, r * w * 0.75, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = P.roof.dark; // a shaft
+  ctx.lineWidth = w * 0.06;
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.75, -w * 0.1);
+  ctx.lineTo(-w * 1.15, w * 0.05);
+  ctx.stroke();
+  const wheel = (cx, cy, r, squash) => {
+    ctx.strokeStyle = P.roof.light;
+    ctx.lineWidth = w * 0.05;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r * squash, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = w * 0.025;
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(cx - Math.cos(a) * r, cy - Math.sin(a) * r * squash);
+      ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r * squash);
+      ctx.stroke();
+    }
+  };
+  wheel(-w * 0.2, -w * 0.82, w * 0.3, 0.35); // up in the air
+  wheel(variant === 2 ? w * 0.75 : -w * 0.45, w * 0.06, w * 0.26, 0.3); // fallen flat
+  ctx.restore();
+}
+
+// The Weeping Sluice: a broken wooden sluice gate between two posts, water running through the
+// gaps into a pool below. size: half-width.
+function drawSluiceGate(ctx, { x, y, size: w }, P) {
+  drawSunkPool(ctx, x, y + w * 0.05, w, P);
+  ctx.fillStyle = P.roof.dark;
+  ctx.fillRect(x - w * 0.62, y - w * 0.95, w * 0.12, w * 0.95);
+  ctx.fillRect(x + w * 0.5, y - w * 0.95, w * 0.12, w * 0.95);
+  ctx.fillRect(x - w * 0.7, y - w * 1.0, w * 1.4, w * 0.1);
+  for (let i = 0; i < 5; i++) { // planks, one missing, one hanging, one broken short
+    if (i === 2) continue;
+    ctx.save();
+    ctx.translate(x - w * 0.5, y - w * 0.82 + i * w * 0.16);
+    if (i === 3) ctx.rotate(0.12);
+    ctx.fillStyle = i % 2 ? P.roof.light : P.roof.dark;
+    ctx.fillRect(0, 0, w * (i === 4 ? 0.62 : 1), w * 0.13);
+    ctx.restore();
+  }
+  ctx.strokeStyle = P.water.ripple; // water through the gap and the cracks
+  ctx.lineCap = 'round';
+  for (const [sx, sy, len] of [[-0.3, -0.48, 0.5], [-0.05, -0.48, 0.52], [0.2, -0.48, 0.5], [0.0, -0.18, 0.2], [0.35, -0.04, 0.12]]) {
+    const k = (sx * 3 + 3.4) % 1; // ripple sizes vary along the gate
+    ctx.lineWidth = w * 0.04;
+    ctx.beginPath();
+    ctx.moveTo(x + sx * w, y + sy * w);
+    ctx.quadraticCurveTo(x + (sx + 0.04) * w, y + (sy + len * 0.5) * w, x + (sx + 0.06) * w, y + (sy + len) * w);
+    ctx.stroke();
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(x + (sx + 0.06) * w, y + (sy + len) * w + 2, 3 + k * 8, (3 + k * 8) * 0.3, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+// The Drowned Bell Tower: the top of a bell tower standing out of the water, its arched opening
+// dark, the bell hanging inside, its spire broken. size: half-width.
+function drawSunkenBelfry(ctx, { x, y, size: w }, P) {
+  drawSunkPool(ctx, x, y, w * 1.1, P);
+  const tw = w * 0.42;
+  ctx.fillStyle = P.rock.dark;
+  ctx.fillRect(x - tw, y - w * 1.3, tw * 2, w * 1.3);
+  ctx.fillStyle = P.rock.base;
+  ctx.fillRect(x - tw, y - w * 1.3, tw * 1.4, w * 1.3);
+  ctx.fillStyle = '#121616'; // the arched opening
+  ctx.beginPath();
+  ctx.moveTo(x - tw * 0.55, y - w * 0.45);
+  ctx.lineTo(x - tw * 0.55, y - w * 0.9);
+  ctx.arc(x, y - w * 0.9, tw * 0.55, Math.PI, 0);
+  ctx.lineTo(x + tw * 0.55, y - w * 0.45);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#6e8a6e'; // the bell, green with age
+  ctx.beginPath();
+  ctx.moveTo(x - tw * 0.3, y - w * 0.58);
+  ctx.quadraticCurveTo(x - tw * 0.28, y - w * 1.02, x, y - w * 1.02);
+  ctx.quadraticCurveTo(x + tw * 0.28, y - w * 1.02, x + tw * 0.3, y - w * 0.58);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = P.roof.dark; // the broken spire
+  ctx.beginPath();
+  ctx.moveTo(x - tw * 1.15, y - w * 1.3);
+  ctx.lineTo(x - tw * 0.1, y - w * 2.0);
+  ctx.lineTo(x + tw * 0.25, y - w * 1.75);
+  ctx.lineTo(x + tw * 0.45, y - w * 1.85);
+  ctx.lineTo(x + tw * 1.15, y - w * 1.3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = P.water.ripple;
+  ctx.lineWidth = 2;
+  for (const k of [1.2, 1.6]) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, tw * k, tw * k * 0.25, 0, 0, Math.PI);
+    ctx.stroke();
+  }
+}
+
+// The Blackwater Shrine: a low altar stone on two supports in black water, mossed over, with
+// carved spirals. size: half-width.
+function drawAltarStone(ctx, { x, y, size: w }, P) {
+  drawSunkPool(ctx, x, y + w * 0.05, w, P);
+  ctx.fillStyle = P.rock.dark;
+  ctx.fillRect(x - w * 0.5, y - w * 0.35, w * 0.18, w * 0.35);
+  ctx.fillRect(x + w * 0.32, y - w * 0.35, w * 0.18, w * 0.35);
+  ctx.fillStyle = P.rock.base; // the slab
+  ctx.beginPath();
+  ctx.ellipse(x, y - w * 0.45, w * 0.72, w * 0.2, -0.04, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = P.rock.light;
+  ctx.beginPath();
+  ctx.ellipse(x - w * 0.05, y - w * 0.5, w * 0.6, w * 0.13, -0.04, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = P.vegetation.light; // moss
+  for (const [dx, dy, r] of [[-0.45, -0.46, 0.14], [0.38, -0.5, 0.11], [-0.1, -0.38, 0.09], [0.46, -0.3, 0.07]]) {
+    ctx.beginPath();
+    ctx.ellipse(x + dx * w, y + dy * w, r * w, r * w * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = P.rock.dark; // carved spirals
+  ctx.lineWidth = Math.max(1.2, w * 0.025);
+  for (const cx of [-0.18, 0.16]) {
+    ctx.beginPath();
+    for (let a = 0; a < Math.PI * 5; a += 0.3) {
+      const r = (a / (Math.PI * 5)) * w * 0.1;
+      const px = x + cx * w + Math.cos(a) * r;
+      const py = y - w * 0.5 + Math.sin(a) * r * 0.45;
+      if (a === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+}
+
+// Bog King's Rest: a throne heaped up from peat blocks, with a high back, roots twisting through
+// it. size: half-width.
+function drawPeatThrone(ctx, { x, y, size: w }, P) {
+  drawShadow(ctx, x, y, w, w * 0.25);
+  const peat = ['#2a1e14', '#36271a', '#20170f'];
+  for (const [dx, dy, bw, bh, i] of [
+    [-0.75, -0.3, 1.5, 0.3, 0], [-0.65, -0.55, 0.4, 0.25, 1], [0.25, -0.55, 0.4, 0.25, 2], // the base and arms
+    [-0.45, -0.62, 0.9, 0.16, 1],                                                             // the seat
+    [-0.45, -1.4, 0.9, 0.8, 2], [-0.38, -1.75, 0.76, 0.36, 0], [-0.2, -2.0, 0.4, 0.26, 1],      // the high back
+  ]) {
+    ctx.fillStyle = peat[i];
+    ctx.fillRect(x + dx * w, y + dy * w, bw * w, bh * w);
+  }
+  ctx.strokeStyle = P.treeDark.trunk; // roots
+  ctx.lineCap = 'round';
+  ctx.lineWidth = w * 0.06;
+  for (const [x0, y0, x1, y1, x2, y2] of [[-0.8, 0, -0.5, -0.9, -0.3, -1.9], [0.8, 0, 0.55, -0.8, 0.28, -1.7], [-0.2, -2.0, 0, -2.3, 0.2, -2.05]]) {
+    ctx.beginPath();
+    ctx.moveTo(x + x0 * w, y + y0 * w);
+    ctx.quadraticCurveTo(x + x1 * w, y + y1 * w, x + x2 * w, y + y2 * w);
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(200, 160, 80, 0.35)'; // a dull gleam of old gold in the peat
+  ctx.beginPath();
+  ctx.arc(x, y - w * 1.15, w * 0.07, 0, Math.PI * 2);
+  ctx.fill();
 }

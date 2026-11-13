@@ -187,10 +187,9 @@ export function validateLevel(scene) {
   }
 }
 
-// Start-up: every level's checks (M2a §5.1). A placeholder level (M3a §1.3) shares its source
-// level's geometry, candidates and waves, so it is checked through that level (no repeated warnings).
+// Start-up: every level's checks (M2a §5.1).
 export function validateLevels() {
-  for (const id of LEVEL_IDS) if (!C.PLACEHOLDER_LEVELS[id]) validateLevel(sceneFor(id));
+  for (const id of LEVEL_IDS) validateLevel(sceneFor(id));
 }
 
 // ---------------------------------------------------------------------------
@@ -266,14 +265,19 @@ function shuffled(rng, list) {
   return a;
 }
 
-// M3d: a landmark { kind, size, near } given no position: the first seeded spot where it fits;
-// near 'lane': beside a corridor (its edge just clear of it).
-function placeLandmark(scene, spec, rng) {
+// M3d: a landmark { kind, size, near } given no position: the first seeded spot where it fits,
+// clear of the landmarks before it (blocked); near 'lane': beside a corridor (its edge just clear
+// of it); 'laneStart': the same, at a lane's far end (Bog King's Rest's throne); 'mire': standing
+// on a mire patch (The Widow's Mire's tree).
+function placeLandmark(scene, spec, rng, blocked) {
   const h = spec.size * 0.45;
   const spots = [];
-  if (spec.near === 'lane') {
+  if (spec.near === 'mire') {
+    for (const b of scene.mire.flatMap((m) => m.blobs)) spots.push({ x: b.x, y: b.y + b.r * 0.3 });
+  } else if (spec.near === 'lane' || spec.near === 'laneStart') {
     for (const lane of scene.lanes) {
-      for (let s = 120; s < lane.path.length - 200; s += 30) {
+      const [from, to] = spec.near === 'lane' ? [120, lane.path.length - 200] : [40, 260];
+      for (let s = from; s < to; s += 30) {
         const p = lane.path.pointAt(s);
         const n = lane.path.normalAt(s);
         for (const side of [-1, 1]) {
@@ -285,8 +289,10 @@ function placeLandmark(scene, spec, rng) {
   } else {
     for (let x = 100; x < C.STAGE_WIDTH - 100; x += 30) for (let y = C.HUD_STRIP_HEIGHT + 120; y < C.STAGE_HEIGHT - 40; y += 30) spots.push({ x, y });
   }
-  const fit = shuffled(rng, spots).find((p) => p.y - h > C.HUD_STRIP_HEIGHT && ellipseFits(scene, p.x, p.y - h * 0.5, spec.size, h * 0.6, 0));
-  return fit ? { ...spec, x: Math.round(fit.x), y: Math.round(fit.y) } : null;
+  const clear = (p) => blocked.every((b) => Math.hypot(b.x - p.x, b.y - (p.y - h * 0.5)) > b.r + spec.size);
+  const onScreen = (p) => p.y - h > C.HUD_STRIP_HEIGHT && p.y < C.STAGE_HEIGHT - 10 && p.x > spec.size && p.x < C.STAGE_WIDTH - spec.size;
+  const fit = shuffled(rng, spots).map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) })).find((p) => onScreen(p) && clear(p) && ellipseFits(scene, p.x, p.y - h * 0.5, spec.size, h * 0.6, 0));
+  return fit ? { ...spec, ...fit } : null;
 }
 
 // Themed decoration (M2b §3). Returns { flats, items, blocked }; blocked: circles the forest
@@ -299,10 +305,10 @@ function themedDecor(scene) {
   const blocked = [];
 
   // Fixed landmarks (the burial mound): size = half-width; tested as an ellipse over the hill.
-  // M3d: a landmark without x / y is placed here: the first seeded spot that fits beside a lane
-  // (near: 'lane', the Rotting Ford's footbridge) or anywhere clear (the Drowned Gallows).
+  // M3d: a landmark without x / y is placed here (placeLandmark): beside a lane (the Rotting Ford's
+  // footbridge), at a lane's far end, on the mire, or anywhere clear (the Drowned Gallows).
   for (const spec of level.landmarks ?? []) {
-    const lm = spec.x === undefined ? placeLandmark(scene, spec, rng) : spec;
+    const lm = spec.x === undefined ? placeLandmark(scene, spec, rng, blocked) : spec;
     if (!lm) {
       console.warn(`${scene.levelId}: no room for its ${spec.kind}; left out`);
       continue;
@@ -312,7 +318,7 @@ function themedDecor(scene) {
       console.warn(`${scene.levelId}: landmark ${lm.kind} at (${lm.x}, ${lm.y}) overlaps a corridor or candidate; left out`);
       continue;
     }
-    items.push({ kind: lm.kind, x: lm.x, y: lm.y, size: lm.size, variant: 0 });
+    items.push({ kind: lm.kind, x: lm.x, y: lm.y, size: lm.size, variant: lm.variant ?? 0 });
     blocked.push({ x: lm.x, y: lm.y - h * 0.5, r: lm.size });
   }
 
