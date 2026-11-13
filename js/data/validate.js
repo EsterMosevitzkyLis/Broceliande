@@ -3,7 +3,7 @@
 // per-level start-up checks (candidates, corridors, zones, Ogre widths…) run later, on the applied
 // data, as before.
 
-import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, LEVEL_GEOMETRY, PLACE_PALETTES, TRADER_LINE_KINDS } from '../config.js';
+import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, LEVEL_GEOMETRY, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 
 const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss']; // M3b §1
@@ -139,6 +139,7 @@ export function validateTables(t, problems) {
   for (const r of t.items) {
     if (!SLOT_TYPES[r.slot]) err('items', r, 'slot', `unknown slot "${r.slot}"`);
     if (![0, 1, 2, 3].includes(r.rarity)) err('items', r, 'rarity', 'rarity must be 0 (Crafted), 1 (Common), 2 (Uncommon) or 3 (Rare)');
+    if (r.price !== undefined && !(r.price > 0)) err('items', r, 'price', 'price must be above 0 (or blank: its rarity default)');
     for (const col of Object.keys(r)) {
       const m = col.match(/^effect(\d+)_stat$/);
       if (!m) continue;
@@ -228,7 +229,7 @@ export function validateTables(t, problems) {
   }
   for (const r of t.trade) for (const reg of (r.regions ?? '').split(',').map((x) => x.trim()).filter(Boolean)) if (!regions.has(reg)) err('trade', r, 'regions', `unknown region "${reg}"`);
 
-  // trade (M2n §3.1): one row per resource, stock ranges in order, positive values.
+  // trade (M2n §3.1): one row per material, stock ranges in order, positive values.
   ids('trade', 'resource');
   for (const r of t.trade) {
     known('trade', r, 'resource', resources, 'resource');
@@ -237,11 +238,48 @@ export function validateTables(t, problems) {
   }
   for (const id of RESOURCE_IDS) if (!currencies.has(id) && !t.trade.some((r) => r.resource === id)) err('trade', '', 'resource', `missing resource ${id}`); // M3e: gold isn't bartered
 
-  // traders (M2n §4.5): known kinds; enough names for every Trader in a run, and a line of each kind.
-  for (const r of t.traders) if (!TRADER_LINE_KINDS.includes(r.kind)) err('traders', r, 'kind', `kind must be one of ${TRADER_LINE_KINDS.join(', ')}`);
-  for (const kind of TRADER_LINE_KINDS) if (!t.traders.some((r) => r.kind === kind)) err('traders', '', 'kind', `no ${kind} rows`);
-  const traderCount = Math.max(0, ...t.regions.map((r) => r.traders ?? 0)); // M3a: traders are rolled per region map
-  if (t.traders.filter((r) => r.kind === 'name').length < traderCount) err('traders', '', 'kind', `fewer names than a region's traders (${traderCount})`);
+  // traderProfiles (M3e §3.1): unique ids, a `default`, names, known regions, positive multipliers;
+  // enough profiles for every region's Traders (else some repeat).
+  const profiles = ids('traderProfiles');
+  if (!profiles.has('default')) err('traderProfiles', '', 'id', 'missing the "default" profile');
+  const profileRegions = (r) => (r.regions ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  for (const r of t.traderProfiles) {
+    if (r.id !== 'default' && !r.name) err('traderProfiles', r, 'name', 'a trader needs a name');
+    for (const reg of profileRegions(r)) if (!regions.has(reg)) err('traderProfiles', r, 'regions', `unknown region "${reg}"`);
+    for (const c of ['itemPriceMult', 'patternPriceMult', 'itemBuyMult']) if (!(r[c] > 0)) err('traderProfiles', r, c, `${c} must be above 0`);
+  }
+  for (const reg of t.regions) {
+    const n = t.traderProfiles.filter((r) => r.id !== 'default' && (!profileRegions(r).length || profileRegions(r).includes(reg.id))).length;
+    if (n < (reg.traders ?? 0)) warn('traderProfiles', '', 'regions', `only ${n} profiles for ${reg.id}'s ${reg.traders} Traders: some will repeat`);
+  }
+  // traderTables (M3e §3.2): known traders and tables, counts 0 or more, item rarities 1-3, pattern
+  // rarities 0-3, weights 0 or more; `default` has every table.
+  for (const r of t.traderTables) {
+    known('traderTables', r, 'trader', profiles, 'trader');
+    if (!TRADER_TABLES.includes(r.table)) err('traderTables', r, 'table', `table must be one of ${TRADER_TABLES.join(', ')}`);
+    if (r.weight < 0) err('traderTables', r, 'weight', 'weight must be 0 or more');
+    const [lo, hi] = r.table === 'itemRarity' ? [1, 3] : r.table === 'patternRarity' ? [0, 3] : [0, Infinity];
+    if (r.value < lo || r.value > hi) err('traderTables', r, 'value', `${r.table} values must be ${hi === Infinity ? '0 or more' : `${lo}-${hi}`}`);
+  }
+  for (const table of TRADER_TABLES) {
+    if (!t.traderTables.some((r) => r.trader === 'default' && r.table === table && r.weight > 0)) err('traderTables', '', 'table', `default has no ${table} table`);
+  }
+  // traderStock (M3e §3.3): known traders and materials, one row per pair, ranges in order.
+  const stockPairs = new Set();
+  for (const r of t.traderStock) {
+    known('traderStock', r, 'trader', profiles, 'trader');
+    if (!resources.has(r.resource) || currencies.has(r.resource)) err('traderStock', r, 'resource', `unknown material "${r.resource}"`);
+    if (stockPairs.has(`${r.trader}:${r.resource}`)) err('traderStock', r, 'resource', `duplicate ${r.trader} ${r.resource}`);
+    stockPairs.add(`${r.trader}:${r.resource}`);
+    if (r.stockMin < 0 || r.stockMax < r.stockMin) err('traderStock', r, 'stockMax', 'need 0 ≤ stockMin ≤ stockMax');
+    if (!(r.priceMin > 0) || r.priceMax < r.priceMin) err('traderStock', r, 'priceMax', 'need 0 < priceMin ≤ priceMax');
+  }
+  // traders (M2n §4.5, M3e §7): known kinds and traders, and a generic line of each kind.
+  for (const r of t.traders) {
+    if (!TRADER_LINE_KINDS.includes(r.kind)) err('traders', r, 'kind', `kind must be one of ${TRADER_LINE_KINDS.join(', ')}`);
+    known('traders', r, 'trader', profiles, 'trader');
+  }
+  for (const kind of TRADER_LINE_KINDS) if (!t.traders.some((r) => r.kind === kind && !r.trader)) err('traders', '', 'kind', `no ${kind} rows for any trader (trader blank)`);
 
   // recipes (M2p §5.1): one per item, known item IDs, known cost resources, a positive pattern weight.
   const itemIds = new Set(t.items.map((r) => r.id));
@@ -249,6 +287,7 @@ export function validateTables(t, problems) {
   for (const r of t.recipes) {
     known('recipes', r, 'item', itemIds, 'item');
     if (!(r.patternWeight > 0)) err('recipes', r, 'patternWeight', 'patternWeight must be above 0');
+    if (r.patternPrice !== undefined && !(r.patternPrice > 0)) err('recipes', r, 'patternPrice', 'patternPrice must be above 0 (or blank: its rarity default)');
     for (const k of Object.keys(r)) if (k.startsWith('cost_') && (!RESOURCE_IDS.includes(k.slice(5)) || currencies.has(k.slice(5)))) err('recipes', r, k, `unknown material "${k.slice(5)}"`);
   }
   for (const id of itemIds) if (!t.recipes.some((r) => r.item === id)) err('recipes', '', 'item', `item ${id} has no recipe`);

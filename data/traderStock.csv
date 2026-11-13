@@ -1,0 +1,33 @@
+trader,resource,stockMin,stockMax,priceMin,priceMax,notes
+default,pits,8,16,0.85,1.15,"TUNING - M3e sec. 6.3, per visit: a stock in stockMin-stockMax and a price multiplier in priceMin-priceMax. Peat is stocked only where the trade tab allows (Hag's Causeway)"
+default,feathers,4,8,0.85,1.15,
+default,shells,3,6,0.85,1.15,
+default,reeds,2,5,0.85,1.15,
+default,boughs,1,2,0.85,1.15,
+default,peat,3,6,0.85,1.15,
+hettie,pits,4,8,0.9,1.2,TUNING - small stock
+hettie,feathers,2,4,0.9,1.2,
+hettie,shells,2,3,0.9,1.2,
+hettie,reeds,1,3,0.9,1.2,
+hettie,boughs,0,1,0.9,1.2,
+hettie,peat,2,3,0.9,1.2,
+marrow,pits,16,32,0.6,0.85,"TUNING - big stock, Pits and Feathers cheap"
+marrow,feathers,8,16,0.6,0.85,
+marrow,shells,6,12,0.9,1.1,
+marrow,reeds,4,10,0.9,1.1,
+marrow,boughs,2,4,0.9,1.1,
+marrow,peat,6,12,0.9,1.1,
+ash,pits,4,8,1,1.3,"TUNING - small stock, pricey (Cinderwood only, so no Peat)"
+ash,feathers,2,4,1,1.3,
+ash,shells,2,3,1,1.3,
+ash,reeds,1,3,1,1.3,
+ash,boughs,0,1,1,1.3,
+mag,peat,6,12,0.6,0.85,"TUNING - Peat, Shells and Reeds big and cheap, the rest from default"
+mag,shells,6,12,0.6,0.85,
+mag,reeds,4,10,0.6,0.85,
+tom,pits,8,16,0.75,1,"TUNING - default stock, low prices"
+tom,feathers,4,8,0.75,1,
+tom,shells,3,6,0.75,1,
+tom,reeds,2,5,0.75,1,
+tom,boughs,1,2,0.75,1,
+tom,peat,3,6,0.75,1,

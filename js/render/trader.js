@@ -1,7 +1,7 @@
 // The Wandering Trader's scene art (M2n §4.2), placeholder and procedural, on the place scene
 // template (placeScene.js): a cart with a hanging lantern and a small campfire behind, the
 // hooded pedlar with his big pack (a colour variation per trader), the blanket his goods lie on,
-// the Druid's satchel, and the balance scale in the centre.
+// the Druid's satchel, and beside him his little pile of old gold (M3e §5.1).
 
 import * as C from '../config.js';
 import { drawPlaceScene, placePaletteId } from './placeScene.js';
@@ -28,13 +28,12 @@ const COLORS = {
   satchelDark: '#53371f',
   strap: '#4a3220',
   brass: '#c9a23c',
-  brassDark: '#8a6d24',
 };
 
 // The whole scene for the visit (game.visit). t: the visit's clock, s. regionId: the run's region (M3a §5.3).
-export function drawTraderScene(ctx, visit, t, regionId) {
+// gold: the Druid's gold (the size of his coin pile).
+export function drawTraderScene(ctx, visit, t, regionId, gold = 0) {
   const look = C.TRADER_LOOKS[visit.trader.look % C.TRADER_LOOKS.length];
-  const tip = scaleTip(visit);
   drawPlaceScene(ctx, {
     id: placePaletteId('trader', regionId),
     drawProps: (c) => {
@@ -45,18 +44,9 @@ export function drawTraderScene(ctx, visit, t, regionId) {
     drawHost: (c, x, y) => drawPedlar(c, x, y, look, t),
     drawForeground: (c) => {
       drawBlanket(c, C.TRADER_SCENE.blanket);
-      drawBalance(c, C.TRADER_SCENE.scale.x, C.TRADER_SCENE.scale.y, tip);
+      drawCoinPile(c, C.TRADER_SCENE.coins.x, C.TRADER_SCENE.coins.y, gold);
     },
   }, t);
-}
-
-// The scale's tilt after a trade (§4.3 step 5): it dips toward the trader, then settles with a
-// small wobble. 0 at rest; positive tips right.
-function scaleTip(visit) {
-  const age = visit.time - visit.lastTradeAt;
-  if (!(age >= 0 && age < C.TRADER_SCALE_TIP_TIME)) return 0;
-  const k = age / C.TRADER_SCALE_TIP_TIME;
-  return 0.28 * Math.sin(Math.min(1, k * 3) * Math.PI / 2) * (1 - k) * Math.cos(k * Math.PI * 3);
 }
 
 function drawCart(ctx, x, y, t) {
@@ -320,48 +310,34 @@ function drawSatchel(ctx, x, y) {
   ctx.restore();
 }
 
-// The balance scale (§4.2 centre): a post, a beam tilted by `tip` (radians, positive dips right,
-// toward the trader) and two pans hanging level.
-function drawBalance(ctx, x, y, tip) {
+// The Druid's gold (M3e §5.1): a small heap of worn coins on the ground, one coin per
+// coinsPerCoin gold (at least one while he has any), up to coinsMax. Dull gold, a little green tarnish.
+function drawCoinPile(ctx, x, y, gold) {
+  if (gold <= 0) return;
+  const n = Math.min(C.TRADER_SCENE.coinsMax, Math.max(1, Math.ceil(gold / C.TRADER_SCENE.coinsPerCoin)));
   ctx.save();
-  drawShadow(ctx, x, y + 4, 60, 12);
-  ctx.fillStyle = COLORS.brassDark;
-  ctx.beginPath();
-  ctx.ellipse(x, y, 40, 10, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = COLORS.brass;
-  ctx.lineCap = 'round';
-  ctx.lineWidth = 7;
-  ctx.beginPath();
-  ctx.moveTo(x, y - 4);
-  ctx.lineTo(x, y - 150);
-  ctx.stroke();
-  const half = 110;
-  const cos = Math.cos(tip);
-  const sin = Math.sin(tip);
-  const ends = [-1, 1].map((s) => ({ x: x + s * half * cos, y: y - 150 + s * half * sin }));
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(ends[0].x, ends[0].y);
-  ctx.lineTo(ends[1].x, ends[1].y);
-  ctx.stroke();
-  ctx.fillStyle = COLORS.brass;
-  ctx.beginPath();
-  ctx.arc(x, y - 150, 9, 0, Math.PI * 2);
-  ctx.fill();
-  for (const e of ends) {
-    ctx.strokeStyle = COLORS.brassDark;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(e.x, e.y);
-    ctx.lineTo(e.x - 30, e.y + 60);
-    ctx.moveTo(e.x, e.y);
-    ctx.lineTo(e.x + 30, e.y + 60);
-    ctx.stroke();
-    ctx.fillStyle = COLORS.brass;
-    ctx.beginPath();
-    ctx.ellipse(e.x, e.y + 62, 38, 9, 0, 0, Math.PI);
-    ctx.fill();
+  drawShadow(ctx, x, y + 2, 26 + n, 7);
+  // A heap: rows of coins, the widest at the bottom.
+  let i = 0;
+  for (let row = 0; i < n; row++) {
+    const inRow = Math.max(1, 5 - row);
+    for (let j = 0; j < inRow && i < n; j++, i++) {
+      const cx = x + (j - (inRow - 1) / 2) * 11 + ((row % 2) * 3);
+      const cy = y - row * 5 - (j % 2);
+      ctx.fillStyle = '#6e5a22';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 1.5, 7, 3.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = (i * 7) % 5 === 0 ? '#8f8a52' : '#b0913e';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 7, 3.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(70, 52, 20, 0.7)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 4.5, 1.9, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }

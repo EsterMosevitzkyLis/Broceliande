@@ -89,8 +89,12 @@ const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup', bogKing
 function subscribe() {
   events.on('turretFired', (e) => play(TURRET_FIRE_SOUND[C.TURRET_TYPES[e.type].baseType], e)); // a variant fires as its base (M3c §4)
   events.on('cloudBurst', (e) => play('cloudBurst', e));
-  // M2n §4.6: the trader scene.
-  for (const name of ['traderGreet', 'tradeComplete', 'tradeUndo', 'soldOut']) events.on(name, (e) => play(name, e));
+  // M2n §4.6, M3e §5.2: the trader scene; buying a pattern also plays the pattern sound.
+  for (const name of ['traderGreet', 'shopSell', 'tradeUndo', 'soldOut']) events.on(name, (e) => play(name, e));
+  events.on('shopBuy', (e) => {
+    play('shopBuy', e);
+    if (e.pattern) play('patternFound', e);
+  });
   // M2o §4.3: burning and Wildfire (the breath is turretFired, above).
   for (const name of ['burnTick', 'wildfireSpread']) events.on(name, (e) => play(name, e));
   events.on('enemyAttacked', (e) => playEnemy(ENEMY_ATTACK_SOUND, e));
@@ -873,10 +877,17 @@ const RECIPES = {
     return tone(t, out, { freq: 110 * p, to: 60 * p, dur: 0.3, attack: 0.01, gain: 0.5 });
   },
 
-  // Trader (M2n §4.6): a coin clink, two bright metallic taps.
-  tradeComplete(t, out, p) {
+  // Trader (M2n §4.6, M3e §5.2): buying, a coin clink, two bright metallic taps.
+  shopBuy(t, out, p) {
     bell(t, out, 2400 * p, 0, 0.18, 0.5);
     return bell(t, out, 3150 * p, 0.07, 0.25, 0.45);
+  },
+
+  // Selling: coins counted into the Druid's hand, three quick lower clinks.
+  shopSell(t, out, p) {
+    bell(t, out, 2050 * p, 0, 0.14, 0.4);
+    bell(t, out, 2300 * p, 0.06, 0.14, 0.38);
+    return bell(t, out, 1900 * p, 0.12, 0.22, 0.42);
   },
 
   // Undo: the clink reversed and softer, the higher tap first, falling.

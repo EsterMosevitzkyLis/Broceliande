@@ -29,7 +29,8 @@ import { raisedCount } from './systems/bogKingSystem.js';
 import { resolveStats, changedStats, statLabel } from './stats.js';
 import { drawSlotIcon, drawScrollIcon } from './render/items.js';
 import { knownPatterns, newPatterns, totalPatterns } from './patterns.js';
-import { tradeValue, exactCost, tradeRatio, goodsTag, packTag } from './trade.js';
+import { resourcePrice, sellBundle, shopSummary, cheapResources } from './trade.js';
+import { currentDeal } from './visit.js';
 import { craftableCount, craftBlocker } from './tinker.js';
 
 const RESOURCE_LABELS = Object.fromEntries(Object.entries(C.RESOURCES).map(([k, r]) => [k, r.name])); // full names (data/resources.csv)
@@ -823,16 +824,13 @@ function mapTooltip(run, nodeId) {
   };
 }
 
-// A Trader node (M2n §2.3): "Wandering Trader — Old Marrow", then the bargains (resources it sells
-// cheap, resources it pays well for) and its Bough stock, each line left out when empty. The
-// prices and stock were rolled with the run, so the hints are accurate.
+// A Trader node (M2n §2.3, M3e §5.3): "Wandering Trader — Hettie Thistlewick", then what they sell
+// (item and pattern counts with their rarities), the resources they sell cheap and their Bough
+// stock, the last two left out when empty. All rolled with the map, so the hints are accurate.
 function traderTooltip(trader, anchor) {
-  const names = (tag) => MATERIAL_KEYS.filter((k) => tag(trader, k)).map((k) => C.RESOURCES[k].plural);
-  const cheap = names((t, k) => goodsTag(t, k) === 'cheap');
-  const paysWell = names((t, k) => packTag(t, k) === 'sellsWell');
-  const lines = [];
+  const cheap = cheapResources(trader).map((k) => C.RESOURCES[k].plural);
+  const lines = [['', `Sells: ${shopSummary(trader)}`]];
   if (cheap.length) lines.push(['', `Cheap: ${cheap.join(', ')}`]);
-  if (paysWell.length) lines.push(['', `Pays well for: ${paysWell.join(', ')}`]);
   if (trader.stock.boughs > 0) lines.push(['', `Has ${C.RESOURCES.boughs.plural}: ${trader.stock.boughs}`]);
   return { title: `${C.NODE_TYPES.trader.label} — ${trader.name}`, lines, anchor };
 }
@@ -1316,18 +1314,26 @@ function updateSpeedButtons(el, game) {
   }
 }
 
-// The trader scene (M2n §6): each resource's multiplier, value and stock, and the selected pair's
-// exact cost against the chosen ratio.
-function traderDebugLines(v) {
+// The trader scene (M3e §8): the profile, the rolled counts and the goods with their rarities and
+// prices, each resource's stock, price multiplier, price and sell bundle, and the selected deal.
+function traderDebugLines(game) {
+  const v = game.visit;
   if (!v) return [];
-  const lines = [`Trader: ${v.trader.name}${v.nodeId ? ` (node ${v.nodeId})` : ' (debug Shift+T)'}   trades this visit: ${v.trades.length}`];
+  const t = v.trader;
+  const p = C.TRADER_PROFILES[t.profileId];
+  const goods = (list) => list.map((g) => `${g.id} (${C.RARITY[C.ITEMS[g.id].rarity].label}) ${g.price}g`).join(', ') || 'none';
+  const lines = [
+    `Trader: ${t.name} [${t.profileId}]${v.nodeId ? ` (node ${v.nodeId})` : ' (debug Shift+T: again for the next profile)'}   trades this visit: ${v.trades.length}`,
+    `  mults: items ×${p.itemPriceMult}  patterns ×${p.patternPriceMult}  pays for items ×${p.itemBuyMult}`,
+    `  itemCount rolled ${t.rolls.itemCount}: ${goods(t.items)}`,
+    `  patternCount rolled ${t.rolls.patternCount}: ${goods(t.patterns)}`,
+  ];
   for (const k of MATERIAL_KEYS) {
-    lines.push(`  ${k.padEnd(9)} ×${v.trader.mult[k].toFixed(2)}  value ${tradeValue(v.trader, k).toFixed(2).padStart(5)}  stock ${v.trader.stock[k]}`);
+    const b = sellBundle(t, k);
+    lines.push(`  ${k.padEnd(9)} stock ${String(t.stock[k]).padStart(2)}${t.offers.includes(k) ? '' : ' (not stocked)'}  ×${t.mult[k].toFixed(2)}  price ${resourcePrice(t, k)}  sells ${b ? `${b.n} → ${b.gold}` : 'not interested'}`);
   }
-  if (v.give && v.get) {
-    const { a, b } = tradeRatio(v.trader, v.give, v.get);
-    lines.push(`  ${v.give} per ${v.get}: exact ${exactCost(v.trader, v.give, v.get).toFixed(3)}  ratio ${a}:${b} = ${(a / b).toFixed(3)}`);
-  }
+  const d = currentDeal(game);
+  if (d) lines.push(`  selected: ${d.side} ${d.kind} ${d.id}  qty ${d.qty}/${d.max}  gold ${d.gold > 0 ? '+' : ''}${d.gold}${d.blocker ? `  (${d.blocker})` : ''}`);
   return lines;
 }
 
@@ -1348,7 +1354,7 @@ function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
     return;
   }
   if (game.state === GameState.TRADER) {
-    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...traderDebugLines(game.visit)].join('\n'));
+    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...traderDebugLines(game)].join('\n'));
     return;
   }
   if (game.state === GameState.TINKER) {

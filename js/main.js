@@ -24,7 +24,7 @@ import { createTraderScreen } from './traderScreen.js';
 import { createTinkerScreen } from './tinkerScreen.js';
 import { openDebugTinker, selectTab, selectRecipe, craft, undoCraft, leaveTinker } from './tinker.js';
 import { learnPattern, randomUnknownPattern, knownPatterns, learnAllPatterns, forgetAllPatterns } from './patterns.js';
-import { openDebugTrader, selectResource, stepBundles, maxOutBundles, doTrade, undoVisitTrade, leaveVisit } from './visit.js';
+import { openDebugTrader, selectGoods, stepQty, maxQty, makeDeal, undoVisitTrade, leaveVisit } from './visit.js';
 
 const stage = document.getElementById('stage');
 const canvas = document.getElementById('game-canvas');
@@ -140,12 +140,12 @@ const equipPanel = createEquipmentPanel({
   onSlotViewed: (slot) => markSlotSeen(game.run, slot),
 });
 
-// The trader scene's controls (M2n §4).
+// The trader scene's controls (M2n §4, M3e §5).
 const traderScreen = createTraderScreen({
-  onSelect: (side, resource) => selectResource(game, side, resource),
-  onStep: (delta) => stepBundles(game, delta),
-  onMax: () => maxOutBundles(game),
-  onTrade: () => doTrade(game),
+  onSelect: (kind, side, id) => selectGoods(game, kind, side, id),
+  onStep: (delta) => stepQty(game, delta),
+  onMax: () => maxQty(game),
+  onDeal: () => makeDeal(game),
   onUndo: () => undoVisitTrade(game),
   onLeave: () => leaveVisit(game),
 });
@@ -253,7 +253,7 @@ const input = createInput(stage, canvas, () => scale, {
       case ']': if (!isPlaceScene(game.state) && game.state !== GameState.CROSSING) switchLevel(1); break;  //   starting its Prep with the current resources
       case 'g': if (e.shiftKey) spawnDebugGrimWolves(game); else grantResources(game); break; // Shift+G (M2l §4): 4 Grim Wolves
       case 'h': if (e.shiftKey && debugNextRegion(game)) afterRestart(); break; // M3a §7: Shift+H on the map, the next region's map
-      case 't': if (e.shiftKey) openDebugTrader(game); break; // M2n §6: Shift+T on the map opens a trader scene
+      case 't': if (e.shiftKey) openDebugTrader(game); break; // M2n §6, M3e §8: Shift+T on the map opens a trader scene, again: the next profile
       case 'j': if (e.shiftKey) spawnDebugBogKing(game); break; // M3b §6: the Bog King (Combat only)
       case 'v': toggleMute(); break;                    // M1g §3.6: mute / unmute sound
       case 'x': toggleDropMult(game); break;            // M1d §3: enemy drop chances ×1 / ×DEBUG_DROP_MULT

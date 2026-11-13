@@ -1,22 +1,69 @@
-kind,text
-name,Old Marrow
-name,Hettie Thistlewick
-name,Brother Ash
-name,Mag Fennick
-name,Tom Nine-Toes
-name,Sorrel the Pedlar
-greet,"Mind the mud, friend. Mind the prices too."
-greet,"A druid! Sit, sit. Everything's for sale but the fire."
-greet,"Come closer, the lantern doesn't bite. I might."
-greet,"Fair trades only. Fair to me, mostly."
-trade,{resource}? I've a use for those.
-trade,Pleasure doing business. Mostly mine.
-trade,"Done and dusted. Well, done."
-trade,"{resource}, lovely. My cousin eats them."
-soldout,"No more {resource}, I'm afraid. Not even for you."
-soldout,Cleaned out of {resource}. Try asking nicely next time.
-soldout,{resource}? Gone. The last went to a badger.
-leave,Safe roads. Or at least interesting ones.
-leave,Come back when your pack's heavier.
-leave,"Off you go. Watch for wolves, they don't haggle."
-leave,May the forest owe you a favour.
+kind,trader,text,notes
+greet,,"Mind the mud, friend. Mind the prices too.","trader blank = any trader, a trader with its own lines of a kind uses only those. {resource} is the resource or item named"
+greet,,"A druid! Sit, sit. Everything's for sale but the fire.",
+greet,,"Come closer, the lantern doesn't bite. I might.",
+greet,,"Fair trades only. Fair to me, mostly.",
+buy,,Pleasure doing business. Mostly mine.,
+buy,,"Done and dusted. Well, done.",
+buy,,Spend it well. Or at least spend it here.,
+sell,,{resource}? I've a use for those.,
+sell,,"{resource}, lovely. My cousin eats them.",
+sell,,"I'll take it off your hands. Fair to me, anyway.",
+poor,,"Your purse is lighter than your ambitions, friend.",
+poor,,"Gold first, then goods. That's the order of things.",
+poor,,I don't give credit. Not since the last druid.,
+soldout,,"No more {resource}, I'm afraid. Not even for you.",
+soldout,,Cleaned out of {resource}. Try asking nicely next time.,
+soldout,,{resource}? Gone. The last went to a badger.,
+leave,,Safe roads. Or at least interesting ones.,
+leave,,Come back when your pack's heavier.,
+leave,,"Off you go. Watch for wolves, they don't haggle.",
+leave,,May the forest owe you a favour.,
+greet,hettie,"Patterns, druid. Knowledge never rots, unlike the rest of this lot.",
+greet,hettie,"Ah, a reader. I can always tell. Sit, and mind the scrolls.",
+buy,hettie,"A fine choice. I'd have chosen it myself, mind.",
+buy,hettie,"Use it well. And if it's a pattern, read it twice.",
+sell,hettie,"{resource}. Hm. I'll find a use, I always do.",
+sell,hettie,A fair swap. Coin for clutter.,
+poor,hettie,"Knowledge costs, dear. Come back with a heavier purse.",
+poor,hettie,Not enough coin for that one. Read the cheaper scrolls first.,
+soldout,hettie,"No more {resource}. I'm a scholar, not a quarry.",
+soldout,hettie,{resource}? All gone. I only keep a little.,
+leave,hettie,Go well. And remember what you read.,
+leave,hettie,Off you go. Mind you don't drop a stitch.,
+greet,marrow,"Heaps of everything, friend. Pits by the barrow, feathers by the sack.",
+greet,marrow,Old Marrow's open. Old Marrow's always open.,
+buy,marrow,Count it twice. I did.,
+buy,marrow,"Good weight, that. Better than you'll get elsewhere.",
+sell,marrow,{resource}? Throw it on the pile.,
+sell,marrow,"I'll take it. I take everything, sooner or later.",
+poor,marrow,"Can't sell on a promise, friend.",
+poor,marrow,"Short of coin? Sell me something, then.",
+soldout,marrow,Out of {resource}. First time in years.,
+soldout,marrow,{resource}? The pile's bare. Come back next season.,
+leave,marrow,Back on the road with you. Mind the cart ruts.,
+leave,marrow,Marrow will be here. Marrow is always here.,
+greet,ash,"Peace, druid. I keep what the fire spared.",
+greet,ash,Relics of the burnt villages. Handle them gently.,
+buy,ash,May it serve you better than its last keeper.,
+buy,ash,Blessed coin for a blessed thing.,
+sell,ash,"Ah, a fine piece. The ash remembers its maker.",
+sell,ash,I pay well for that. Old things deserve a good home.,
+poor,ash,"Relics are not cheap, friend. Neither is memory.",
+poor,ash,The price stands. Faith does not lower it.,
+soldout,ash,No more {resource}. The fire took the rest.,
+soldout,ash,{resource}? None left. Pray for a better harvest.,
+leave,ash,"Walk in peace, and keep out of the smoke.",
+leave,ash,Go with whatever gods still listen.,
+greet,mag,"Wipe your feet. Or don't, it's all bog anyway.",
+greet,mag,"Peat, shells, reeds. The bog gives, Mag sells.",
+buy,mag,"That's swamp-good, that is. Won't rot for a week.",
+buy,mag,Lovely. Don't drown with it.,
+sell,mag,{resource}? The bog'll want that back one day.,
+sell,mag,"Mag pays fair. Mag pays in old coin, mind.",
+poor,mag,Purse is as empty as a drowned man's boot.,
+poor,mag,Not enough. Go turn over a few bog bodies.,
+soldout,mag,No {resource} left. The mire's been stingy.,
+soldout,mag,"{resource}? Sank, the lot of it.",
+leave,mag,"Keep to the tussocks, druid.",
+leave,mag,Off with you. Don't let the water have you.,

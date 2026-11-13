@@ -1,23 +1,25 @@
-// A visit to a Wandering Trader (M2n §4): the TRADER state's own state and its actions. The
-// player's pack is run.inventory, changed directly (§5); game.resources mirrors it for the HUD.
+// A visit to a Wandering Trader (M2n §4, M3e §5): the TRADER state's own state and its actions.
+// The player's pack is the run itself (run.inventory with its gold, run.items), changed directly;
+// game.resources mirrors the inventory for the HUD.
 //
 // game.visit: { trader, nodeId (null for debug Shift+T), rng (dialogue), trades (undo stack),
-//   give, get (selected resources or null), bundles (how many bundles the quantity is),
-//   line (speech line), time (s since arrival, simulation time), lastTradeAt, leaving (s since
-//   Back to the road, or null) }
+//   sel: { kind: 'resource' | 'item' | 'pattern', side: 'buy' | 'sell', id } or null, qty (units
+//   to buy, or bundles to sell, of a resource), line (speech line), time (s since arrival,
+//   simulation time), lastTradeAt, leaving (s since Back to the road, or null) }
 
 import * as C from './config.js';
 import { GameState } from './states.js';
 import { setState } from './game.js';
 import { createRng } from './rng.js';
-import { mapNode, nodeState } from './run.js';
+import { mapNode, nodeState, addItem } from './run.js';
 import { resourceName } from './resources.js';
-import { rollTrader, tradeRatio, maxBundles, tradeBlocker, makeTrade, undoTrade, traderLine } from './trade.js';
+import { learnPattern, unlearnPattern, isPatternKnown } from './patterns.js';
+import { rollTrader, traderProfileIds, resourcePrice, sellBundle, itemSellPrice, traderLine } from './trade.js';
 import { events } from './events.js';
 
-let debugTraders = 0; // Shift+T traders opened this page, for a fresh seed each time
+let debugTraders = 0; // Shift+T traders opened this page: the next profile each time (§8)
 
-// Entering a Trader node (MAP → TRADER): its trader as rolled with the run.
+// Entering a Trader node (MAP → TRADER): its trader as rolled with the map.
 export function enterTrader(game, nodeId) {
   if (game.state !== GameState.MAP || nodeState(game.run, nodeId) !== 'available') return false;
   const trader = game.run.traders[nodeId];
@@ -26,22 +28,35 @@ export function enterTrader(game, nodeId) {
   return openVisit(game, trader, nodeId);
 }
 
-// Debug Shift+T on the map (§6): a trader with freshly rolled prices and stock, no node and no
-// map progress.
+// Debug Shift+T (M3e §8): on the map, a trader scene with no node and no map progress; pressing it
+// again (on the map, or in a debug trader's scene) cycles through the profiles.
 export function openDebugTrader(game) {
-  if (game.state !== GameState.MAP) return false;
+  const inDebugShop = game.state === GameState.TRADER && game.visit && game.visit.nodeId === null && game.visit.leaving === null;
+  if (game.state !== GameState.MAP && !inDebugShop) return false;
+  const ids = traderProfileIds();
+  const profileId = ids[debugTraders % ids.length];
   debugTraders++;
-  const trader = rollTrader(createRng((game.run.seed + 104729 * debugTraders) >>> 0), Object.values(game.run.traders).map((t) => t.name));
+  const rng = createRng((game.run.seed + 104729 * debugTraders) >>> 0);
+  const trader = rollTrader(rng, { profileId, regionId: game.run.regionId, ownedItems: game.run.items });
+  if (inDebugShop) {
+    game.visit = newVisit(game, trader, null);
+    events.emit('traderGreet', {});
+    return true;
+  }
   return openVisit(game, trader, null);
 }
 
 function openVisit(game, trader, nodeId) {
   if (!setState(game, GameState.TRADER)) return false;
-  const rng = createRng((game.run.seed ^ (trader.look * 2654435761)) >>> 0);
-  game.visit = { trader, nodeId, rng, trades: [], give: null, get: null, bundles: 1, line: traderLine(rng, 'greet'), time: 0, lastTradeAt: -Infinity, leaving: null };
+  game.visit = newVisit(game, trader, nodeId);
   syncResources(game);
   events.emit('traderGreet', {});
   return true;
+}
+
+function newVisit(game, trader, nodeId) {
+  const rng = createRng((game.run.seed ^ Math.imul(trader.look + 1, 2654435761) ^ Math.imul(game.run.regionVisits, 0x9e3779b1)) >>> 0);
+  return { trader, nodeId, rng, trades: [], sel: null, qty: 1, line: traderLine(rng, 'greet', trader.profileId), time: 0, lastTradeAt: -Infinity, leaving: null };
 }
 
 // Advances the visit's clock; Back to the road finishes after the fade (TRADER_FADE_TIME).
@@ -53,74 +68,136 @@ export function updateVisit(game, dt) {
   if (v.leaving >= C.TRADER_FADE_TIME) finishVisit(game);
 }
 
-// Click on a resource in the pack (side 'give') or on the blanket ('get') (§4.3 step 1). The two
-// can't be the same: picking the other side's resource clears that side. A sold-out resource
-// can't be chosen as "get" (§3.5): the trader says so instead.
-export function selectResource(game, side, resource) {
+// Click on something in the trader's goods (side 'buy') or the Druid's pack ('sell') (§5.2): the
+// centre panel shows it; clicking it again clears it. A sold-out resource or something the player
+// can't afford gets a line from the trader.
+export function selectGoods(game, kind, side, id) {
   const v = game.visit;
   if (v.leaving !== null) return;
-  if (side === 'get' && v.trader.stock[resource] <= 0) {
-    v.line = traderLine(v.rng, 'soldout', resourceName(resource, 2));
+  const same = v.sel && v.sel.kind === kind && v.sel.side === side && v.sel.id === id;
+  v.sel = same ? null : { kind, side, id };
+  v.qty = 1;
+  if (!v.sel || side !== 'buy') return;
+  const deal = currentDeal(game);
+  if (deal.blocker === 'Sold out') {
+    v.line = traderLine(v.rng, 'soldout', v.trader.profileId, resourceName(id, 2));
     events.emit('soldOut', {});
-    return;
+  } else if (deal.blocker === 'Not enough gold') {
+    v.line = traderLine(v.rng, 'poor', v.trader.profileId);
   }
-  v[side] = v[side] === resource ? null : resource;
-  const other = side === 'give' ? 'get' : 'give';
-  if (v[other] === resource) v[other] = null;
-  v.bundles = 1; // a new pair starts at one bundle (§4.3 step 3)
 }
 
-// The selected pair's ratio { a, b }, or null without a pair.
-export function visitRatio(game) {
+// The selected deal (§5.2), or null: { kind, side, id, price (gold per unit, bundle or good),
+// bundle ({ n, gold } when selling a resource), qty, max, units (resource units moved), gold
+// (gold the player gains, negative when paying), blocker (why it can't be made now, or null) }.
+export function currentDeal(game) {
   const v = game.visit;
-  return v.give && v.get ? tradeRatio(v.trader, v.give, v.get) : null;
+  const s = v.sel;
+  if (!s) return null;
+  const run = game.run;
+  const gold = run.inventory.gold ?? 0;
+  const t = v.trader;
+  if (s.kind === 'resource' && s.side === 'buy') {
+    const price = resourcePrice(t, s.id);
+    const max = Math.min(t.stock[s.id], Math.floor(gold / price));
+    const qty = clampQty(v.qty, max);
+    const blocker = t.stock[s.id] <= 0 ? 'Sold out' : gold < price ? 'Not enough gold' : null;
+    return { ...s, price, qty, max, units: qty, gold: -price * qty, blocker };
+  }
+  if (s.kind === 'resource') {
+    const bundle = sellBundle(t, s.id);
+    if (!bundle) return { ...s, bundle, qty: 1, max: 0, units: 0, gold: 0, blocker: 'Not interested' };
+    const max = Math.floor((run.inventory[s.id] ?? 0) / bundle.n);
+    const qty = clampQty(v.qty, max);
+    const blocker = max < 1 ? `You need ${bundle.n} ${resourceName(s.id, bundle.n)} to sell` : null;
+    return { ...s, bundle, price: bundle.gold, qty, max, units: bundle.n * qty, gold: bundle.gold * qty, blocker };
+  }
+  if (s.side === 'sell') {
+    const price = itemSellPrice(t, s.id);
+    return { ...s, price, qty: 1, max: 1, units: 0, gold: price, blocker: run.items.includes(s.id) ? null : 'No longer in your pack' };
+  }
+  const good = (s.kind === 'item' ? t.items : t.patterns).find((g) => g.id === s.id);
+  const blocker = s.kind === 'item' && run.items.includes(s.id) ? 'Already owned'
+    : s.kind === 'pattern' && isPatternKnown(s.id) ? 'Already known'
+      : gold < good.price ? 'Not enough gold' : null;
+  return { ...s, price: good.price, qty: 1, max: 1, units: 0, gold: -good.price, blocker };
 }
 
-export function visitMaxBundles(game) {
+function clampQty(qty, max) {
+  return Math.max(1, Math.min(qty, Math.max(1, max)));
+}
+
+// − / + / Max (§5.2): the quantity between 1 and the most possible (resources only).
+export function stepQty(game, delta) {
+  const deal = currentDeal(game);
+  if (deal) game.visit.qty = clampQty(deal.qty + delta, deal.max);
+}
+
+export function maxQty(game) {
+  const deal = currentDeal(game);
+  if (deal) game.visit.qty = clampQty(deal.max, deal.max);
+}
+
+// Buy / Sell (§5.2): makes the selected deal and keeps it for Undo.
+export function makeDeal(game) {
   const v = game.visit;
-  return v.give && v.get ? maxBundles(v.trader, game.run.inventory, v.give, v.get) : 0;
-}
-
-// Why Trade is disabled, or null (§4.3 step 6).
-export function visitBlocker(game) {
-  const v = game.visit;
-  if (!v.give || !v.get) return 'Pick what to give and what to get';
-  return tradeBlocker(v.trader, game.run.inventory, v.give, v.get);
-}
-
-// − / + / Max (§4.3 step 3): the quantity, in bundles, between 1 and the most possible.
-export function stepBundles(game, delta) {
-  const v = game.visit;
-  v.bundles = Math.max(1, Math.min(Math.max(1, visitMaxBundles(game)), v.bundles + delta));
-}
-
-export function maxOutBundles(game) {
-  game.visit.bundles = Math.max(1, visitMaxBundles(game));
-}
-
-// Trade (§4.3 step 5).
-export function doTrade(game) {
-  const v = game.visit;
-  if (v.leaving !== null || visitBlocker(game)) return false;
-  const trade = makeTrade(v.trader, game.run.inventory, v.give, v.get, Math.min(v.bundles, visitMaxBundles(game)));
-  if (!trade) return false;
+  const deal = currentDeal(game);
+  if (v.leaving !== null || !deal || deal.blocker) return false;
+  const trade = { kind: deal.kind, side: deal.side, id: deal.id, units: deal.units, gold: deal.gold };
+  if (deal.kind === 'item' && deal.side === 'sell') {
+    trade.slot = Object.keys(game.run.equipped).find((slot) => game.run.equipped[slot] === deal.id) ?? null;
+    trade.seen = game.run.seenItems.includes(deal.id);
+  }
+  applyTrade(game.run, v.trader, trade, 1);
   v.trades.push(trade);
   v.lastTradeAt = v.time;
-  v.line = traderLine(v.rng, 'trade', resourceName(trade.give, 2));
-  v.bundles = Math.max(1, Math.min(v.bundles, visitMaxBundles(game)));
+  const name = deal.kind === 'resource' ? resourceName(deal.id, 2) : C.ITEMS[deal.id].name;
+  v.line = traderLine(v.rng, deal.side, v.trader.profileId, name);
+  if (deal.kind !== 'resource' || deal.side === 'sell') v.sel = null; // a good changed hands: nothing left to show
+  else v.qty = clampQty(v.qty, currentDeal(game).max);
   syncResources(game);
-  events.emit('tradeComplete', {});
+  events.emit(deal.side === 'buy' ? 'shopBuy' : 'shopSell', { pattern: deal.kind === 'pattern' });
   return true;
 }
 
-// Undo last trade (§4.4): repeatable back to the start of the visit.
+// Undo last trade (§5.2): repeatable back to the start of the visit; a bought pattern is unlearned.
 export function undoVisitTrade(game) {
   const v = game.visit;
   if (v.leaving !== null || !v.trades.length) return false;
-  undoTrade(v.trader, game.run.inventory, v.trades.pop());
+  applyTrade(game.run, v.trader, v.trades.pop(), -1);
   syncResources(game);
   events.emit('tradeUndo', {});
   return true;
+}
+
+// sign 1 makes the trade, −1 undoes it.
+function applyTrade(run, trader, trade, sign) {
+  const { kind, side, id, units, gold } = trade;
+  run.inventory.gold = (run.inventory.gold ?? 0) + sign * gold;
+  if (kind === 'resource') {
+    const got = side === 'buy' ? units : -units;
+    run.inventory[id] += sign * got;
+    if (side === 'buy') trader.stock[id] -= sign * units; // what the player sells doesn't join the stock
+    return;
+  }
+  if (kind === 'pattern') {
+    if (sign > 0) learnPattern(id);
+    else unlearnPattern(id);
+    return;
+  }
+  const gains = (side === 'buy') === (sign > 0);
+  if (gains) {
+    addItem(run, id);
+    if (side === 'buy') run.seenItems = run.seenItems.filter((x) => x !== id); // New on the map
+    else {
+      if (trade.seen && !run.seenItems.includes(id)) run.seenItems.push(id);
+      if (trade.slot) run.equipped[trade.slot] = id;
+    }
+  } else {
+    run.items = run.items.filter((x) => x !== id);
+    run.seenItems = run.seenItems.filter((x) => x !== id);
+    for (const slot of Object.keys(run.equipped)) if (run.equipped[slot] === id) run.equipped[slot] = null; // selling unequips it
+  }
 }
 
 // Back to the road (§4.4): a farewell line, the fade, then the map.
@@ -128,7 +205,7 @@ export function leaveVisit(game) {
   const v = game.visit;
   if (v.leaving !== null) return;
   v.leaving = 0;
-  v.line = traderLine(v.rng, 'leave');
+  v.line = traderLine(v.rng, 'leave', v.trader.profileId);
 }
 
 // The visit is final: a Trader node is completed (its `next` nodes become available); a debug

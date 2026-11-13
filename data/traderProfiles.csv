@@ -1,0 +1,8 @@
+id,name,regions,itemPriceMult,patternPriceMult,itemBuyMult,notes
+hettie,Hettie Thistlewick,,1,0.9,1,"TUNING - the pattern seller: always has patterns, never sells Commons"
+marrow,Old Marrow,,1.1,1.2,0.8,"TUNING - the resource merchant: big stock, cheap common materials, rarely items"
+ash,Brother Ash,cinderwood,1.2,1.1,1.4,"TUNING - relic dealer: pricey Rare items, pays well for your items"
+mag,Mag Fennick,hags,1,1,1,"TUNING - swamp trader: Peat, Shells and Reeds cheap, sells Crafted patterns"
+tom,Tom Nine-Toes,,0.8,0.9,0.6,"TUNING - cheapskate: low prices both ways, mostly Common and Uncommon items"
+sorrel,Sorrel the Pedlar,,1,1,1,TUNING - generalist: a bit of everything
+default,,,1,1,1,"fallback only: its tables and stock lines fill in whatever a trader leaves out, never met as a trader"

@@ -281,8 +281,10 @@ export const PLACE_SCENE = {
 export const TRADER_SCENE = {
   cart: { x: 1700, y: 520 },              // behind the trader
   campfire: { x: 690, y: 470 },           // at the back of the clearing, behind and right of the Druid
-  blanket: { x: 1490, y: 790, rx: 360, ry: 92 }, // the goods lie on it (DOM over it, traderScreen.js)
-  scale: { x: 960, y: 560 },              // balance scale, centre
+  blanket: { x: 1510, y: 845, rx: 400, ry: 195 }, // the goods lie on it (DOM over it, traderScreen.js)
+  coins: { x: 545, y: 650 },              // the Druid's little pile of gold, beside him (M3e §5.1)
+  coinsPerCoin: 15,                       // gold per coin drawn in that pile (visual only)
+  coinsMax: 14,                           // most coins drawn
 };
 // The Tinker's Rest (M2p §4.2): ruins and an old forge on the left by the Druid, the open book on
 // its workbench on the right (the book's pages are HTML over it, tinkerScreen.js).
@@ -300,8 +302,7 @@ export const CRAFT_ANIM = {               // s from Craft (M2p §4.3): visual ti
 };
 export const FORGE_CRACKLE_GAPS = [0.8, 1.3, 0.6, 1.1, 0.9]; // s between the forge's quiet crackles, in turn (M2p §4.4)
 export const TRADER_FADE_TIME = 0.35;     // s, the fade into and out of the trader scene (M2n §1)
-export const TRADER_SCALE_TIP_TIME = 0.7; // s the scale tips toward the trader after a trade (visual)
-export const TRADER_LOOKS = [             // per-trader colour variation (cloak, hood lining, pack)
+export const TRADER_LOOKS = [             // per-trader colour variation (cloak, hood lining, pack), by profile (traderProfiles order)
   { cloak: '#5b3a5e', lining: '#8a5a8e', pack: '#7a5a34' },
   { cloak: '#3d5a3a', lining: '#6d8a5a', pack: '#80613a' },
   { cloak: '#6a3a2a', lining: '#a0603e', pack: '#6c5232' },
@@ -2064,8 +2065,10 @@ export const SUMMON_KINDS = ['vulture', 'squirrel', 'double', 'slowWisp'];
 // M3a §5: a region's own version of a place (trader + 'Hags' = 'traderHags') is used there if it
 // exists; and each region's map background (map + 'Cinderwood').
 export const PLACE_PALETTES = ['trader', 'tinker', 'traderHags', 'tinkerHags', 'mapCinderwood', 'mapHags'];
-// The traders tab's kinds (M2n §4.5): the name pool and the lines for each moment.
-export const TRADER_LINE_KINDS = ['name', 'greet', 'trade', 'soldout', 'leave'];
+// The traders tab's kinds (M2n §4.5, M3e §7): the lines for each moment (names are in traderProfiles).
+export const TRADER_LINE_KINDS = ['greet', 'buy', 'sell', 'poor', 'soldout', 'leave'];
+// The traderTables tab's tables (M3e §3.2).
+export const TRADER_TABLES = ['itemCount', 'patternCount', 'itemRarity', 'patternRarity'];
 
 // globals tab
 export let PREP_DURATION, END_DELAY, STEP_PX, TRAVEL_TWEEN_TIME;
@@ -2086,7 +2089,9 @@ export let FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX;
 export let SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME;
 export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
 export let MASTER_VOLUME, SOUND_PITCH_JITTER;
-export let TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY;
+export let TRADE_TAG_CHEAP, TRADE_TAG_PRICEY, GOLD_PER_VALUE, RESOURCE_SELL_FRACTION, ITEM_SELL_FRACTION, SHOP_PRICE_JITTER;
+export let ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3;
+export let ITEM_PRICE, PATTERN_PRICE; // M3e §4: rarity → default price (from the globals above)
 
 // druid tab
 export let DRUID_HP, DRUID_RADIUS, DRUID_MELEE_RADIUS, DRUID_MELEE_SLOTS, DRUID_MELEE_DAMAGE, DRUID_MELEE_INTERVAL,
@@ -2116,9 +2121,10 @@ export let SQUIRREL_COST, SQUIRREL_HP, SQUIRREL_DURATION, SQUIRREL_SPEED, MAX_SQ
   SQUIRREL_PICKUP_RANGE, SQUIRREL_BLOCKS_WOLVES, SQUIRREL_DAMAGE, SQUIRREL_ATTACK_INTERVAL, SQUIRREL_BLOCK_RADIUS;
 export let WISP_COST, WISP_SPEED, MAX_WISPS, WISP_RADIUS, WISP_BURST_RADIUS, WISP_SLOW_MULT, WISP_SLOW_DURATION; // Slow Wisp (M2k §3)
 export let BOUGH_DOUBLE_COST, MAX_BOUGH_DOUBLES, DOUBLE_WISP_TIME;
-// items: id → { slot, name, description, effects: [{ stat, op, value }], colors: [main, accent], mark }
+// items: id → { slot, rarity, price (M3e §4, or undefined: its rarity's default), name, description, effects: [{ stat, op, value }], colors: [main, accent], mark }
 export let ITEMS;
-// M2p §5: item ID → { cost, patternWeight } (its pattern's crafting cost and find weight).
+// M2p §5: item ID → { cost, patternWeight, patternPrice } (its pattern's crafting cost, find weight and,
+// M3e §4, Trader price or undefined: its rarity's default).
 export let RECIPES;
 // stats: stat → description (labels; the stats themselves are in js/stats.js)
 export let STATS;
@@ -2130,10 +2136,14 @@ export let REGIONS, REGION_ORDER;
 export let LEVELS;
 // sounds: id → { volume, pitch, minGap, maxVoices, enabled }
 export let SOUNDS;
-// trade (M2n §3.1): resource → { baseValue, stockMin, stockMax }
+// trade (M2n §3.1, M3e §4): resource → { baseValue, stockMin, stockMax (default's fallback), regions }
 export let TRADE;
-// traders (M2n §4.5): kind → [text, …] (TRADER_LINE_KINDS)
+// traders (M2n §4.5, M3e §7): kind → [{ trader (a profile id, or null: any trader), text }] (TRADER_LINE_KINDS)
 export let TRADER_TEXT;
+// traderProfiles + traderTables + traderStock (M3e §3): id → { name, regions (null = any), itemPriceMult,
+// patternPriceMult, itemBuyMult, tables: { table: [{ value, weight }] }, stock: { resource: { stockMin,
+// stockMax, priceMin, priceMax } } }; `default` fills in what a profile leaves out
+export let TRADER_PROFILES;
 // palettes of non-combat places (PLACE_PALETTES): id → palette, like a level's
 export let PLACE_PALETTE;
 
@@ -2166,8 +2176,11 @@ export function applyData(t) {
     SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME,
     CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
     MASTER_VOLUME, SOUND_PITCH_JITTER,
-    TRADE_PRICE_VARIATION, TRADE_MARGIN, TRADE_MAX_RATIO_TERM, TRADE_TAG_CHEAP, TRADE_TAG_PRICEY,
+    TRADE_TAG_CHEAP, TRADE_TAG_PRICEY, GOLD_PER_VALUE, RESOURCE_SELL_FRACTION, ITEM_SELL_FRACTION, SHOP_PRICE_JITTER,
+    ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3,
   } = keyed(t.globals));
+  ITEM_PRICE = [ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3];
+  PATTERN_PRICE = [PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3];
   SPOT_SCALE = LOCATION_RADIUS / SPOT_ART_RADIUS;
 
   ({
@@ -2241,10 +2254,10 @@ export function applyData(t) {
     for (let n = 1; r[`effect${n}_stat`] !== undefined || r[`effect${n + 1}_stat`] !== undefined; n++) {
       if (r[`effect${n}_stat`] !== undefined) effects.push({ stat: r[`effect${n}_stat`], op: r[`effect${n}_op`], value: r[`effect${n}_value`] });
     }
-    return { slot: r.slot, rarity: r.rarity, name: r.name, description: r.description, effects, colors: [r.iconColor, r.iconAccent], mark: r.iconMark };
+    return { slot: r.slot, rarity: r.rarity, price: r.price, name: r.name, description: r.description, effects, colors: [r.iconColor, r.iconAccent], mark: r.iconMark };
   });
   STATS = byId(t.stats, (r) => r.description, 'stat');
-  RECIPES = byId(t.recipes, (r) => ({ cost: cost(r), patternWeight: r.patternWeight }), 'item');
+  RECIPES = byId(t.recipes, (r) => ({ cost: cost(r), patternWeight: r.patternWeight, patternPrice: r.patternPrice }), 'item');
 
   REGIONS = byId(t.regions, (r) => ({
     name: r.name, order: r.order, deathLossPct: r.deathLossPct, traders: r.traders, tinkers: r.tinkers, tinkerMinRow: r.tinkerMinRow,
@@ -2276,7 +2289,17 @@ export function applyData(t) {
 
   // regions (M3c §1): where traders stock it; null = everywhere.
   TRADE = byId(t.trade, (r) => ({ baseValue: r.baseValue, stockMin: r.stockMin, stockMax: r.stockMax, regions: r.regions ? r.regions.split(',').map((x) => x.trim()) : null }), 'resource');
-  TRADER_TEXT = Object.fromEntries(TRADER_LINE_KINDS.map((kind) => [kind, t.traders.filter((r) => r.kind === kind).map((r) => r.text)]));
+  TRADER_TEXT = Object.fromEntries(TRADER_LINE_KINDS.map((kind) => [kind, t.traders.filter((r) => r.kind === kind).map((r) => ({ trader: r.trader ?? null, text: r.text }))]));
+  TRADER_PROFILES = byId(t.traderProfiles, (r) => {
+    const tables = {};
+    for (const x of t.traderTables.filter((x) => x.trader === r.id)) (tables[x.table] ??= []).push({ value: x.value, weight: x.weight });
+    const stock = Object.fromEntries(t.traderStock.filter((x) => x.trader === r.id)
+      .map((x) => [x.resource, { stockMin: x.stockMin, stockMax: x.stockMax, priceMin: x.priceMin, priceMax: x.priceMax }]));
+    return {
+      name: r.name ?? '', regions: r.regions ? r.regions.split(',').map((x) => x.trim()) : null,
+      itemPriceMult: r.itemPriceMult, patternPriceMult: r.patternPriceMult, itemBuyMult: r.itemBuyMult, tables, stock,
+    };
+  });
   PLACE_PALETTE = Object.fromEntries(PLACE_PALETTES.map((id) => [id, unflatten(t.palettes.find((p) => p.level === id) ?? {}, ['level', '_row'])]));
 }
 

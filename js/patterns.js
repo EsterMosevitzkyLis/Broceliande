@@ -56,6 +56,16 @@ export function learnPattern(id) {
   return true;
 }
 
+// Undoing a pattern bought at a Trader (M3e §5.2), only within the visit: forgotten again.
+export function unlearnPattern(id) {
+  if (!known.includes(id)) return false;
+  known = known.filter((x) => x !== id);
+  fresh = fresh.filter((x) => x !== id);
+  save(KNOWN_KEY, known);
+  save(NEW_KEY, fresh);
+  return true;
+}
+
 // The pattern list was hovered: its New marks clear.
 export function markPatternsSeen() {
   if (fresh.length === 0) return;

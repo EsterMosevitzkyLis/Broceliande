@@ -152,24 +152,47 @@
         <div id="equip-pattern-list" hidden></div>
       </div>
 
-      <!-- Trader scene (M2n §4.2): the text and controls over the canvas art, built by
+      <!-- Trader scene (M2n §4.2, M3e §5): the text and controls over the canvas art, built by
            js/traderScreen.js; only shown in the TRADER state. -->
       <div id="trader-screen" hidden>
         <div id="trader-title"></div>
         <div id="trader-speech"></div>
-        <div id="trader-pack" class="trade-shelf"><div class="trade-shelf-title">Your pack</div><div class="trade-items"></div></div>
-        <div id="trader-goods" class="trade-shelf"><div class="trade-shelf-title">His goods</div><div class="trade-items"></div></div>
-        <div id="trade-centre">
-          <div id="trade-ratio"></div>
-          <div id="trade-qty">
-            <button id="btn-trade-less" type="button">−</button>
-            <span id="trade-get"></span>
-            <button id="btn-trade-more" type="button">+</button>
-            <button id="btn-trade-max" type="button">Max</button>
+        <div id="shop-pack" class="shop-panel">
+          <div id="shop-gold"><span id="shop-gold-icon" class="res-icon"></span><span id="shop-gold-amount">0</span><span class="shop-gold-label">gold</span></div>
+          <div class="shop-panel-title">Your pack</div>
+          <div id="shop-pack-res" class="shop-chips"></div>
+          <div id="shop-pack-items"></div>
+        </div>
+        <div id="shop-goods" class="shop-panel">
+          <div id="shop-goods-title" class="shop-panel-title"></div>
+          <div id="shop-goods-res" class="shop-chips"></div>
+          <div id="shop-wares"></div>
+        </div>
+        <div id="shop-centre">
+          <div id="shop-hint"></div>
+          <div id="shop-deal" hidden>
+            <div id="shop-deal-head">
+              <canvas id="shop-deal-icon"></canvas>
+              <span id="shop-deal-res" class="res-icon"></span>
+              <div>
+                <div id="shop-deal-kind"></div>
+                <div id="shop-deal-name"></div>
+                <div id="shop-deal-sub"></div>
+              </div>
+            </div>
+            <div id="shop-deal-desc"></div>
+            <div id="shop-deal-cost"></div>
+            <div id="shop-qty">
+              <button id="btn-shop-less" type="button">−</button>
+              <span id="shop-qty-text"></span>
+              <button id="btn-shop-more" type="button">+</button>
+              <button id="btn-shop-max" type="button">Max</button>
+            </div>
+            <div id="shop-total"></div>
+            <div id="shop-preview"></div>
+            <button id="btn-shop-deal" type="button">Buy</button>
+            <div id="shop-reason"></div>
           </div>
-          <div id="trade-preview"></div>
-          <button id="btn-trade" type="button">Trade</button>
-          <div id="trade-reason"></div>
         </div>
         <button id="btn-trade-undo" type="button">Undo last trade</button>
         <button id="btn-trade-leave" type="button">Back to the road</button>

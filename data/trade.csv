@@ -1,5 +1,5 @@
 resource,baseValue,stockMin,stockMax,regions,notes
-pits,1,10,20,,TUNING
+pits,1,10,20,,"TUNING - baseValue x GOLD_PER_VALUE is a resource's gold price, stock columns are only a fallback for the default trader (traderStock tab)"
 feathers,1.5,6,12,,TUNING
 shells,2,4,8,,TUNING
 reeds,3,3,6,,TUNING

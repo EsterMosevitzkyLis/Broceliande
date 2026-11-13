@@ -1337,9 +1337,9 @@ html, body {
   cursor: pointer;
 }
 
-/* ---------- Trader scene (M2n §4.2) ---------- */
-/* Text and controls over the canvas art: the title and speech at the top, the pack beside the
-   Druid (left), the goods on the blanket (right), the trade controls under the scale (centre). */
+/* ---------- Trader scene (M2n §4.2, M3e §5) ---------- */
+/* Text and controls over the canvas art: the title and speech at the top, the Druid's gold and
+   pack below him (left), the goods on the blanket (right), the selected deal in the centre. */
 #trader-screen {
   position: absolute;
   inset: 0;
@@ -1367,77 +1367,8 @@ html, body {
   font-style: italic;
   color: #f1e8cc;
 }
-.trade-shelf {
-  position: absolute;
-  top: 700px;
-  width: 640px;
-}
-#trader-pack { left: 80px; }
-#trader-goods { left: 1170px; top: 690px; }
-.trade-shelf-title {
-  font-size: 20px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #c9bfa0;
-  margin-bottom: 8px;
-}
-.trade-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.trade-item {
-  pointer-events: auto;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 196px;
-  height: 58px;
-  padding: 0 10px;
-  box-sizing: border-box;
-  background: rgba(20, 14, 8, 0.62);
-  border: 2px solid rgba(233, 228, 208, 0.25);
-  border-radius: 8px;
-}
-.trade-item:hover { border-color: rgba(255, 217, 138, 0.7); }
-.trade-item.selected {
-  border-color: #ffd98a;
-  background: rgba(90, 64, 24, 0.75);
-  box-shadow: 0 0 12px rgba(255, 200, 100, 0.5);
-}
-.trade-item.soldout { opacity: 0.5; }
-.trade-item .res-icon { width: 34px; height: 34px; flex: none; }
-.trade-item .res-icon svg { width: 100%; height: 100%; }
-.trade-count { font-size: 24px; font-weight: bold; min-width: 30px; }
-.trade-tag { font-size: 16px; }
-.trade-tag.good { color: #9fe07a; }
-.trade-tag.bad { color: #f07a62; }
-.trade-tag.poor { color: #a8a496; }
-#trade-centre {
-  position: absolute;
-  left: 660px;
-  width: 600px;
-  top: 600px;
-  text-align: center;
-}
-#trade-ratio {
-  font-size: 40px;
-  font-weight: bold;
-  color: #ffe6a8;
-  min-height: 50px;
-}
-#trade-ratio.muted { font-size: 24px; font-weight: normal; color: #c9bfa0; padding-top: 12px; }
-#trade-qty {
-  margin-top: 12px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-  font-size: 24px;
-}
-#trade-get { min-width: 190px; }
 #trader-screen button {
+  pointer-events: auto;
   font-size: 22px;
   padding: 6px 14px;
   background: rgba(20, 14, 8, 0.7);
@@ -1447,27 +1378,184 @@ html, body {
 }
 #trader-screen button:hover:not(:disabled) { border-color: #ffd98a; }
 #trader-screen button:disabled { opacity: 0.4; cursor: default; }
-#trade-preview {
-  margin-top: 12px;
-  font-size: 22px;
-  min-height: 28px;
-  color: #e9e4d0;
+.shop-panel {
+  position: absolute;
+  pointer-events: auto;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  background: rgba(20, 14, 8, 0.5);
+  border-radius: 10px;
 }
-#btn-trade {
-  margin-top: 14px;
+#shop-pack { left: 36px; top: 668px; width: 596px; bottom: 26px; display: flex; flex-direction: column; }
+#shop-goods { left: 1138px; top: 612px; width: 756px; bottom: 26px; }
+.shop-panel-title {
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c9bfa0;
+  margin: 2px 0 6px;
+}
+#shop-gold {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 40px;
+  font-weight: bold;
+  color: #e3cf8e;
+  margin-bottom: 4px;
+}
+#shop-gold .res-icon { width: 44px; height: 44px; flex: none; }
+#shop-gold .res-icon svg { width: 100%; height: 100%; }
+.shop-gold-label { font-size: 22px; font-weight: normal; color: #c9bfa0; }
+.shop-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.shop-chip, .shop-pack-item, .shop-card {
+  cursor: pointer;
+  box-sizing: border-box;
+  background: rgba(20, 14, 8, 0.66);
+  border: 2px solid rgba(233, 228, 208, 0.22);
+  border-radius: 8px;
+}
+.shop-chip:hover, .shop-pack-item:hover, .shop-card:hover { border-color: rgba(255, 217, 138, 0.7); }
+.shop-chip.selected, .shop-pack-item.selected, .shop-card.selected {
+  border-color: #ffd98a;
+  box-shadow: 0 0 12px rgba(255, 200, 100, 0.5);
+}
+.shop-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 46px;
+  padding: 0 8px;
+  font-size: 20px;
+}
+.shop-chip.selected { background: rgba(90, 64, 24, 0.8); }
+.shop-chip.soldout { opacity: 0.5; }
+.shop-chip .res-icon { width: 28px; height: 28px; flex: none; }
+.shop-chip .res-icon svg { width: 100%; height: 100%; }
+.shop-count { font-weight: bold; min-width: 26px; }
+.shop-price { display: inline-flex; align-items: center; gap: 3px; color: #e3cf8e; white-space: nowrap; }
+.shop-price.muted { color: #a8a496; font-size: 15px; }
+.shop-price.short { color: #f07a62; }
+.shop-coin { width: 18px; height: 18px; display: inline-block; }
+.shop-coin svg { width: 100%; height: 100%; display: block; }
+.shop-tag { font-size: 14px; }
+.shop-chip .shop-price { margin-left: auto; }
+.shop-tag.good { color: #9fe07a; }
+.shop-tag.bad { color: #f07a62; }
+.shop-tag.poor { color: #a8a496; }
+#shop-pack-items {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-content: start;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+.shop-pack-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 6px;
+  font-size: 16px;
+}
+.shop-pack-item canvas { flex: none; }
+.shop-pack-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.shop-equipped {
+  font-size: 13px;
+  font-weight: bold;
+  color: #1d140c;
+  background: #c9bfa0;
+  border-radius: 3px;
+  padding: 0 4px;
+  text-shadow: none;
+}
+.shop-empty { color: #a8a496; font-size: 17px; font-style: italic; padding: 6px 2px; }
+#shop-wares {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.shop-card {
+  height: 134px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+}
+.shop-card.owned { opacity: 0.55; }
+.shop-card.pattern {
+  background: rgba(226, 210, 164, 0.94);
+  color: #3a2a18;
+  text-shadow: none;
+  border-color: rgba(120, 90, 50, 0.6);
+}
+.shop-card.pattern.selected { border-color: #ffd98a; }
+.shop-card-head { display: flex; align-items: center; gap: 6px; }
+.shop-card-head canvas { flex: none; }
+.shop-card-name { font-size: 17px; font-weight: bold; line-height: 1.1; }
+.shop-card-sub { font-size: 13px; opacity: 0.85; }
+.shop-card-desc { font-size: 14px; line-height: 1.2; margin-top: 3px; flex: 1; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.shop-card.pattern .shop-card-desc { -webkit-line-clamp: 2; }
+.shop-card-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; }
+.shop-card-foot .cost-rows { flex-direction: row; flex-wrap: wrap; gap: 0 8px; font-size: 13px; font-weight: bold; color: #3a2a18; }
+.shop-card-foot .cost-row { gap: 2px; }
+.shop-card-foot .cost-icon { width: 16px !important; height: 16px !important; }
+.shop-card.pattern .shop-price { color: #6a4a10; font-weight: bold; }
+.shop-card.pattern .shop-price.short { color: #a8321e; }
+.shop-card .shop-price { font-size: 18px; font-weight: bold; }
+.shop-owned { font-size: 14px; font-style: italic; }
+#shop-centre {
+  position: absolute;
+  left: 652px;
+  width: 470px;
+  top: 236px;
+  text-align: center;
+}
+#shop-hint { padding-top: 260px; font-size: 22px; color: #c9bfa0; }
+#shop-deal {
+  pointer-events: auto;
+  padding: 14px 16px 12px;
+  background: rgba(20, 14, 8, 0.72);
+  border: 2px solid rgba(233, 228, 208, 0.25);
+  border-radius: 12px;
+}
+#shop-deal-head { display: flex; align-items: center; gap: 14px; text-align: left; }
+#shop-deal-res { width: 80px; height: 80px; flex: none; }
+#shop-deal-res svg { width: 100%; height: 100%; }
+#shop-deal-icon { flex: none; }
+#shop-deal-kind { font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; color: #c9bfa0; }
+#shop-deal-name { font-size: 30px; font-weight: bold; color: #ffe6a8; line-height: 1.1; }
+#shop-deal-sub { font-size: 17px; color: #e9e4d0; margin-top: 2px; }
+#shop-deal-desc { font-size: 19px; color: #f1e8cc; margin-top: 10px; }
+#shop-deal-desc:empty { display: none; }
+#shop-deal-cost { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 6px; font-size: 18px; }
+#shop-deal-cost:empty { display: none; }
+#shop-deal-cost .cost-rows { flex-direction: row; gap: 14px; font-weight: bold; }
+#shop-qty {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: 22px;
+}
+#shop-qty-text { min-width: 130px; }
+#shop-total { margin-top: 12px; font-size: 28px; font-weight: bold; color: #e3cf8e; }
+#shop-preview { margin-top: 6px; font-size: 19px; min-height: 24px; color: #e9e4d0; white-space: pre; }
+#btn-shop-deal {
+  margin-top: 10px;
   font-size: 30px !important;
-  padding: 8px 48px !important;
+  padding: 6px 56px !important;
   font-weight: bold;
   border-color: #ffd98a !important;
 }
-#trade-reason {
-  margin-top: 8px;
-  min-height: 24px;
-  font-size: 19px;
-  color: #f0a07a;
-}
-#btn-trade-undo { position: absolute; left: 80px; bottom: 50px; }
-#btn-trade-leave { position: absolute; right: 80px; bottom: 50px; font-size: 26px !important; }
+#shop-reason { margin-top: 6px; min-height: 24px; font-size: 19px; color: #f0a07a; }
+#btn-trade-undo { position: absolute; left: 652px; bottom: 30px; }
+#btn-trade-leave { position: absolute; right: 798px; bottom: 30px; font-size: 24px !important; }
 /* ---------- Tinker's Rest (M2p §4.2) ---------- */
 /* The title over the ruins, the book's tabs above it and its two pages (list left, recipe right)
    over the canvas book, Undo and Back to the road at the bottom corners. */

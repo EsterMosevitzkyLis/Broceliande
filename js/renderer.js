@@ -62,7 +62,7 @@ export function createRenderer(canvas) {
     }
     if (game.state === GameState.TRADER) {
       // M2n §4.2: the trader's scene; its text and controls are HTML (traderScreen.js).
-      drawTraderScene(ctx, game.visit, game.visit.time, game.run?.regionId);
+      drawTraderScene(ctx, game.visit, game.visit.time, game.run?.regionId, game.run?.inventory.gold ?? 0);
       ctx.fillStyle = COLORS.hudBackdrop;
       ctx.fillRect(0, 0, C.STAGE_WIDTH, C.HUD_STRIP_HEIGHT);
       return;

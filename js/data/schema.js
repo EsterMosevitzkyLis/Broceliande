@@ -30,8 +30,10 @@ export const GLOBAL_TYPES = {
   SWEEP_FLIGHT_TIME: 'number', SWEEP_STAGGER: 'number', SWEEP_END_MARGIN: 'number', SWEEP_END_SCALE: 'number', SWEEP_PULSE_TIME: 'number',
   CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
   MASTER_VOLUME: 'number', SOUND_PITCH_JITTER: 'number',
-  TRADE_PRICE_VARIATION: 'number', TRADE_MARGIN: 'number', TRADE_MAX_RATIO_TERM: 'int',
   TRADE_TAG_CHEAP: 'number', TRADE_TAG_PRICEY: 'number',
+  GOLD_PER_VALUE: 'number', RESOURCE_SELL_FRACTION: 'number', ITEM_SELL_FRACTION: 'number', SHOP_PRICE_JITTER: 'number', // M3e §4
+  ITEM_PRICE_R0: 'number', ITEM_PRICE_R1: 'number', ITEM_PRICE_R2: 'number', ITEM_PRICE_R3: 'number',
+  PATTERN_PRICE_R0: 'number', PATTERN_PRICE_R1: 'number', PATTERN_PRICE_R2: 'number', PATTERN_PRICE_R3: 'number',
 };
 
 // Druid stats: key → type. Every key must have a row.
@@ -99,14 +101,14 @@ export const TABS = {
   },
   items: {
     columns: {
-      id: { type: 'id', required: true }, slot: { type: 'id', required: true }, rarity: { type: 'int', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
+      id: { type: 'id', required: true }, slot: { type: 'id', required: true }, rarity: { type: 'int', required: true }, price: { type: 'number' }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
       iconColor: { type: 'text', required: true }, iconAccent: { type: 'text', required: true }, iconMark: { type: 'id', required: true },
     },
     pattern: [/^effect\d+_(stat|op|value)$/, { type: 'effect' }],
   },
   stats: { columns: { stat: { type: 'text', required: true }, description: { type: 'text', required: true } } },
   // M2p §5.1: one recipe (pattern) per item: its crafting cost and how likely its pattern is to be found.
-  recipes: { columns: { item: { type: 'id', required: true }, patternWeight: { type: 'number', required: true } }, pattern: [/^cost_[a-z][a-zA-Z0-9]*$/, COST] },
+  recipes: { columns: { item: { type: 'id', required: true }, patternWeight: { type: 'number', required: true }, patternPrice: { type: 'number' } }, pattern: [/^cost_[a-z][a-zA-Z0-9]*$/, COST] },
   levels: {
     columns: {
       id: { type: 'id', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
@@ -133,8 +135,25 @@ export const TABS = {
   sounds: { columns: { id: { type: 'id', required: true }, volume: { type: 'number', required: true }, pitch: { type: 'number', required: true }, minGap: { type: 'number', required: true }, maxVoices: { type: 'int', required: true }, enabled: { type: 'bool', required: true } } },
   // M2n §3.1: each resource's trade value and a trader's stock range.
   trade: { columns: { resource: { type: 'id', required: true }, baseValue: { type: 'number', required: true }, stockMin: { type: 'int', required: true }, stockMax: { type: 'int', required: true }, regions: { type: 'text' } } }, // regions (M3c §1): blank = every region
-  // M2n §4.5: trader names (kind = name) and their lines (greet, trade, soldout, leave), with an optional {resource}.
-  traders: { columns: { kind: { type: 'id', required: true }, text: { type: 'text', required: true } } },
+  // M2n §4.5, M3e §7: the traders' lines (greet, buy, sell, poor, soldout, leave), with an optional
+  // {resource}; trader: a profile's own line (blank = any trader).
+  traders: { columns: { kind: { type: 'id', required: true }, trader: { type: 'id' }, text: { type: 'text', required: true } } },
+  // M3e §3.1: the traders as characters; `default` is the fallback for tables and stock lines.
+  traderProfiles: {
+    columns: {
+      id: { type: 'id', required: true }, name: { type: 'text' }, regions: { type: 'text' },
+      itemPriceMult: { type: 'number', required: true }, patternPriceMult: { type: 'number', required: true }, itemBuyMult: { type: 'number', required: true },
+    },
+  },
+  // M3e §3.2: one row per line of a trader's weighted table.
+  traderTables: { columns: { trader: { type: 'id', required: true }, table: { type: 'id', required: true }, value: { type: 'int', required: true }, weight: { type: 'number', required: true } } },
+  // M3e §3.3: a trader's stock range and price multiplier range per resource.
+  traderStock: {
+    columns: {
+      trader: { type: 'id', required: true }, resource: { type: 'id', required: true }, stockMin: { type: 'int', required: true },
+      stockMax: { type: 'int', required: true }, priceMin: { type: 'number', required: true }, priceMax: { type: 'number', required: true },
+    },
+  },
 };
 
 // Exported from code for the sheet's lane dropdown (M2j §3.2); never loaded by the game.

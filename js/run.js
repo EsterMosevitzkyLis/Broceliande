@@ -7,21 +7,22 @@
 import * as C from './config.js';
 import { emptyResources, RESOURCE_KEYS } from './resources.js';
 import { makeRandomSeed, createRng } from './rng.js';
-import { rollTrader } from './trade.js';
+import { rollTrader, pickProfile } from './trade.js';
 import { generateMap, mapSeedFor, nodeRadius } from './mapGen.js';
 
 export { nodeRadius };
 
 // run: { seed, regionId, regionVisits, deaths, map, currentNodeId, completedNodeIds, inventory, druidHp,
-//        items, equipped, seenItems, traders }
+//        items, equipped, seenItems, traders, traderProfilesUsed }
 // regionId (M3a): the region the run is in; regionVisits: how many times it has entered one (each
 // entry gets a new map); deaths: deaths so far (each death's losses are rolled from it).
 // map (M2g): the current region's generated map (mapGen.js), nodes with positions and `next` roads.
 // currentNodeId: the node last entered (null before the first). inventory: resources carried
 // between encounters. druidHp: used for the next encounter only with CARRY_DRUID_HP. Equipment
 // (M2e §5): items owned this run (ITEMS keys), the one equipped in each slot (or null), and the
-// owned items the player has looked at (badges and New marks). traders (M2n §5): each Trader node's
-// rolled trader (name, multipliers, stock), by node id, rolled with the run.
+// owned items the player has looked at (badges and New marks). traders (M2n §5, M3e §3): each Trader
+// node's rolled trader (trade.js), by node id, rolled with the region's map; traderProfilesUsed: the
+// profiles met so far this run (no repeats in a run).
 export function createRun() {
   const seed = C.DEBUG_SEED ?? makeRandomSeed(); // DEBUG_SEED reproduces the whole run
   const run = {
@@ -38,6 +39,7 @@ export function createRun() {
     equipped: Object.fromEntries(Object.keys(C.SLOT_TYPES).map((slot) => [slot, null])),
     seenItems: [],
     traders: {},
+    traderProfilesUsed: [],
   };
   enterRegion(run, C.REGION_ORDER[0]);
   return run;
@@ -54,7 +56,7 @@ export function enterRegion(run, regionId) {
   run.currentNodeId = null;
   run.completedNodeIds = [];
   run.druidHp = Infinity; // full: startingDruidHp clamps it to his max HP
-  run.traders = rollRunTraders((run.seed + run.regionVisits * 0x1f123) >>> 0, run.map);
+  run.traders = rollRunTraders(run, (run.seed + run.regionVisits * 0x1f123) >>> 0);
 }
 
 // The region's first node (§1.2): its node in its lowest row (row 1).
@@ -68,14 +70,18 @@ export function nextRegionId(run) {
   return C.REGION_ORDER[C.REGION_ORDER.indexOf(run.regionId) + 1] ?? null;
 }
 
-// M2n §5: a trader for every Trader node on the map, seeded from the run seed, no name used twice.
+// M2n §5, M3e §3.1: a trader for every Trader node on the run's map, seeded: a profile allowed in
+// the region and not met yet this run, then its stock, prices and goods (none the run owns or knows).
 // keep: traders already rolled (by node id), kept as they are (debug L, regenerateMap).
-function rollRunTraders(seed, map, keep = {}) {
+function rollRunTraders(run, seed, keep = {}) {
   const rng = createRng((seed ^ 0x7a3d1) >>> 0);
-  const nodes = map.nodes.filter((n) => n.type === 'trader');
+  const nodes = run.map.nodes.filter((n) => n.type === 'trader');
   const traders = Object.fromEntries(nodes.filter((n) => keep[n.id]).map((n) => [n.id, keep[n.id]]));
   for (const node of nodes) {
-    if (!traders[node.id]) traders[node.id] = rollTrader(rng, Object.values(traders).map((t) => t.name), map.regionId);
+    if (traders[node.id]) continue;
+    const profileId = pickProfile(rng, run.map.regionId, run.traderProfilesUsed);
+    run.traderProfilesUsed.push(profileId);
+    traders[node.id] = rollTrader(rng, { profileId, regionId: run.map.regionId, ownedItems: run.items });
   }
   return traders;
 }
@@ -279,7 +285,7 @@ export function markSlotSeen(run, slot) {
 export function regenerateMap(run, seed) {
   const was = run.currentNodeId ? mapNode(run, run.currentNodeId) : null;
   run.map = generateMap(seed, run.regionId);
-  run.traders = rollRunTraders(seed, run.map, run.traders); // M2n §5: the same traders where their nodes remain
+  run.traders = rollRunTraders(run, seed, run.traders); // M2n §5: the same traders where their nodes remain
   if (!was) return true;
   const now = mapNode(run, was.id);
   return !!now && now.row === was.row;

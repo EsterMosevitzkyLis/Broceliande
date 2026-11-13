@@ -73,11 +73,20 @@ BOUGH_REFUND_CHANCE,0,chance a Bough Double's Bough is refunded when its job sta
 MASTER_VOLUME,0.5,TUNING - 0..1
 SOUND_PITCH_JITTER,0.05,TUNING - each play is pitched up or down by up to this fraction
 # Trader,,
-TRADE_PRICE_VARIATION,0.3,TUNING - each resource's price multiplier at a trader is rolled in 1 +/- this
-TRADE_MARGIN,0.1,TUNING - traders sell at value x (1 + this) and buy at value x (1 - this)
-TRADE_MAX_RATIO_TERM,5,TUNING - largest term in a shown trade ratio a -> b
-TRADE_TAG_CHEAP,0.85,TUNING - multiplier at or below this: cheap (goods) / sells poorly (pack)
-TRADE_TAG_PRICEY,1.15,TUNING - multiplier at or above this: pricey (goods) / sells well (pack)
+GOLD_PER_VALUE,2,TUNING - gold per unit of a resource's baseValue (trade tab): a trader sells a resource for ceil(baseValue x this x their price multiplier)
+RESOURCE_SELL_FRACTION,0.25,"TUNING - what a trader pays for a resource, as a fraction of their selling price (sold in whole-gold bundles)"
+ITEM_PRICE_R0,80,"TUNING - base price of a Crafted item (never sold by traders, only what they pay for one is based on it)"
+ITEM_PRICE_R1,20,"TUNING - item selling price by rarity (Common), used where an item has no price"
+ITEM_PRICE_R2,40,TUNING - Uncommon
+ITEM_PRICE_R3,80,TUNING - Rare
+PATTERN_PRICE_R0,150,"TUNING - pattern selling price by rarity (Crafted), used where a recipe has no patternPrice"
+PATTERN_PRICE_R1,30,TUNING - Common
+PATTERN_PRICE_R2,60,TUNING - Uncommon
+PATTERN_PRICE_R3,120,TUNING - Rare
+ITEM_SELL_FRACTION,0.4,"TUNING - what a trader pays for the player's item, as a fraction of its price (x the trader's itemBuyMult, rounded down to 5)"
+SHOP_PRICE_JITTER,0.1,"TUNING - per-visit variation on item and pattern prices, 1 +/- this"
+TRADE_TAG_CHEAP,0.85,TUNING - a trader's price multiplier at or below this: tagged cheap (shop and map tooltip)
+TRADE_TAG_PRICEY,1.15,TUNING - a trader's price multiplier at or above this: tagged pricey
 # Hag's Causeway twists,,
 RISE_DELAY,1.5,TUNING - s a risen-dead body lies where it fell before it stands up again (M3b sec. 3.1)
 RISE_HP_FRAC,0.5,TUNING - fraction of its max HP a body rises with
