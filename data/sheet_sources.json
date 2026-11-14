@@ -22,6 +22,9 @@
     "trade": 1701790393,
     "traders": 1862344893,
     "recipes": 871620122,
-    "regions": 995360032
+    "regions": 995360032,
+    "traderProfiles": 665610694,
+    "traderTables": 1240628912,
+    "traderStock": 2001937262
   }
 }
