@@ -1,36 +1,36 @@
-id,name,description,row,nodeType,region,enemyHpMult,corridorWidth,stepBudget,stuckTime,mireCoverage,mix_tree,mix_reedPatch,mix_shrub,mix_ruins,mix_pond,mix_peatBog
-tornville,Tornville Haunt,The old haunt at the forest's edge.,1,wilds,cinderwood,,,102,,,3,1,1,2,2,0
-gallows,Gallows Copse,A restless swarm.,2,wilds,cinderwood,,,114,,,3,1,1,2,2,0
-blackthorn,Blackthorn Hollow,Thick thorns hide heavy beasts.,2,wilds,cinderwood,,,114,,,3,1,1,2,2,0
-drowned,The Burnt Hamlet,Blackened beams and narrow lanes between fallen houses.,3,wilds,cinderwood,,90,111,,,1,2,1,1,4,0
-wychwood,Wychwood Circle,The old stones hum. The packs come in great surges.,3,wilds,cinderwood,,130,126,,,2,1,3,2,1,0
-barrow,Forgotten Barrow,Something stirs beneath the mound.,3,fell,cinderwood,,,108,,,2,1,1,4,1,0
-charcoal,Charcoal Burner's Camp,Smoke hangs low over the old kilns.,4,wilds,cinderwood,1.1,,114,,,1,1,1,4,2,0
-stags,Stag's Crossing,Where the old ford cuts through the forest.,4,wilds,cinderwood,1.1,130,127,,,2,2,1,1,3,0
-briar,Briar Chapel,Thorns have swallowed the old chapel.,5,wilds,cinderwood,1.2,95,118,1.8,,2,1,3,2,1,0
-causeway,The Ember Road,A raised road between pits that still smoulder.,5,wilds,cinderwood,1.2,90,111,2.5,,1,2,1,1,4,0
-widows,Blackbark Orchard,"Fire-blackened fruit trees, still standing.",5,wilds,cinderwood,1.2,115,126,,,4,1,1,2,1,0
-mossbound,Mossbound Cairn,Moss-covered stones mark an ancient grave.,6,wilds,cinderwood,1.3,,110,,,3,1,2,2,1,0
-ashen,The Ashen Glade,Nothing grows here since the fire.,6,fell,cinderwood,1.3,115,115,,,2,1,1,3,2,0
-bone,Bone Orchard,"Pale branches, and paler things among the roots.",7,wilds,cinderwood,1.4,120,117,,,2,1,2,3,1,0
-weeping,The Weeping Stones,"The standing stones are always wet, though it never rains.",7,wilds,cinderwood,1.4,115,112,,,2,1,1,3,2,0
-bells,Hollow of Bells,"Somewhere below, a bell tolls. The packs answer.",7,wilds,cinderwood,1.4,125,113,,,2,1,3,2,1,0
-heartwood,The Heartwood,"The heart of Broceliande, and the rot at its centre.",8,boss,cinderwood,1.5,120,115,,,2,1,2,2,2,0
-tallowFen,Tallow Fen,Pale candles of fat float on the water. Someone still lights them.,1,wilds,hags,1.3,110,141,,0.1,1,2,1,1,2,2
-lanternFen,The Lantern Fen,Lights drift over the reeds. Follow them and you won't come back.,2,wilds,hags,1.35,115,153,,0.15,1,2,2,1,1,2
-rottingFord,The Rotting Ford,The old ford has gone soft. Things wade across it that shouldn't.,2,wilds,hags,1.35,110,157,,0.12,1,2,1,1,3,1
-bonewhiteWillows,Bonewhite Willows,"The willows have gone white as bone, and still they weep.",2,wilds,hags,1.35,115,154,,0.12,2,2,1,1,1,2
-corpseReedbeds,The Corpse Reedbeds,The reeds grow thick here. Something keeps them fed.,3,wilds,hags,1.45,95,161,1.8,0.15,1,3,1,1,1,2
-drownedGallows,The Drowned Gallows,The gallows stand knee-deep in water. The hanged did not stay hanged.,3,fell,hags,1.45,110,152,,0.15,1,2,1,1,2,2
-leechwaterPools,The Leechwater Pools,"Warm, still water. Don't put your hand in.",4,wilds,hags,1.55,115,159,,0.15,1,2,1,1,3,1
-wormwoodHollow,Wormwood Hollow,"Bitter herbs choke the hollow, and the dead seem to like it.",4,wilds,hags,1.55,110,161,,0.12,1,2,2,1,1,2
-sallowMere,The Sallow Mere,A wide grey lake that never quite reflects the sky.,4,wilds,hags,1.55,130,158,,0.18,1,3,1,1,1,2
-drownedTannery,The Drowned Tannery,The vats overflowed long ago. The stink never left.,5,wilds,hags,1.65,115,164,,0.12,1,2,1,3,1,1
-sunkenOssuary,The Sunken Ossuary,The bone-house slid into the bog. Its tenants climbed back out.,5,fell,hags,1.65,115,159,,0.15,1,2,1,2,1,2
-widowsMire,The Widow's Mire,She walked in looking for him. Neither came out.,6,wilds,hags,1.75,115,163,,0.25,1,2,1,1,1,3
-plagueCarts,The Plague Carts,"Abandoned carts, still loaded. Nobody came back to bury them.",6,wilds,hags,1.75,120,158,,0.12,1,2,1,3,1,1
-weepingSluice,The Weeping Sluice,"The sluice gates leak a steady trickle, day and night.",6,wilds,hags,1.75,95,158,2,0.15,1,2,1,1,2,2
-carrionOrchard,Carrion Orchard,"The fruit rots on the branch, and the crows won't touch it.",7,wilds,hags,1.9,120,149,,0.12,3,2,1,1,1,1
-drownedBellTower,The Drowned Bell Tower,The tower sank to its belfry. On still nights the bell still rings.,7,fell,hags,1.9,120,159,,0.15,1,2,1,1,2,2
-blackwaterShrine,The Blackwater Shrine,"An altar to something older than the saints, half under black water.",7,wilds,hags,1.9,115,149,,0.15,1,2,1,3,1,1
-bogKingsRest,Bog King's Rest,"Where the Causeway ends, the peat rises into a throne.",8,boss,hags,2,130,152,,0.15,1,2,1,1,2,2
+id,name,description,row,nodeType,region,enemyHpMult,stepBudget,stuckTime,mix_tree,mix_reedPatch,mix_shrub,mix_ruins,mix_pond,mix_peatBog
+tornville,Tornville Haunt,The old haunt at the forest's edge.,1,wilds,cinderwood,,102,,3,1,1,2,2,0
+gallows,Gallows Copse,A restless swarm.,2,wilds,cinderwood,,114,,3,1,1,2,2,0
+blackthorn,Blackthorn Hollow,Thick thorns hide heavy beasts.,2,wilds,cinderwood,,114,,3,1,1,2,2,0
+drowned,The Burnt Hamlet,Blackened beams and narrow lanes between fallen houses.,3,wilds,cinderwood,,111,,1,2,1,1,4,0
+wychwood,Wychwood Circle,The old stones hum. The packs come in great surges.,3,wilds,cinderwood,,126,,2,1,3,2,1,0
+barrow,Forgotten Barrow,Something stirs beneath the mound.,3,fell,cinderwood,,108,,2,1,1,4,1,0
+charcoal,Charcoal Burner's Camp,Smoke hangs low over the old kilns.,4,wilds,cinderwood,1.1,114,,1,1,1,4,2,0
+stags,Stag's Crossing,Where the old ford cuts through the forest.,4,wilds,cinderwood,1.1,127,,2,2,1,1,3,0
+briar,Briar Chapel,Thorns have swallowed the old chapel.,5,wilds,cinderwood,1.2,118,1.8,2,1,3,2,1,0
+causeway,The Ember Road,A raised road between pits that still smoulder.,5,wilds,cinderwood,1.2,111,2.5,1,2,1,1,4,0
+widows,Blackbark Orchard,"Fire-blackened fruit trees, still standing.",5,wilds,cinderwood,1.2,126,,4,1,1,2,1,0
+mossbound,Mossbound Cairn,Moss-covered stones mark an ancient grave.,6,wilds,cinderwood,1.3,110,,3,1,2,2,1,0
+ashen,The Ashen Glade,Nothing grows here since the fire.,6,fell,cinderwood,1.3,115,,2,1,1,3,2,0
+bone,Bone Orchard,"Pale branches, and paler things among the roots.",7,wilds,cinderwood,1.4,117,,2,1,2,3,1,0
+weeping,The Weeping Stones,"The standing stones are always wet, though it never rains.",7,wilds,cinderwood,1.4,112,,2,1,1,3,2,0
+bells,Hollow of Bells,"Somewhere below, a bell tolls. The packs answer.",7,wilds,cinderwood,1.4,113,,2,1,3,2,1,0
+heartwood,The Heartwood,"The heart of Broceliande, and the rot at its centre.",8,boss,cinderwood,1.5,115,,2,1,2,2,2,0
+tallowFen,Tallow Fen,Pale candles of fat float on the water. Someone still lights them.,1,wilds,hags,1.3,141,,1,2,1,1,2,2
+lanternFen,The Lantern Fen,Lights drift over the reeds. Follow them and you won't come back.,2,wilds,hags,1.35,153,,1,2,2,1,1,2
+rottingFord,The Rotting Ford,The old ford has gone soft. Things wade across it that shouldn't.,2,wilds,hags,1.35,157,,1,2,1,1,3,1
+bonewhiteWillows,Bonewhite Willows,"The willows have gone white as bone, and still they weep.",2,wilds,hags,1.35,154,,2,2,1,1,1,2
+corpseReedbeds,The Corpse Reedbeds,The reeds grow thick here. Something keeps them fed.,3,wilds,hags,1.45,161,1.8,1,3,1,1,1,2
+drownedGallows,The Drowned Gallows,The gallows stand knee-deep in water. The hanged did not stay hanged.,3,fell,hags,1.45,152,,1,2,1,1,2,2
+leechwaterPools,The Leechwater Pools,"Warm, still water. Don't put your hand in.",4,wilds,hags,1.55,159,,1,2,1,1,3,1
+wormwoodHollow,Wormwood Hollow,"Bitter herbs choke the hollow, and the dead seem to like it.",4,wilds,hags,1.55,161,,1,2,2,1,1,2
+sallowMere,The Sallow Mere,A wide grey lake that never quite reflects the sky.,4,wilds,hags,1.55,158,,1,3,1,1,1,2
+drownedTannery,The Drowned Tannery,The vats overflowed long ago. The stink never left.,5,wilds,hags,1.65,164,,1,2,1,3,1,1
+sunkenOssuary,The Sunken Ossuary,The bone-house slid into the bog. Its tenants climbed back out.,5,fell,hags,1.65,159,,1,2,1,2,1,2
+widowsMire,The Widow's Mire,She walked in looking for him. Neither came out.,6,wilds,hags,1.75,163,,1,2,1,1,1,3
+plagueCarts,The Plague Carts,"Abandoned carts, still loaded. Nobody came back to bury them.",6,wilds,hags,1.75,158,,1,2,1,3,1,1
+weepingSluice,The Weeping Sluice,"The sluice gates leak a steady trickle, day and night.",6,wilds,hags,1.75,158,2,1,2,1,1,2,2
+carrionOrchard,Carrion Orchard,"The fruit rots on the branch, and the crows won't touch it.",7,wilds,hags,1.9,149,,3,2,1,1,1,1
+drownedBellTower,The Drowned Bell Tower,The tower sank to its belfry. On still nights the bell still rings.,7,fell,hags,1.9,159,,1,2,1,1,2,2
+blackwaterShrine,The Blackwater Shrine,"An altar to something older than the saints, half under black water.",7,wilds,hags,1.9,149,,1,2,1,3,1,1
+bogKingsRest,Bog King's Rest,"Where the Causeway ends, the peat rises into a throne.",8,boss,hags,2,152,,1,2,1,1,2,2

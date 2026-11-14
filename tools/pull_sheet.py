@@ -17,6 +17,9 @@ from pathlib import Path
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 URL = "https://docs.google.com/spreadsheets/d/e/{published_id}/pub?gid={gid}&single=true&output=csv"
+# Tabs the game no longer reads, never fetched even if still listed (M4a: candidate spots now live
+# in each level's map file, data/maps/<id>.json).
+RETIRED = {"candidates"}
 
 
 def download(url):
@@ -46,6 +49,9 @@ def main():
     pulled, failed = {}, []
     for tab, gid in tabs.items():
         name = f"{tab}.csv"
+        if tab in RETIRED:
+            print(f"{name:<16} -  retired, skipped (remove it from data/sheet_sources.json)")
+            continue
         try:
             text = download(URL.format(published_id=published_id, gid=gid))
         except Exception as err:  # network, HTTP or content error: report it and carry on

@@ -1,0 +1,488 @@
+{
+  "version": 1,
+  "level": "sallowMere",
+  "druid": { "x": 950, "y": 500 },
+  "corridorWidth": 130,
+  "lanes": [
+    {
+      "id": "west",
+      "name": "West",
+      "waypoints": [
+        [-40, 960],
+        [77, 1020],
+        [205, 1020],
+        [330, 1020],
+        [434, 1020],
+        [500, 1020],
+        [516, 1020],
+        [484, 1009],
+        [422, 720],
+        [362, 438],
+        [344, 244],
+        [392, 194],
+        [506, 284],
+        [656, 454],
+        [785, 577],
+        [837, 530],
+        [903, 522]
+      ]
+    },
+    {
+      "id": "north",
+      "name": "North",
+      "waypoints": [
+        [1840, -40],
+        [1850, 187],
+        [1850, 346],
+        [1846, 327],
+        [1654, 150],
+        [1430, 150],
+        [1271, 150],
+        [1235, 150],
+        [1306, 150],
+        [1416, 334],
+        [1482, 407],
+        [1487, 407],
+        [1377, 403],
+        [1206, 398],
+        [1090, 394],
+        [1010, 403],
+        [994, 473]
+      ]
+    },
+    {
+      "id": "south",
+      "name": "South",
+      "waypoints": [
+        [1840, 1120],
+        [1681, 1020],
+        [1556, 1020],
+        [1526, 1020],
+        [1594, 1020],
+        [1697, 761],
+        [1740, 635],
+        [1679, 633],
+        [1530, 661],
+        [1329, 837],
+        [1159, 969],
+        [1065, 990],
+        [1052, 897],
+        [1084, 737],
+        [1090, 614],
+        [1027, 587],
+        [993, 530]
+      ]
+    }
+  ],
+  "sectors": { "angles": [23, 127, 265], "names": ["SE", "W", "E"], "nearRadius": 460 },
+  "zoneQuotaOverrides": {},
+  "candidates": [
+    { "x": 746, "y": 778, "zone": "nSE", "zoneAuto": true },
+    { "x": 842, "y": 886, "zone": "nSE", "zoneAuto": true },
+    { "x": 866, "y": 694, "zone": "nSE", "zoneAuto": true },
+    { "x": 1214, "y": 718, "zone": "nSE", "zoneAuto": true },
+    { "x": 506, "y": 478, "zone": "nW", "zoneAuto": true },
+    { "x": 530, "y": 622, "zone": "nW", "zoneAuto": true },
+    { "x": 578, "y": 754, "zone": "nW", "zoneAuto": true },
+    { "x": 614, "y": 190, "zone": "nW", "zoneAuto": true },
+    { "x": 926, "y": 214, "zone": "nE", "zoneAuto": true },
+    { "x": 1058, "y": 262, "zone": "nE", "zoneAuto": true },
+    { "x": 1190, "y": 526, "zone": "nE", "zoneAuto": true },
+    { "x": 1310, "y": 598, "zone": "nE", "zoneAuto": true },
+    { "x": 626, "y": 934, "zone": "fSE", "zoneAuto": true },
+    { "x": 890, "y": 1018, "zone": "fSE", "zoneAuto": true },
+    { "x": 1310, "y": 1018, "zone": "fSE", "zoneAuto": true },
+    { "x": 1430, "y": 922, "zone": "fSE", "zoneAuto": true },
+    { "x": 1538, "y": 826, "zone": "fSE", "zoneAuto": true },
+    { "x": 1778, "y": 910, "zone": "fSE", "zoneAuto": true },
+    { "x": 62, "y": 778, "zone": "fW", "zoneAuto": true },
+    { "x": 134, "y": 202, "zone": "fW", "zoneAuto": true },
+    { "x": 134, "y": 346, "zone": "fW", "zoneAuto": true },
+    { "x": 158, "y": 490, "zone": "fW", "zoneAuto": true },
+    { "x": 158, "y": 886, "zone": "fW", "zoneAuto": true },
+    { "x": 194, "y": 634, "zone": "fW", "zoneAuto": true },
+    { "x": 242, "y": 766, "zone": "fW", "zoneAuto": true },
+    { "x": 314, "y": 886, "zone": "fW", "zoneAuto": true },
+    { "x": 1442, "y": 538, "zone": "fE", "zoneAuto": true },
+    { "x": 1538, "y": 274, "zone": "fE", "zoneAuto": true },
+    { "x": 1586, "y": 502, "zone": "fE", "zoneAuto": true },
+    { "x": 1646, "y": 370, "zone": "fE", "zoneAuto": true },
+    { "x": 1730, "y": 490, "zone": "fE", "zoneAuto": true },
+    { "x": 1826, "y": 778, "zone": "fE", "zoneAuto": true },
+    { "x": 1850, "y": 562, "zone": "fE", "zoneAuto": true }
+  ],
+  "decor": [
+    { "type": "groundPatch", "x": 910.06, "y": 851.83, "rx": 115.8, "ry": 63.37, "light": true },
+    { "type": "groundPatch", "x": 1779.43, "y": 435.87, "rx": 179.76, "ry": 86.3, "light": false },
+    { "type": "groundPatch", "x": 1352.03, "y": 682.08, "rx": 82.86, "ry": 51.17, "light": false },
+    { "type": "groundPatch", "x": 1766.16, "y": 785.81, "rx": 168.12, "ry": 63.29, "light": true },
+    { "type": "groundPatch", "x": 1437, "y": 792.8, "rx": 157.56, "ry": 85.51, "light": true },
+    { "type": "groundPatch", "x": 655.98, "y": 547.77, "rx": 87.04, "ry": 31.66, "light": true },
+    { "type": "groundPatch", "x": 54.63, "y": 252.25, "rx": 94.3, "ry": 81.81, "light": true },
+    { "type": "groundPatch", "x": 1452.22, "y": 307.75, "rx": 150.66, "ry": 68.61, "light": true },
+    { "type": "groundPatch", "x": 76.35, "y": 744.39, "rx": 163.18, "ry": 32.73, "light": true },
+    { "type": "groundPatch", "x": 531.42, "y": 700.95, "rx": 162.92, "ry": 36.43, "light": false },
+    { "type": "groundPatch", "x": 1062.05, "y": 492.83, "rx": 96.6, "ry": 42.7, "light": false },
+    { "type": "groundPatch", "x": 1697.48, "y": 319.05, "rx": 60.75, "ry": 59.08, "light": true },
+    { "type": "groundPatch", "x": 533.53, "y": 1057.25, "rx": 76.3, "ry": 40.72, "light": true },
+    { "type": "groundPatch", "x": 1608.06, "y": 933.13, "rx": 149.25, "ry": 39.37, "light": true },
+    { "type": "groundPatch", "x": 1043.94, "y": 738.83, "rx": 77.54, "ry": 83.74, "light": false },
+    { "type": "groundPatch", "x": 1220.68, "y": 764.27, "rx": 115.05, "ry": 77.85, "light": true },
+    { "type": "groundPatch", "x": 192.4, "y": 217.62, "rx": 86.55, "ry": 32.18, "light": true },
+    { "type": "groundPatch", "x": 1133.45, "y": 991.45, "rx": 103.58, "ry": 72.7, "light": true },
+    { "type": "groundPatch", "x": 121.9, "y": 97.24, "rx": 173.54, "ry": 83.04, "light": false },
+    { "type": "groundPatch", "x": 476.98, "y": 680.48, "rx": 177.62, "ry": 85.72, "light": false },
+    { "type": "groundPatch", "x": 810.16, "y": 247.8, "rx": 95.35, "ry": 56.57, "light": false },
+    { "type": "groundPatch", "x": 1059.13, "y": 337.63, "rx": 93.03, "ry": 30.47, "light": false },
+    { "type": "groundPatch", "x": 278.59, "y": 489.24, "rx": 122.38, "ry": 81.93, "light": true },
+    { "type": "groundPatch", "x": 491.63, "y": 705.61, "rx": 99.89, "ry": 58.29, "light": true },
+    { "type": "groundPatch", "x": 238.09, "y": 713.45, "rx": 83.83, "ry": 41.4, "light": true },
+    { "type": "groundPatch", "x": 1886.4, "y": 139.25, "rx": 115.49, "ry": 62.76, "light": false },
+    { "type": "groundPatch", "x": 1448.33, "y": 304.68, "rx": 101.32, "ry": 68.6, "light": false },
+    { "type": "groundPatch", "x": 191.77, "y": 795.87, "rx": 119.49, "ry": 67.78, "light": true },
+    { "type": "groundPatch", "x": 1670.42, "y": 1072.53, "rx": 63.24, "ry": 78.53, "light": false },
+    { "type": "groundPatch", "x": 1035.87, "y": 890.17, "rx": 127.23, "ry": 44.37, "light": true },
+    { "type": "groundPatch", "x": 71.2, "y": 575.84, "rx": 132.9, "ry": 82.23, "light": false },
+    { "type": "groundPatch", "x": 308.95, "y": 124.74, "rx": 95.37, "ry": 37.16, "light": true },
+    { "type": "groundPatch", "x": 1911.12, "y": 305.7, "rx": 105.28, "ry": 67.75, "light": true },
+    { "type": "groundPatch", "x": 91.18, "y": 208.98, "rx": 80.15, "ry": 73.14, "light": false },
+    { "type": "groundPatch", "x": 1158.71, "y": 610.2, "rx": 126.82, "ry": 86.68, "light": false },
+    { "type": "groundPatch", "x": 1350.22, "y": 280.95, "rx": 97.97, "ry": 39.76, "light": true },
+    { "type": "groundPatch", "x": 1134.83, "y": 563.87, "rx": 67.27, "ry": 41.62, "light": true },
+    { "type": "groundPatch", "x": 72.6, "y": 87.71, "rx": 89.99, "ry": 63.69, "light": false },
+    { "type": "groundPatch", "x": 584.46, "y": 773.1, "rx": 132.65, "ry": 83.47, "light": false },
+    { "type": "groundPatch", "x": 61.39, "y": 951.44, "rx": 131.33, "ry": 72.38, "light": true },
+    { "type": "groundPatch", "x": 1815.71, "y": 372.89, "rx": 115.06, "ry": 67.86, "light": false },
+    { "type": "groundPatch", "x": 124.08, "y": 269.86, "rx": 86.58, "ry": 87.41, "light": false },
+    { "type": "groundPatch", "x": 1616.79, "y": 119.82, "rx": 101.07, "ry": 40.44, "light": false },
+    { "type": "groundPatch", "x": 1863.22, "y": 288.59, "rx": 131.18, "ry": 74.28, "light": false },
+    { "type": "groundPatch", "x": 1256.08, "y": 111.75, "rx": 92.96, "ry": 72.45, "light": true },
+    { "type": "groundPatch", "x": 283.91, "y": 374.74, "rx": 156.58, "ry": 70.25, "light": true },
+    { "type": "groundPatch", "x": 165.98, "y": 260.19, "rx": 142.14, "ry": 74.01, "light": false },
+    { "type": "groundPatch", "x": 1479.77, "y": 105.15, "rx": 72.66, "ry": 36.78, "light": false },
+    { "type": "groundPatch", "x": 1413.09, "y": 678.08, "rx": 78.86, "ry": 83.05, "light": false },
+    { "type": "groundPatch", "x": 619.41, "y": 472.17, "rx": 142.28, "ry": 50.82, "light": true },
+    { "type": "groundPatch", "x": 53.94, "y": 984.03, "rx": 140.62, "ry": 35.36, "light": false },
+    { "type": "groundPatch", "x": 513.72, "y": 961.7, "rx": 145.72, "ry": 89.12, "light": false },
+    { "type": "groundPatch", "x": 485.75, "y": 671.21, "rx": 145.01, "ry": 71.85, "light": true },
+    { "type": "groundPatch", "x": 1249.43, "y": 660.34, "rx": 114.59, "ry": 77.31, "light": true },
+    { "type": "groundPatch", "x": 1419.58, "y": 955.44, "rx": 148.36, "ry": 30.26, "light": false },
+    { "type": "groundPatch", "x": 680.48, "y": 115.13, "rx": 170.68, "ry": 68.9, "light": true },
+    { "type": "groundPatch", "x": 1490.08, "y": 1061.28, "rx": 106.71, "ry": 63.1, "light": false },
+    { "type": "groundPatch", "x": 801.92, "y": 1000.01, "rx": 70.98, "ry": 74.3, "light": false },
+    { "type": "groundPatch", "x": 697.58, "y": 370.34, "rx": 110.81, "ry": 73.71, "light": false },
+    { "type": "groundPatch", "x": 1018.63, "y": 526.8, "rx": 150.61, "ry": 55.97, "light": false },
+    { "type": "groundPatch", "x": 102.43, "y": 895.88, "rx": 178.33, "ry": 81.08, "light": false },
+    { "type": "groundPatch", "x": 341.08, "y": 1031.01, "rx": 133.63, "ry": 85.88, "light": false },
+    { "type": "groundPatch", "x": 184.51, "y": 703.31, "rx": 110.55, "ry": 69.33, "light": false },
+    { "type": "groundPatch", "x": 1010.81, "y": 680.58, "rx": 115.03, "ry": 47.3, "light": false },
+    { "type": "groundPatch", "x": 332.82, "y": 933.9, "rx": 70.84, "ry": 45.32, "light": false },
+    { "type": "groundPatch", "x": 618.99, "y": 609.3, "rx": 139.69, "ry": 70.35, "light": false },
+    { "type": "groundPatch", "x": 359.04, "y": 155.33, "rx": 128.13, "ry": 42.88, "light": false },
+    { "type": "groundPatch", "x": 1103.4, "y": 441.52, "rx": 104.99, "ry": 35.85, "light": true },
+    { "type": "groundPatch", "x": 410.68, "y": 571.59, "rx": 96.76, "ry": 35.95, "light": true },
+    { "type": "groundPatch", "x": 161.79, "y": 273.33, "rx": 156.36, "ry": 61.83, "light": false },
+    { "type": "mere", "x": -94.5, "y": 80, "rx": 210, "ry": 130, "rot": 0 },
+    { "type": "bush", "variant": 0, "x": 81.88, "y": 81.94, "scale": 1.239, "flip": false },
+    { "type": "bush", "variant": 0, "x": 141.77, "y": 100.08, "scale": 0.9, "flip": false },
+    { "type": "bush", "variant": 2, "x": 190.06, "y": 80.91, "scale": 1.013, "flip": false },
+    { "type": "bush", "variant": 0, "x": 226.47, "y": 121.28, "scale": 0.867, "flip": false },
+    { "type": "bush", "variant": 1, "x": 418.85, "y": 112.56, "scale": 0.835, "flip": false },
+    { "type": "willowTree", "variant": 1, "x": 485.03, "y": 143.46, "scale": 0.942, "flip": false },
+    { "type": "bush", "variant": 2, "x": 644.97, "y": 83.56, "scale": 1.243, "flip": false },
+    { "type": "bush", "variant": 1, "x": 693.37, "y": 137.41, "scale": 1.164, "flip": false },
+    { "type": "bush", "variant": 2, "x": 746.82, "y": 110.28, "scale": 0.978, "flip": false },
+    { "type": "bush", "variant": 1, "x": 822.25, "y": 138.85, "scale": 0.958, "flip": false },
+    { "type": "bush", "variant": 1, "x": 917.43, "y": 106.14, "scale": 0.868, "flip": false },
+    { "type": "bush", "variant": 2, "x": 957.73, "y": 110.06, "scale": 0.918, "flip": false },
+    { "type": "bush", "variant": 2, "x": 1039.51, "y": 105.9, "scale": 0.867, "flip": false },
+    { "type": "bush", "variant": 2, "x": 1108.22, "y": 114.72, "scale": 0.907, "flip": false },
+    { "type": "bush", "variant": 2, "x": 1122.48, "y": 114.62, "scale": 1.099, "flip": false },
+    { "type": "bush", "variant": 1, "x": 268.56, "y": 183.1, "scale": 0.879, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 724.68, "y": 168.63, "scale": 1.186, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 784.28, "y": 167.34, "scale": 0.862, "flip": false },
+    { "type": "bush", "variant": 2, "x": 853.35, "y": 162.13, "scale": 0.934, "flip": false },
+    { "type": "willowTree", "variant": 1, "x": 1096.23, "y": 171.43, "scale": 0.951, "flip": false },
+    { "type": "bush", "variant": 0, "x": 30.88, "y": 263.54, "scale": 1.121, "flip": false },
+    { "type": "bush", "variant": 0, "x": 240.45, "y": 223.18, "scale": 0.85, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": 766.22, "y": 212.27, "scale": 0.914, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": -14.66, "y": 323.95, "scale": 1.035, "flip": false },
+    { "type": "bush", "variant": 1, "x": 34.14, "y": 332.51, "scale": 0.821, "flip": false },
+    { "type": "bush", "variant": 0, "x": 689.24, "y": 304.75, "scale": 1.024, "flip": false },
+    { "type": "bush", "variant": 2, "x": 1280.27, "y": 309.71, "scale": 1.05, "flip": false },
+    { "type": "bush", "variant": 1, "x": 9.21, "y": 395.39, "scale": 1.094, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 809.79, "y": 375.3, "scale": 0.86, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": 880.18, "y": 370.65, "scale": 1.024, "flip": false },
+    { "type": "willowTree", "variant": 1, "x": 7.86, "y": 436.02, "scale": 0.836, "flip": false },
+    { "type": "bush", "variant": 2, "x": 235, "y": 420.43, "scale": 0.945, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 779.36, "y": 426.09, "scale": 0.934, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 812.15, "y": 401.77, "scale": 0.894, "flip": false },
+    { "type": "bush", "variant": 0, "x": 1942.63, "y": 440.92, "scale": 0.896, "flip": false },
+    { "type": "willowTree", "variant": 1, "x": -8.59, "y": 498.7, "scale": 1.119, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 37.32, "y": 464.39, "scale": 0.997, "flip": false },
+    { "type": "bush", "variant": 2, "x": 271.24, "y": 465.93, "scale": 1.019, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": 17.76, "y": 577.71, "scale": 0.954, "flip": false },
+    { "type": "bush", "variant": 2, "x": 42.05, "y": 576.21, "scale": 1.191, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": -12.37, "y": 652.94, "scale": 1.24, "flip": false },
+    { "type": "bush", "variant": 0, "x": 76.48, "y": 610.89, "scale": 0.977, "flip": false },
+    { "type": "bush", "variant": 0, "x": 296.9, "y": 649.85, "scale": 1.014, "flip": false },
+    { "type": "rock", "variant": 1, "x": 943.41, "y": 625.11, "scale": 0.933, "flip": false },
+    { "type": "willowTree", "variant": 1, "x": -31.67, "y": 714.65, "scale": 1.208, "flip": false },
+    { "type": "bush", "variant": 2, "x": 299.32, "y": 672.71, "scale": 0.845, "flip": false },
+    { "type": "bush", "variant": 2, "x": 699.66, "y": 661.47, "scale": 1.138, "flip": false },
+    { "type": "bush", "variant": 2, "x": 743.28, "y": 673.29, "scale": 0.855, "flip": false },
+    { "type": "bush", "variant": 2, "x": 1833.07, "y": 678.7, "scale": 1.118, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": 1928.63, "y": 699.09, "scale": 0.989, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": -18.39, "y": 722.15, "scale": 0.807, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 1938.19, "y": 721.16, "scale": 1.12, "flip": false },
+    { "type": "bush", "variant": 1, "x": 980.53, "y": 792.65, "scale": 0.95, "flip": false },
+    { "type": "bush", "variant": 1, "x": 1933.65, "y": 832.08, "scale": 0.937, "flip": false },
+    { "type": "rock", "variant": 2, "x": 545.21, "y": 859.51, "scale": 1.034, "flip": false },
+    { "type": "bush", "variant": 1, "x": 1869.57, "y": 888.34, "scale": 0.9, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": 1940.02, "y": 873.02, "scale": 0.949, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": 1925.34, "y": 940.79, "scale": 0.967, "flip": false },
+    { "type": "bush", "variant": 1, "x": 787.88, "y": 1039.96, "scale": 1.095, "flip": false },
+    { "type": "bush", "variant": 0, "x": 1870.32, "y": 986.67, "scale": 1.049, "flip": false },
+    { "type": "willowTree", "variant": 1, "x": 1911.95, "y": 1035.24, "scale": 1.101, "flip": false },
+    { "type": "bush", "variant": 0, "x": 636.61, "y": 1056.29, "scale": 1.222, "flip": false },
+    { "type": "bush", "variant": 2, "x": 707.42, "y": 1059.87, "scale": 1.037, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": 759.65, "y": 1084.6, "scale": 1.178, "flip": false },
+    { "type": "bush", "variant": 0, "x": 1439.31, "y": 1075.89, "scale": 0.865, "flip": false },
+    { "type": "bush", "variant": 0, "x": 1931.97, "y": 1098.06, "scale": 1.072, "flip": false },
+    { "type": "bush", "variant": 2, "x": 8.72, "y": 1116.35, "scale": 1.151, "flip": false },
+    { "type": "bush", "variant": 0, "x": 52.47, "y": 1145.56, "scale": 1.224, "flip": false },
+    { "type": "bush", "variant": 1, "x": 214.06, "y": 1167.25, "scale": 1.018, "flip": false },
+    { "type": "bush", "variant": 1, "x": 423.1, "y": 1165.83, "scale": 1.157, "flip": false },
+    { "type": "bush", "variant": 0, "x": 576.9, "y": 1110.05, "scale": 0.908, "flip": false },
+    { "type": "willowTree", "variant": 1, "x": 639.01, "y": 1142.05, "scale": 0.862, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 687.73, "y": 1159.19, "scale": 0.991, "flip": false },
+    { "type": "willowTree", "variant": 0, "x": 751.42, "y": 1160.08, "scale": 0.927, "flip": false },
+    { "type": "bush", "variant": 2, "x": 819.36, "y": 1153.22, "scale": 1.091, "flip": false },
+    { "type": "bush", "variant": 2, "x": 947.92, "y": 1163.48, "scale": 1.078, "flip": false },
+    { "type": "bush", "variant": 0, "x": 1042.82, "y": 1128.88, "scale": 0.963, "flip": false },
+    { "type": "bush", "variant": 0, "x": 1113.51, "y": 1128.29, "scale": 1.216, "flip": false },
+    { "type": "bush", "variant": 1, "x": 1139.7, "y": 1132.53, "scale": 0.91, "flip": false },
+    { "type": "bush", "variant": 1, "x": 1243.42, "y": 1139.58, "scale": 0.992, "flip": false },
+    { "type": "bush", "variant": 2, "x": 1259.4, "y": 1126.63, "scale": 0.849, "flip": false },
+    { "type": "willowTree", "variant": 2, "x": 1431.7, "y": 1138.29, "scale": 1.061, "flip": false },
+    { "type": "bush", "variant": 0, "x": 1490.25, "y": 1160.99, "scale": 0.966, "flip": false },
+    { "type": "bush", "variant": 1, "x": 1641.95, "y": 1129.09, "scale": 0.82, "flip": false },
+    { "type": "bush", "variant": 2, "x": 1943.5, "y": 1127.31, "scale": 1.181, "flip": false }
+  ],
+  "mire": {
+    "patches": [
+      {
+        "seed": 436957,
+        "blobs": [
+          [111.25, 381.3, 54.31],
+          [115.34, 371.58, 33.16],
+          [162.73, 376.93, 50.59],
+          [185.72, 383.52, 35.96],
+          [120.35, 345.82, 44.94],
+          [212.72, 320.63, 46.05]
+        ]
+      },
+      {
+        "seed": 48509,
+        "blobs": [
+          [776.77, 362.63, 49.06],
+          [797.7, 367.98, 35.41],
+          [747.05, 356.14, 43],
+          [744.56, 375.54, 43.89],
+          [770.6, 408.56, 43.47]
+        ]
+      },
+      {
+        "seed": 31944,
+        "blobs": [[781.51, 915.06, 43.4], [856.6, 952.7, 59.66], [815.41, 955.85, 43.79], [827.96, 979.5, 49.84]]
+      },
+      {
+        "seed": 203684,
+        "blobs": [
+          [703.88, 218.58, 48.88],
+          [806.08, 241.94, 29.51],
+          [774.65, 214.32, 30.5],
+          [706.24, 222.96, 39.29],
+          [827.92, 228.4, 58.63]
+        ]
+      },
+      {
+        "seed": 142618,
+        "blobs": [
+          [605.45, 859.93, 26.8],
+          [606.02, 908.06, 34.13],
+          [638.72, 866.39, 50.14],
+          [690.48, 884.41, 35.98],
+          [624.03, 924.79, 27.6],
+          [625.92, 895.09, 42.46]
+        ]
+      },
+      {
+        "seed": 564444,
+        "blobs": [
+          [97.64, 423.09, 31.73],
+          [107.46, 400.63, 62.18],
+          [46.13, 397.19, 27.47],
+          [130.8, 440.37, 50.7],
+          [125.13, 426.05, 27.51],
+          [33.09, 444.24, 58.16]
+        ]
+      },
+      {
+        "seed": 667817,
+        "blobs": [
+          [626.06, 919.65, 62.78],
+          [639.89, 898.21, 56.15],
+          [569.73, 892.34, 26.84],
+          [633.47, 928.68, 56.31],
+          [598.57, 896.02, 32.45]
+        ]
+      },
+      {
+        "seed": 443937,
+        "blobs": [
+          [1056.38, 157.9, 27.3],
+          [1048.17, 126.31, 32.41],
+          [982.14, 104.51, 36.81],
+          [1037.63, 111, 58.28],
+          [968.71, 118.33, 60.64],
+          [975.44, 106.94, 29.55]
+        ]
+      },
+      {
+        "seed": 74606,
+        "blobs": [
+          [1666.36, 474.02, 53.11],
+          [1675.27, 425.2, 41.39],
+          [1695.97, 426.11, 55.73],
+          [1610.25, 452.85, 46.12],
+          [1636.18, 462.11, 33.72],
+          [1718.15, 455.67, 26.31],
+          [1681.63, 495.49, 61.13],
+          [1729.01, 424.73, 27.45]
+        ]
+      },
+      {
+        "seed": 518485,
+        "blobs": [
+          [1853.88, 888.25, 27.48],
+          [1840.83, 923.63, 52.51],
+          [1864, 870.66, 62.25],
+          [1811.1, 928.31, 49.78],
+          [1791, 907.67, 31.84],
+          [1813.71, 943.79, 48.11],
+          [1877.6, 912.13, 51.55]
+        ]
+      },
+      {
+        "seed": 751735,
+        "blobs": [
+          [281.6, 815, 49.27],
+          [193.06, 781.87, 46.81],
+          [258.92, 837.19, 34.28],
+          [155.61, 783.11, 43.25],
+          [241.94, 803.85, 39]
+        ]
+      },
+      {
+        "seed": 836217,
+        "blobs": [
+          [817.25, 891.56, 26.54],
+          [792.97, 930.81, 46.96],
+          [695.1, 921.03, 48.36],
+          [733.21, 920.83, 55.55],
+          [799.64, 886.64, 38.78]
+        ]
+      },
+      {
+        "seed": 221987,
+        "blobs": [
+          [256.28, 876.98, 49.93],
+          [270.63, 878.62, 29.95],
+          [205.48, 894, 40.22],
+          [187.81, 889.78, 57.36],
+          [195.79, 895.43, 35.26],
+          [194, 844.36, 29.74]
+        ]
+      },
+      {
+        "seed": 902549,
+        "blobs": [
+          [1244.07, 623.34, 34.3],
+          [1290.35, 614.62, 33.78],
+          [1299.22, 583.14, 64],
+          [1249.32, 629.14, 44.44],
+          [1237.74, 634.01, 57.78],
+          [1360.62, 611.2, 55.27],
+          [1279.4, 583.76, 62.57],
+          [1257.77, 639.73, 28.66]
+        ]
+      },
+      {
+        "seed": 521824,
+        "blobs": [
+          [71.79, 595.61, 57.84],
+          [116.17, 636.13, 46.17],
+          [91.67, 665.87, 60.66],
+          [60.97, 613.61, 46.58],
+          [115.97, 600.99, 47.72],
+          [15.18, 632.45, 35.08]
+        ]
+      },
+      { "seed": 457368, "blobs": [[962.54, 698.16, 33.9], [899.34, 688.83, 58.97], [952.67, 679.18, 45.14]] },
+      {
+        "seed": 639693,
+        "blobs": [
+          [125.38, 785.18, 38.04],
+          [165.49, 813.82, 42.51],
+          [82.35, 793.54, 28.42],
+          [44.41, 845.25, 38.58],
+          [69.49, 841.2, 30.44],
+          [81.5, 780.67, 64],
+          [92.46, 840.34, 43.68],
+          [133.86, 821.86, 29.8]
+        ]
+      },
+      {
+        "seed": 113400,
+        "blobs": [[1536.96, 822.57, 32.01], [1547.25, 801.87, 34.94], [1563.54, 820.53, 28.77]]
+      },
+      { "seed": 809553, "blobs": [[962.89, 781.65, 28.28], [949.65, 754.11, 48.61]] },
+      { "seed": 577312, "blobs": [[606.15, 964.41, 27.48], [595.11, 944.71, 37.36]] },
+      {
+        "seed": 240707,
+        "blobs": [[1133.83, 233.65, 41.28], [1126.46, 241.08, 26.95], [1174.66, 272.48, 51.78]]
+      },
+      { "seed": 859213, "blobs": [[644.38, 653.58, 34.72], [668.64, 623.79, 28.82]] },
+      { "seed": 560453, "blobs": [[1427.26, 549.3, 55.06], [1424.58, 553.15, 46.61]] },
+      {
+        "seed": 461267,
+        "blobs": [
+          [889.25, 177.62, 52.3],
+          [894.61, 196.71, 60.61],
+          [813.02, 196.22, 42.45],
+          [879.17, 184.11, 32.76],
+          [816.6, 191.49, 28.67],
+          [811.02, 185.48, 37.12]
+        ]
+      }
+    ]
+  },
+  "palette": {
+    "floor": "#363c38",
+    "floorAccent": { "dark": "rgba(12, 16, 14, 0.38)", "light": "rgba(175, 185, 180, 0.14)" },
+    "corridor": { "base": "#5e605a", "worn": "rgba(170, 172, 165, 0.3)" },
+    "corridorEdge": "#2a2c2a",
+    "treeDark": { "trunk": "#3c3a32", "canopy": ["#3a4640", "#424e46", "#36423c"] },
+    "treeLight": ["#7a8a7e", "#86968a", "#6e7e72"],
+    "rock": { "base": "#6e726e", "light": "#8e928e", "dark": "#4c504e" },
+    "vegetation": { "base": "#40504a", "light": "#7a8c80" },
+    "mapTint": "#949e98",
+    "water": { "deep": "#3e4848", "rim": "#5a6462", "ripple": "rgba(205, 215, 212, 0.4)" },
+    "roof": { "dark": "#3a3228", "light": "#5e5244" },
+    "mist": "rgba(215, 225, 222, 0.22)"
+  },
+  "presentation": { "tollSound": null, "laneGlow": false, "ashFlecks": 0 },
+  "backgroundImage": null,
+  "notes": ""
+}

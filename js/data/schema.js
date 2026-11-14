@@ -112,9 +112,8 @@ export const TABS = {
   levels: {
     columns: {
       id: { type: 'id', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
-      row: { type: 'int' }, nodeType: { type: 'id', required: true }, region: { type: 'id', required: true }, enemyHpMult: { type: 'number' }, corridorWidth: { type: 'number' },
+      row: { type: 'int' }, nodeType: { type: 'id', required: true }, region: { type: 'id', required: true }, enemyHpMult: { type: 'number' },
       stepBudget: { type: 'number', required: true }, stuckTime: { type: 'number' },
-      mireCoverage: { type: 'number' }, // M3c §3.1: rough fraction of the battlefield that is mire (with the region's mireGround)
     },
     pattern: [/^mix_[a-z][a-zA-Z0-9]*$/, { type: 'int' }],
   },
@@ -129,8 +128,9 @@ export const TABS = {
   },
   waves: { columns: { level: { type: 'id', required: true }, wave: { type: 'int', required: true }, gapAfter: { type: 'number' }, tolls: { type: 'list' } } },
   spawns: { columns: { level: { type: 'id', required: true }, wave: { type: 'int', required: true }, t: { type: 'number', required: true }, lane: { type: 'id', required: true }, type: { type: 'id', required: true }, count: { type: 'int', required: true } } },
-  candidates: { columns: { level: { type: 'id', required: true }, index: { type: 'int', required: true }, x: { type: 'number', required: true }, y: { type: 'number', required: true }, zone: { type: 'id', required: true } } },
-  // Any other column is a palette colour; nested colours are flattened with '_' (treeDark_canopy_0).
+  // The palettes of places other than battle levels (M2n §1, M3a; M4a §0: a level's palette is in its
+  // map file); `level` names the place. Any other column is a palette colour; nested colours are
+  // flattened with '_' (treeDark_canopy_0).
   palettes: { columns: { level: { type: 'id', required: true } }, pattern: [/^[a-z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*$/, { type: 'text' }] },
   sounds: { columns: { id: { type: 'id', required: true }, volume: { type: 'number', required: true }, pitch: { type: 'number', required: true }, minGap: { type: 'number', required: true }, maxVoices: { type: 'int', required: true }, enabled: { type: 'bool', required: true } } },
   // M2n §3.1: each resource's trade value and a trader's stock range.

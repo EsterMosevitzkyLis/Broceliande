@@ -8,6 +8,7 @@
 import * as C from './config.js';
 import { loadTables } from './data/loader.js';
 import { validateTables } from './data/validate.js';
+import { loadMaps } from './mapFile.js';
 
 const loadingScreen = document.getElementById('loading-screen');
 
@@ -68,10 +69,12 @@ async function load() {
 }
 
 const { tables, problems } = await load();
-if (problems.errors.length === 0) validateTables(tables, problems);
+// M4a §1.3: every level's map file, always from the project (in ?live mode too).
+const { maps, backgrounds } = await loadMaps((tables.levels ?? []).map((r) => r.id).filter(Boolean), problems);
+if (problems.errors.length === 0) validateTables(tables, problems, maps);
 if (problems.errors.length === 0) {
   try {
-    C.applyData(tables);
+    C.applyData(tables, maps, backgrounds);
   } catch (err) {
     problems.errors.push({ tab: '', message: `the data could not be applied: ${err.message}` });
     console.error(err);

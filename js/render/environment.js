@@ -65,18 +65,27 @@ export function drawShadow(ctx, x, y, rx, ry) {
   ctx.fill();
 }
 
-// level: its palette, thornBushes (M2a §5.3) for spiky thorn bushes instead of round ones, and
-// gnarledTrees (M2b §3.3) for twisted trees, bareTrees (M2f §4.8) for pale leafless ones,
-// charredTrees (M3a §2) for burnt, leafless orchard trees, willowTrees (M3d) for drooping
-// willows (pale in Bonewhite Willows, sallow by The Sallow Mere), wormwoodBushes (M3d) for
-// feathery grey-green wormwood.
+// One decoration object from the level's map file (M4a §1.2), by its kind: the tree and bush
+// styles (gnarled, bare, charred, willow, orchard; thorn, wormwood) are kinds of their own.
+// item.flip mirrors it about its base.
+const DECOR_DRAW = {
+  tree: drawTree, gnarledTree: drawGnarledTree, bareTree: drawBareTree, charredTree: drawCharredTree,
+  willowTree: drawWillowTree, orchardTree: drawOrchardTree,
+  bush: drawBush, thornBush: drawThornBush, wormwoodBush: drawWormwoodBush,
+  rock: drawRock,
+};
 export function drawDecor(ctx, item, level) {
-  const palette = level.palette;
-  if (item.kind === 'tree') (level.bareTrees ? drawBareTree : level.charredTrees ? drawCharredTree : level.willowTrees ? drawWillowTree : level.orchardTrees ? drawOrchardTree : level.gnarledTrees ? drawGnarledTree : drawTree)(ctx, item, palette);
-  else if (item.kind === 'bush') (level.thornBushes ? drawThornBush : level.wormwoodBushes ? drawWormwoodBush : drawBush)(ctx, item, palette);
-  else if (item.kind === 'rock') drawRock(ctx, item, palette);
-  else THEMED[item.kind](ctx, item, palette);
+  const draw = DECOR_DRAW[item.kind] ?? THEMED[item.kind];
+  if (!item.flip) return draw(ctx, item, level.palette);
+  ctx.save();
+  ctx.translate(item.x * 2, 0);
+  ctx.scale(-1, 1);
+  draw(ctx, item, level.palette);
+  ctx.restore();
 }
+
+// Whether the map file has a drawing for this decoration kind (start-up check, M4a §1.3).
+export const isDecorKind = (kind) => !!(DECOR_DRAW[kind] ?? THEMED[kind]);
 
 // Flat ground decoration (M2b §3): water and mist patches (M3a §2: and ash pits), drawn over the
 // floor and under the corridors. Each avoids corridors and candidates (scene.js).
@@ -436,22 +445,22 @@ function drawRoot(ctx, { x, y, size: s, angle = 0 }, P) {
 }
 
 // M2f §4.2: a shallow stream across the map, drawn before the corridors so they cross it as
-// fords. level.stream: { points: [{ x, y }, …], width }. Decoration only.
+// fords. Each of scene.streams: { points: [{ x, y }, …], width }. Decoration only.
 export function drawStream(ctx, scene) {
-  const s = scene.level.stream;
-  if (!s) return;
   const P = scene.level.palette;
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  for (const [w, color] of [[s.width + 10, P.water.rim], [s.width, P.water.deep], [s.width * 0.35, P.water.ripple]]) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = w;
-    ctx.beginPath();
-    s.points.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    ctx.stroke();
+  for (const s of scene.streams) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const [w, color] of [[s.width + 10, P.water.rim], [s.width, P.water.deep], [s.width * 0.35, P.water.ripple]]) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      s.points.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.stroke();
+    }
+    ctx.restore();
   }
-  ctx.restore();
 }
 
 // M2f §4.7: very subtle ash flecks drifting slowly over the ground (level.ashFlecks of them). Each

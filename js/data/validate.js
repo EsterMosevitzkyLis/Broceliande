@@ -3,13 +3,14 @@
 // per-level start-up checks (candidates, corridors, zones, Ogre widths…) run later, on the applied
 // data, as before.
 
-import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, LEVEL_GEOMETRY, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES } from '../config.js';
+import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 
 const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss']; // M3b §1
 import { STAT_KEYS } from '../stats.js';
 
-export function validateTables(t, problems) {
+// maps: each level's map file (M4a §1.3; a missing one is already an error from loadMaps).
+export function validateTables(t, problems, maps = {}) {
   const err = (tab, row, column, message) => problems.errors.push({ tab, row: row?._row ?? row ?? '', column, message });
   const warn = (tab, row, column, message) => problems.warnings.push({ tab, row: row?._row ?? row ?? '', column, message });
 
@@ -162,11 +163,10 @@ export function validateTables(t, problems) {
   if (!t.regions.length) err('regions', '', 'id', 'no regions');
   for (const r of t.enemies) known('enemies', r, 'region', regions, 'region'); // M3b §1: blank = every region
 
-  // levels: each has its geometry in code, and vice versa; candidates, a palette, waves.
+  // levels: each has its map file (M4a §1.1, checked by loadMaps), waves.
   const levels = ids('levels');
   for (const r of t.levels) {
     known('levels', r, 'region', regions, 'region');
-    if (!LEVEL_GEOMETRY[r.id]) err('levels', r, 'id', `no level "${r.id}" in the code (lanes and decoration live in config.js LEVEL_GEOMETRY)`);
     if (!NODE_TYPES[r.nodeType]) err('levels', r, 'nodeType', `unknown node type "${r.nodeType}" (${Object.keys(NODE_TYPES).join(', ')})`);
     for (const col of Object.keys(r)) {
       const m = col.match(/^mix_(.+)$/);
@@ -174,8 +174,7 @@ export function validateTables(t, problems) {
     }
   }
   for (const reg of regions) if (!t.levels.some((l) => l.region === reg)) err('levels', '', 'region', `region ${reg} has no levels`);
-  for (const id of Object.keys(LEVEL_GEOMETRY)) if (!levels.has(id)) err('levels', '', 'id', `missing level ${id}`);
-  const laneIds = (level) => new Set((LEVEL_GEOMETRY[level]?.lanes ?? []).map((l) => l.id));
+  const laneIds = (level) => new Set((maps[level]?.lanes ?? []).map((l) => l.id));
 
   // waves and spawns
   const waveKeys = new Set();
@@ -202,18 +201,10 @@ export function validateTables(t, problems) {
   }
   for (const r of t.waves) if (!spawned.has(`${r.level}:${r.wave}`)) err('waves', r, 'wave', `wave ${r.wave} of ${r.level} has no spawns`);
 
-  // candidates: indices 0, 1, 2… per level
-  const candidateCounts = {};
-  for (const r of t.candidates) {
-    known('candidates', r, 'level', levels, 'level');
-    candidateCounts[r.level] = (candidateCounts[r.level] ?? 0) + 1;
-    if (r.index !== candidateCounts[r.level] - 1) err('candidates', r, 'index', `${r.level}'s candidates must be indexed 0, 1, 2… in order`);
-  }
-
   // palettes
   const palettes = ids('palettes', 'level');
-  // Rows are levels, or non-combat places (M2n §1: the trader scene).
-  for (const r of t.palettes) known('palettes', r, 'level', new Set([...levels, ...PLACE_PALETTES]), 'level or place');
+  // Rows are non-combat places (M2n §1: the trader scene); a level's palette is in its map file (M4a §0).
+  for (const r of t.palettes) known('palettes', r, 'level', new Set(PLACE_PALETTES), 'place (a battle level has its palette in its map file)');
   for (const id of PLACE_PALETTES) if (!palettes.has(id)) err('palettes', '', 'level', `missing the "${id}" palette`);
 
   // turrets (M3c §4.1): base rows need every stat; a variant names a known base type, at the same levels,
@@ -296,8 +287,7 @@ export function validateTables(t, problems) {
 
   for (const r of t.levels) {
     if (!waveCounts[r.id]) err('levels', r, 'id', `${r.id} has no waves`);
-    if (!candidateCounts[r.id]) err('levels', r, 'id', `${r.id} has no candidates`);
-    if (!palettes.has(r.id)) err('levels', r, 'id', `${r.id} has no palette`);
+    if (maps[r.id] && !maps[r.id].candidates.length) err('levels', r, 'id', `${r.id} has no candidates in its map file`);
   }
   return problems;
 }

@@ -87,11 +87,16 @@ export function createRenderer(canvas) {
       ctx.translate(shake.x, shake.y);
     }
 
-    // Ground layer.
-    drawFloor(ctx, scene);
-    drawStream(ctx, scene); // M2f §4.2: under the corridors, which cross it as fords
-    drawCorridors(ctx, scene);
-    drawFlats(ctx, scene);
+    // Ground layer. M4a §1.2: a map file's background image replaces the procedural ground, the
+    // corridors' fill and the floor decoration.
+    if (scene.background) {
+      ctx.drawImage(scene.background, 0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
+    } else {
+      drawFloor(ctx, scene);
+      drawStream(ctx, scene); // M2f §4.2: under the corridors, which cross it as fords
+      drawCorridors(ctx, scene);
+      drawFlats(ctx, scene);
+    }
     drawMire(ctx, scene, animationTime(game)); // M3c §3.1: mire ground (never on a corridor), under everything upright
     // M2f §4.11: the Heartwood's sickly glow at its lane entrances.
     if (scene.level.laneGlow) for (const lane of game.lanes) drawLaneGlow(ctx, laneEntrance(lane), scene.level.palette.laneGlow, performance.now() / 1000);
