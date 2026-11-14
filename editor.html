@@ -59,7 +59,7 @@
       <section>
         <h2>Selection</h2>
         <div id="ed-selection"></div>
-        <label id="ed-zone-row" hidden>Zone <select id="ed-zone"></select></label>
+        <div id="ed-selection-edit"></div>
         <div id="ed-decor-actions" class="ed-choice" hidden></div>
       </section>
       <section>
@@ -69,6 +69,20 @@
           <span id="ed-corridor-width-value"></span>
         </label>
         <div id="ed-sectors"></div>
+        <details class="ed-details" open>
+          <summary>Level rules</summary>
+          <div id="ed-level-rules"></div>
+        </details>
+      </section>
+      <section id="ed-zone-rules-section" hidden>
+        <h2>Zone rules</h2>
+        <div id="ed-zone-rules"></div>
+      </section>
+      <section>
+        <details class="ed-details">
+          <summary>Level data (from the sheet)</summary>
+          <div id="ed-level-data"></div>
+        </details>
       </section>
       <section>
         <h2>Layers</h2>

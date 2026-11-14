@@ -127,8 +127,9 @@ body.map-editor select:disabled {
 
 #ed-panel {
   flex: none;
-  width: 360px;
-  overflow: hidden;
+  width: 380px;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   background: var(--ed-panel);
@@ -306,8 +307,7 @@ body.map-editor .ed-choice button.active {
 }
 
 .ed-checks-section {
-  flex: 1;
-  min-height: 0;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
 }
@@ -368,8 +368,47 @@ body.map-editor .ed-primary {
   margin-bottom: 6px;
 }
 #ed-checks {
-  flex: 1;
+  max-height: 60vh;
   overflow: auto;
+}
+.ed-details summary {
+  cursor: pointer;
+  color: var(--ed-dim);
+  margin: 6px 0;
+}
+#ed-level-data {
+  line-height: 1.45;
+}
+.ed-table {
+  border-collapse: collapse;
+  margin-bottom: 6px;
+}
+.ed-table th {
+  color: var(--ed-dim);
+  font-weight: normal;
+  text-align: left;
+  padding: 0 6px 2px 0;
+}
+.ed-table td {
+  padding: 1px 6px 1px 0;
+}
+.ed-table button {
+  padding: 1px 6px;
+}
+.ed-rule-label {
+  flex: 1;
+  min-width: 0;
+}
+.ed-warning {
+  color: var(--ed-warn);
+}
+body.map-editor input[type='number']::placeholder {
+  color: #6c7378;
+}
+body.map-editor input[type='number'] {
+  background: #15171a;
+  color: var(--ed-text);
+  border: 1px solid var(--ed-line);
 }
 .ed-check-group {
   margin: 8px 0 2px;

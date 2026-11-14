@@ -7,7 +7,7 @@ import { GameState, ActionState, WaveState } from './states.js';
 import { laneStats, expectedResources, candidateProblems } from './scene.js';
 import { routeBand, generateLayout } from './layout.js';
 import { zoneIds, zoneQuota, zoneCandidates, quotaTotals } from './zones.js';
-import { corridorWidth, featureMix, stuckTime, levelWaves, waveTotals, levelTotals, regionTwist } from './levelSettings.js';
+import { corridorWidth, featureMix, stuckTime, levelWaves, waveTotals, levelTotals, regionTwist, laneMinTurretSlots, occupiedRadius } from './levelSettings.js';
 import { waveCount, waveEnemiesLeft } from './systems/waveSystem.js';
 import { createRng } from './rng.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
@@ -230,7 +230,7 @@ function runDebugLines(game, scene) {
   const failures = Object.entries(L.failures).map(([k, n]) => `${k.replace('coverage:', 'cover ')} ${n}`).join(' · ') || 'none';
   const lines = ['', `Layout: zone-based, ${L.randomised ? 'randomised' : `FIXED (RANDOMISE_LAYOUT false, seed ${C.FIXED_LAYOUT_SEED})`}  attempts ${L.attempts}/${C.MAX_LAYOUT_ATTEMPTS}  (L = new seed)`];
   lines.push(`  failed constraints over all attempts: ${failures}`);
-  lines.push(`  Lane coverage (min ${C.LANE_MIN_TURRET_SLOTS}): ${scene.lanes.map((lane) => `${lane.name} ${L.coverage[lane.id]}`).join(' · ')}`);
+  lines.push(`  Lane coverage (min ${laneMinTurretSlots(scene.level)}): ${scene.lanes.map((lane) => `${lane.name} ${L.coverage[lane.id]}`).join(' · ')}`);
   lines.push(`  Feature route ${L.routeCost} steps  (band ${Math.ceil(band.min)}–${Math.floor(band.max)})`);
   if (L.fallback) lines.push(`  ⚠ FALLBACK: best failed attempt used — fails ${L.failed.join(', ')}`);
   lines.push(...zoneDebugLines(game, scene));
@@ -667,8 +667,8 @@ export function levelNameLabelArea(scene) {
 }
 
 export function levelNameLabelProblems(scene, r = levelNameLabelArea(scene)) {
-  const occupied = C.LOCATION_RADIUS + C.LOCATION_JITTER;
-  return scene.candidates.filter((c) => underArea(r, c, occupied))
+  // M4b §2: each spot's footprint + its own jitter.
+  return scene.candidates.filter((c) => underArea(r, c, occupiedRadius(c)))
     .map((c) => ({ index: c.index, problem: `candidate ${c.index} at (${c.x}, ${c.y}) is under the level name label` }));
 }
 

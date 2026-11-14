@@ -8,9 +8,11 @@ import { drawDruid, DRUID_REST_POSE, drawTurretSlot, drawFeature, featureBase } 
 import { laneEntrance, COLORS } from '../js/renderer.js';
 import { drawLane, drawZones } from '../js/debug/debugOverlay.js';
 import { geometricZone } from '../js/zones.js';
+import { spotPin } from '../js/levelSettings.js';
 import { sectorHandlePos } from './geometry.js';
 
-export const LAYERS = ['ground', 'lanes', 'mire', 'decoration', 'spots', 'zones', 'checks'];
+export const LAYERS = ['ground', 'lanes', 'mire', 'decoration', 'spots', 'zones', 'checks', 'laneLabels'];
+export const LAYER_LABELS = { laneLabels: 'lane labels' };
 
 const SPOT = 'rgba(120, 220, 255, 0.95)';
 const PROBLEM = 'rgba(255, 70, 60, 0.95)';
@@ -147,6 +149,9 @@ export function drawView(ctx, scene, view) {
     ctx.restore();
   }
   if (layers.spots || tool === 'spots') drawSpots(ctx, scene);
+  if (layers.laneLabels || tool === 'lanes') drawLaneLabels(ctx, scene);
+  const single = view.selection.length === 1 && view.selection[0].kind === 'candidate' ? scene.candidates[view.selection[0].index] : null;
+  if (single) drawCoverage(ctx, scene, single);
   if (preview) drawPreviewTags(ctx, scene, preview);
   if (layers.checks) drawCheckMarks(ctx, scene, view);
   if (tool === 'druid') drawDruidHandles(ctx, level);
@@ -169,16 +174,58 @@ export function drawView(ctx, scene, view) {
   ctx.restore();
 }
 
-// Candidate spots: footprint, footprint + jitter (dashed), index and zone (* for a manual zone).
+// Candidate spots: footprint, footprint + its jitter (dashed), index and zone (* for a manual zone),
+// and a pinned role's badge (M4b §1.4): T, R, R:<type>, ≠∅ or ∅.
+const PIN_BADGE = { turret: 'T', feature: 'R', notVacant: '≠∅', vacant: '∅' };
 function drawSpots(ctx, scene) {
   const level = scene.level;
   for (const c of scene.candidates) {
     ring(ctx, c.x, c.y, C.LOCATION_RADIUS, SPOT, 1.5);
-    ring(ctx, c.x, c.y, C.LOCATION_RADIUS + C.LOCATION_JITTER, SPOT, 1.5, [3, 5]);
+    ring(ctx, c.x, c.y, C.LOCATION_RADIUS + c.jitter, SPOT, 1.5, [3, 5]);
     const loc = level.candidateLocations[c.index];
     const manual = geometricZone(level, loc) !== loc.zone ? '*' : '';
-    tag(ctx, `#${c.index} ${loc.zone}${manual}`, c.x - C.LOCATION_RADIUS, c.y + C.LOCATION_RADIUS + C.LOCATION_JITTER + 14, SPOT);
+    tag(ctx, `#${c.index} ${loc.zone}${manual}`, c.x - C.LOCATION_RADIUS, c.y + C.LOCATION_RADIUS + c.jitter + 14, SPOT);
+    const pin = spotPin(loc);
+    if (pin.role !== 'auto') {
+      const text = pin.featureType ? `R:${C.FEATURE_TYPES[pin.featureType]?.name ?? pin.featureType}` : PIN_BADGE[pin.role];
+      ctx.font = 'bold 14px monospace';
+      tag(ctx, text, c.x + C.LOCATION_RADIUS * 0.5, c.y - C.LOCATION_RADIUS * 0.6, 'rgba(255, 225, 120, 1)');
+      ctx.font = '13px monospace';
+    }
   }
+}
+
+// M4b §4: each lane's ID at its entrance (the name spawns rows use).
+function drawLaneLabels(ctx, scene) {
+  for (const lane of scene.lanes) {
+    const p = laneEntrance(lane);
+    ctx.font = 'bold 16px monospace';
+    const w = ctx.measureText(lane.id).width;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(p.x - w / 2 - 5, p.y - 12, w + 10, 22);
+    ctx.fillStyle = 'rgba(255, 140, 120, 1)';
+    ctx.textAlign = 'center';
+    ctx.fillText(lane.id, p.x, p.y + 4);
+    ctx.textAlign = 'left';
+  }
+  ctx.font = '13px monospace';
+}
+
+// M4b §4: thin lines from a selected spot to the nearest point of each lane its base turret range
+// reaches.
+function drawCoverage(ctx, scene, c) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 140, 120, 0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  for (const id of c.lanes) {
+    const q = scene.lanes.find((l) => l.id === id).path.closestPoint(c);
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y);
+    ctx.lineTo(q.x, q.y);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 // Red marks on whatever a check flags: candidates and lanes with errors or warnings, decoration
@@ -188,7 +235,7 @@ function drawCheckMarks(ctx, scene, view) {
   const candidates = new Set(marked.filter((i) => i.target?.kind === 'candidate').map((i) => i.target.index));
   const lanes = new Set(marked.filter((i) => i.target?.kind === 'lane').map((i) => i.target.id));
   for (const lane of scene.lanes) if (lanes.has(lane.id)) strokeCentreline(ctx, lane, PROBLEM, 4);
-  for (const c of scene.candidates) if (candidates.has(c.index)) ring(ctx, c.x, c.y, C.LOCATION_RADIUS + C.LOCATION_JITTER + 4, PROBLEM, 4);
+  for (const c of scene.candidates) if (candidates.has(c.index)) ring(ctx, c.x, c.y, C.LOCATION_RADIUS + c.jitter + 4, PROBLEM, 4);
   for (const d of view.checks.overlaps) decorMark(ctx, d, WARN, 2);
   for (const a of view.areas) {
     ctx.strokeStyle = AREA;
@@ -227,7 +274,7 @@ function drawDruidHandles(ctx, level) {
 function drawSelected(ctx, scene, sel, decor) {
   if (sel.kind === 'candidate') {
     const c = scene.candidates[sel.index];
-    if (c) ring(ctx, c.x, c.y, C.LOCATION_RADIUS + C.LOCATION_JITTER + 9, SELECT, 3);
+    if (c) ring(ctx, c.x, c.y, C.LOCATION_RADIUS + c.jitter + 9, SELECT, 3);
   } else if (sel.kind === 'waypoint') {
     const w = scene.lanes[sel.lane]?.waypoints[sel.index];
     if (w) ring(ctx, w.x, w.y, 9, SELECT, 3);
@@ -239,7 +286,7 @@ function drawSelected(ctx, scene, sel, decor) {
     if (d) decorMark(ctx, d, SELECT, 3);
   } else if (sel.kind === 'zone') {
     for (const c of scene.candidates) {
-      if (scene.level.candidateLocations[c.index].zone === sel.zone) ring(ctx, c.x, c.y, C.LOCATION_RADIUS + C.LOCATION_JITTER + 9, SELECT, 3);
+      if (scene.level.candidateLocations[c.index].zone === sel.zone) ring(ctx, c.x, c.y, C.LOCATION_RADIUS + c.jitter + 9, SELECT, 3);
     }
   } else if (sel.kind === 'druid') {
     const d = scene.level.druidPos;

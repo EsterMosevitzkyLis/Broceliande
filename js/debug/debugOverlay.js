@@ -211,13 +211,13 @@ function drawCandidates(ctx, game, scene) {
     ctx.stroke();
     ctx.setLineDash([3, 5]);
     ctx.beginPath();
-    ctx.arc(c.x, c.y, C.LOCATION_RADIUS + C.LOCATION_JITTER, 0, Math.PI * 2);
+    ctx.arc(c.x, c.y, C.LOCATION_RADIUS + c.jitter, 0, Math.PI * 2); // M4b §2: its own jitter
     ctx.stroke();
     ctx.setLineDash([]);
     cross(ctx, c.x, c.y, 5);
 
     const x = c.x - C.LOCATION_RADIUS;
-    let y = c.y + C.LOCATION_RADIUS + C.LOCATION_JITTER + 14;
+    let y = c.y + C.LOCATION_RADIUS + c.jitter + 14;
     label(ctx, `#${c.index} ${roleTag(game, role, c.index)} (${c.x}, ${c.y})`, x, y, color);
     if (role.kind === 'slot') {
       y += 17;

@@ -5,7 +5,7 @@
 
 import * as C from './config.js';
 import { createRng } from './rng.js';
-import { corridorWidth, regionTwist } from './levelSettings.js';
+import { corridorWidth, regionTwist, occupiedRadius } from './levelSettings.js';
 import { corridorDistance, OCCUPIED_RADIUS } from './scene.js';
 import { mireFromBlobs } from './mire.js';
 import { createLanePath } from './lanePath.js';
@@ -35,11 +35,10 @@ export function draftGround(scene, opts) {
 // ---------------------------------------------------------------------------
 
 // Whether a circle (centre, radius r) stays clear of corridors and of every candidate
-// (footprint + jitter + margin).
+// (footprint + its own jitter, M4b §2, + margin).
 function circleFits(scene, centre, r) {
   if (corridorDistance(scene.lanes, centre) - corridorWidth(scene.level) / 2 < r + C.DECOR.corridorGap) return false;
-  const keepOut = OCCUPIED_RADIUS + C.DECOR_MARGIN + r;
-  return scene.candidates.every((c) => Math.hypot(centre.x - c.x, centre.y - c.y) >= keepOut);
+  return scene.candidates.every((c) => Math.hypot(centre.x - c.x, centre.y - c.y) >= occupiedRadius(c) + C.DECOR_MARGIN + r);
 }
 
 // The kind whose drawn extent (C.DECOR.extent) a kind uses: its own, or a tree's or a bush's for

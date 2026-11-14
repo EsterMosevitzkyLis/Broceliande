@@ -76,6 +76,15 @@ export function mapProblems(map, id) {
   for (const kind of new Set((map.decor ?? []).filter((d) => d.type?.startsWith('landmark:')).map((d) => d.type.slice(9)))) {
     if (!C.DECOR.landmarkSize[kind]) out.push(`landmark "${kind}" has no default size (config.js DECOR.landmarkSize)`);
   }
+  const PINS = /^(auto|turret|feature|notVacant|vacant|feature:[A-Za-z0-9]+)$/;
+  (map.candidates ?? []).forEach((c, i) => {
+    if (c.pin !== undefined && !PINS.test(c.pin)) out.push(`candidate ${i}: pin "${c.pin}" should be auto, turret, feature, feature:<type>, notVacant or vacant`);
+    if (c.jitter !== undefined && !(c.jitter >= 0)) out.push(`candidate ${i}: jitter should be a number of px, 0 or more`);
+  });
+  for (const [k, v] of Object.entries(map.rules ?? {})) {
+    if (!['laneMinTurretSlots', 'routeMinFactor', 'routeMaxFactor'].includes(k)) out.push(`rules: unknown rule "${k}"`);
+    else if (!(v >= 0)) out.push(`rules.${k} should be a number, 0 or more`);
+  }
   if (!(map.mire?.cell > 0) || !Array.isArray(map.mire?.rows)) out.push('"mire" needs a cell size and a rows list');
   else {
     try { decodeMire(map.mire); } catch (e) { out.push(e.message); }
@@ -104,6 +113,7 @@ export function levelFromMap(map) {
     sectorNames: map.sectors.names,
     nearRadius: map.sectors.nearRadius,
     zoneQuotaOverrides: map.zoneQuotaOverrides ?? {},
+    rules: map.rules ?? {}, // M4b §3.2: laneMinTurretSlots, routeMinFactor, routeMaxFactor (missing: the globals)
     palette: map.palette,
     tollSound: P.tollSound ?? undefined,
     laneGlow: !!P.laneGlow,
@@ -113,7 +123,13 @@ export function levelFromMap(map) {
     mire: decodeMire(map.mire),
   };
   // zoneAuto: the zone worked out from the geometry; otherwise the stored zone is a manual override.
-  level.candidateLocations = map.candidates.map((c) => ({ x: c.x, y: c.y, zone: c.zoneAuto ? geometricZone(level, c) : c.zone }));
+  // M4b §1–§2: an optional pinned role and jitter of its own (missing: rolled, LOCATION_JITTER).
+  level.candidateLocations = map.candidates.map((c) => {
+    const loc = { x: c.x, y: c.y, zone: c.zoneAuto ? geometricZone(level, c) : c.zone };
+    if (c.pin && c.pin !== 'auto') loc.pin = c.pin;
+    if (c.jitter !== undefined) loc.jitter = c.jitter;
+    return loc;
+  });
   const G = level.ground;
   // mapIndex: the object's place in the file's decor list (the map editor's checks point at it).
   map.decor.forEach((d, mapIndex) => {

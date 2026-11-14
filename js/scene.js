@@ -8,7 +8,7 @@ import * as C from './config.js';
 import { createLanePath } from './lanePath.js';
 import { emptyResources } from './resources.js';
 import { zoneIds, geometricZone, zoneQuota, zoneCandidates, quotaTotals, isNearZone } from './zones.js';
-import { corridorWidth, featureMix, levelWaves, waveTotals } from './levelSettings.js';
+import { corridorWidth, featureMix, levelWaves, waveTotals, occupiedRadius, spotJitter, spotPin } from './levelSettings.js';
 import { fitsCorridor } from './entities/enemy.js';
 import { isDecorKind, decorDrawable } from './render/environment.js';
 
@@ -35,6 +35,7 @@ export function sceneFromLevel(levelId, level) {
     index,
     x: c.x,
     y: c.y,
+    jitter: spotJitter(c), // M4b §2: its own, or LOCATION_JITTER
     lanes: lanes.filter((lane) => lane.path.distanceTo(c) <= C.TURRET_RANGE).map((lane) => lane.id),
   }));
   const G = level.ground;
@@ -60,7 +61,8 @@ export function corridorDistance(lanes, p) {
   return best;
 }
 
-// Radius around a candidate that can be occupied by its object once jittered.
+// Radius around a candidate that can be occupied by its object once jittered, with the default
+// jitter (M4b §2: a candidate with its own jitter: levelSettings.js occupiedRadius).
 export const OCCUPIED_RADIUS = C.LOCATION_RADIUS + C.LOCATION_JITTER;
 
 // ---------------------------------------------------------------------------
@@ -70,20 +72,22 @@ export const OCCUPIED_RADIUS = C.LOCATION_RADIUS + C.LOCATION_JITTER;
 // Candidate rules (M1c §2). Returns a list of { index, problem } for the debug panel too.
 export function candidateProblems(scene) {
   const problems = [];
-  const clearance = corridorWidth(scene.level) / 2 + OCCUPIED_RADIUS;
-  const spacing = 2 * OCCUPIED_RADIUS + C.LOCATION_GAP;
+  // M4b §2: each spot's footprint + its own jitter.
   for (const c of scene.candidates) {
     const add = (problem) => problems.push({ index: c.index, problem });
+    const occupied = occupiedRadius(c);
+    const clearance = corridorWidth(scene.level) / 2 + occupied;
     if (c.lanes.length === 0) add(`no lane centreline within TURRET_RANGE (${C.TURRET_RANGE} px)`);
     const d = corridorDistance(scene.lanes, c);
     if (d < clearance) add(`${Math.round(d)} px from a corridor centreline, needs ≥ ${clearance} (short by ${Math.ceil(clearance - d)})`);
-    if (c.x - OCCUPIED_RADIUS < 0 || c.x + OCCUPIED_RADIUS > C.STAGE_WIDTH
-      || c.y - OCCUPIED_RADIUS < C.HUD_STRIP_HEIGHT || c.y + OCCUPIED_RADIUS > C.STAGE_HEIGHT) {
+    if (c.x - occupied < 0 || c.x + occupied > C.STAGE_WIDTH
+      || c.y - occupied < C.HUD_STRIP_HEIGHT || c.y + occupied > C.STAGE_HEIGHT) {
       add(`footprint + jitter leaves the screen or reaches the HUD strip`);
     }
     for (const o of scene.candidates) {
       if (o.index <= c.index) continue;
       const gap = Math.hypot(o.x - c.x, o.y - c.y);
+      const spacing = occupied + occupiedRadius(o) + C.LOCATION_GAP;
       if (gap < spacing) add(`${Math.round(gap)} px from candidate ${o.index}, needs ≥ ${spacing}`);
     }
   }
@@ -112,6 +116,16 @@ function zoneChecks(scene, add) {
     if (n < q.turret + q.feature) {
       add('error', `zone ${zone} has ${n} candidates, fewer than its quota of ${q.turret} turret + ${q.feature} feature`, target);
     }
+    // M4b §1.3: pins the zone's quotas can't honour.
+    const pins = zoneCandidates(level, zone).map((i) => spotPin(level.candidateLocations[i]).role);
+    const count = (role) => pins.filter((r) => r === role).length;
+    if (count('turret') > q.turret) add('error', `zone ${zone} has ${count('turret')} spots pinned to turret, more than its turret quota of ${q.turret}`, target);
+    if (count('feature') > q.feature) add('error', `zone ${zone} has ${count('feature')} spots pinned to a resource spot, more than its feature quota of ${q.feature}`, target);
+    const free = Math.max(0, q.turret - count('turret')) + Math.max(0, q.feature - count('feature'));
+    if (count('notVacant') > free) add('error', `zone ${zone} has ${count('notVacant')} spots pinned to "not vacant", but only ${free} turret and feature places are left in its quotas`, target);
+    if (n > 0 && n - count('vacant') < q.turret + q.feature && n >= q.turret + q.feature) {
+      add('error', `zone ${zone} has ${count('vacant')} spots pinned vacant, leaving ${n - count('vacant')} for its quota of ${q.turret} turret + ${q.feature} feature`, target);
+    }
     // A zoneQuotaOverrides entry can lower a zone's quota to what it holds, which hides a zone that
     // is short of room: also check every zone against the default near / far quota.
     const kind = isNearZone(zone) ? 'near' : 'far';
@@ -124,6 +138,17 @@ function zoneChecks(scene, add) {
   // M1j §5: one feature type per resource spot.
   // M2b §2: the level's own mix (or the default), checked against its own quotas.
   const mixTable = featureMix(level);
+  // M4b §1.3: spots pinned to a feature type, against the mix.
+  const pinnedTypes = {};
+  level.candidateLocations.forEach((c, i) => {
+    const t = spotPin(c).featureType;
+    if (!t) return;
+    if (!C.FEATURE_TYPES[t]) add('error', `candidate ${i} is pinned to unknown feature type "${t}"`, { kind: 'candidate', index: i });
+    pinnedTypes[t] = (pinnedTypes[t] ?? 0) + 1;
+  });
+  for (const [t, n] of Object.entries(pinnedTypes)) {
+    if (C.FEATURE_TYPES[t] && n > (mixTable[t] ?? 0)) add('error', `${n} spots are pinned to ${C.FEATURE_TYPES[t].name}, but the feature mix has ${mixTable[t] ?? 0}`);
+  }
   const mix = Object.values(mixTable).reduce((a, b) => a + b, 0);
   const spots = quotaTotals(level).feature;
   if (mix !== spots) add('error', `feature mix has ${mix} features, but the zone quotas give ${spots} resource spots`);
@@ -158,7 +183,7 @@ function waveChecks(scene, add) {
 
 // Per-wave totals, e.g. "Tornville Haunt W2: 14W 1B", to compare with each wave's comment by eye
 // (M2i §2). Logged once, the first time the debug view is on.
-const TOTAL_LETTERS = [['wolf', 'W'], ['grimWolf', 'GW'], ['thrall', 'T'], ['grimThrall', 'GT'], ['stirge', 'S'], ['grimStirge', 'GS'], ['bear', 'B'], ['grimBear', 'GB'], ['brute', 'MB'], ['grimBrute', 'GMB'], ['ogre', 'O'], ['grimOgre', 'GO'], ['knight', 'K'], ['grimKnight', 'GK']];
+export const TOTAL_LETTERS = [['wolf', 'W'], ['grimWolf', 'GW'], ['thrall', 'T'], ['grimThrall', 'GT'], ['stirge', 'S'], ['grimStirge', 'GS'], ['bear', 'B'], ['grimBear', 'GB'], ['brute', 'MB'], ['grimBrute', 'GMB'], ['ogre', 'O'], ['grimOgre', 'GO'], ['knight', 'K'], ['grimKnight', 'GK']];
 export function logWaveTotals() {
   for (const id of LEVEL_IDS) {
     const level = C.LEVELS[id];

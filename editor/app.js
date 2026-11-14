@@ -18,13 +18,14 @@ import { clipMire, encodeMire } from '../js/mire.js';
 import { BACKGROUND_DIR } from '../js/mapFile.js';
 import { formatMap } from './mapWriter.js';
 import { cheapChecks, prepItems, GROUPS, ROUTE_TRIALS } from './checks.js';
-import { drawView, LAYERS } from './view.js';
+import { drawView, LAYERS, LAYER_LABELS } from './view.js';
 import { createTools, TOOLS } from './tools.js';
 import { MOVABLE } from './geometry.js';
 import { createPanels } from './panels.js';
 import { buildCatalogue, defaultMix } from './decor.js';
 import { createDraftDialog } from './draft.js';
 import { previewLayout, previewSummary } from './preview.js';
+import { createSidePanels } from './sidePanels.js';
 
 const SAVE_OFF_MESSAGE = 'Saving works when the editor is run locally with tools/serve.py.';
 const LAST_LEVEL_KEY = 'broceliande.editor.level';
@@ -164,6 +165,7 @@ const api = {
 const tools = createTools(api, canvas);
 const panels = createPanels(api);
 const draft = createDraftDialog(api);
+const side = createSidePanels(api);
 
 // ---------------------------------------------------------------------------
 // Start-up
@@ -251,7 +253,7 @@ function buildLayers() {
       ed.layers[name] = input.checked;
       store.set(LAYERS_KEY, JSON.stringify(ed.layers));
     });
-    label.append(input, ` ${name}`);
+    label.append(input, ` ${LAYER_LABELS[name] ?? name}`);
     box.append(label);
   }
 }
@@ -259,13 +261,15 @@ function buildLayers() {
 function setTool(tool) {
   ed.tool = tool;
   const notWaypoint = (r) => r.kind !== 'waypoint';
-  const keeps = { select: notWaypoint, palette: notWaypoint, background: notWaypoint, place: (r) => r.kind === 'decor' }[tool];
+  const kind = (k) => (r) => r.kind === k;
+  const keeps = { select: notWaypoint, palette: notWaypoint, background: notWaypoint, place: kind('decor'), spots: kind('candidate'), lanes: kind('waypoint'), druid: kind('druid') }[tool];
   ed.selection = keeps ? ed.selection.filter(keeps) : [];
   for (const b of document.querySelectorAll('#ed-tools [data-tool]')) b.classList.toggle('active', b.dataset.tool === tool);
   $('ed-tool-help').textContent = TOOL_HELP[tool];
   if (ed.map) panels.show();
   showSelection();
   panels.showActions();
+  if (ed.scene) showSidePanels();
 }
 
 const typing = (e) => ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName);
@@ -306,15 +310,6 @@ function wireControls() {
     changed(true);
   });
   width.addEventListener('change', () => end());
-  $('ed-zone').addEventListener('change', (e) => {
-    const ref = ed.selection[0];
-    const c = ed.map.candidates[ref.index];
-    begin();
-    if (e.target.value === 'auto') Object.assign(c, { zone: geometricZone(ed.scene.level, c), zoneAuto: true });
-    else Object.assign(c, { zone: e.target.value, zoneAuto: false });
-    changed(false);
-    end();
-  });
 
   window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
@@ -437,6 +432,7 @@ function rebuild() {
   showChecks();
   showSelection();
   showLevelPanel();
+  showSidePanels();
   panels.showActions();
   if (ed.preview.on) updatePreview();
 }
@@ -542,7 +538,9 @@ function runPrep() {
       setTimeout(step, 0);
       return;
     }
-    ed.prep = { items: prepItems(scene.level, trials), state: 'idle' };
+    const prep = prepItems(scene, trials);
+    ed.prep = { items: prep.items, suggested: prep.suggested, state: 'idle' };
+    showLevelData();
     showChecks();
   };
   // Let the "checking…" marker show before the first slice.
@@ -595,15 +593,21 @@ function select(refs) {
   panels.showActions();
 }
 
-// The selection's properties; a single spot's zone can be picked here (auto, or a manual zone).
+// Rebuilds a panel's contents, unless the designer is typing or dragging a slider in it.
+function fill(box, children) {
+  if (box.contains(document.activeElement) && document.activeElement !== box) return;
+  box.replaceChildren(...children);
+}
+
+// The selection's properties, and (sidePanels.js) a single spot's, the Druid's, a waypoint's or a
+// decoration object's editing controls.
 function showSelection() {
   const box = $('ed-selection');
-  const zoneRow = $('ed-zone-row');
   const sel = ed.selection;
   const scene = ed.scene;
   const level = scene?.level;
   const lines = [];
-  zoneRow.hidden = true;
+  fill($('ed-selection-edit'), scene ? side.selection() : []);
   if (!scene || !sel.length) {
     lines.push('Nothing selected.');
   } else if (sel.length > 1) {
@@ -616,14 +620,11 @@ function showSelection() {
     if (ref.kind === 'candidate') {
       const c = ed.map.candidates[ref.index];
       const sc = scene.candidates[ref.index];
-      if (c && sc) {
-        lines.push(`Spot #${ref.index}`, `x ${c.x}, y ${c.y}`, `covers ${sc.lanes.map((id) => scene.lanes.find((l) => l.id === id).name).join(', ') || 'no lane'}`);
-        showZonePicker(c);
-      }
+      if (c && sc) lines.push(`Spot #${ref.index}`);
     } else if (ref.kind === 'waypoint') {
       const lane = ed.map.lanes[ref.lane];
       const w = lane?.waypoints[ref.index];
-      if (w) lines.push(`Lane ${lane.name ?? lane.id}, waypoint ${ref.index} of ${lane.waypoints.length - 1}`, `x ${w[0]}, y ${w[1]}`);
+      if (w) lines.push(`Lane ${lane.name ?? lane.id}, waypoint ${ref.index} of ${lane.waypoints.length - 1}`);
     } else if (ref.kind === 'lane') {
       const lane = scene.lanes.find((l) => l.id === ref.id);
       if (lane) lines.push(`Lane ${lane.name} (${lane.id})`, `${lane.waypoints.length} waypoints, ${Math.round(lane.path.length)} px`);
@@ -634,25 +635,25 @@ function showSelection() {
       const d = ed.map.decor[ref.index];
       if (d) {
         lines.push(`Decoration #${ref.index}: ${d.type}`);
-        lines.push(Object.entries(d).filter(([k]) => k !== 'type' && k !== 'points').map(([k, v]) => `${k} ${v}`).join(', '));
+        lines.push(Object.entries(d).filter(([k]) => !['type', 'points', 'x', 'y'].includes(k)).map(([k, v]) => `${k} ${v}`).join(', '));
       }
     } else if (ref.kind === 'druid') {
-      lines.push('Druid', `x ${level.druidPos.x}, y ${level.druidPos.y}`);
+      lines.push('Druid');
     }
   }
   box.replaceChildren(...lines.map((t) => Object.assign(document.createElement('div'), { textContent: t })));
 }
 
-function showZonePicker(c) {
-  const picker = $('ed-zone');
-  const level = ed.scene.level;
-  const geo = geometricZone(level, c);
-  picker.replaceChildren(
-    Object.assign(document.createElement('option'), { value: 'auto', textContent: `auto (${geo})` }),
-    ...zoneIds(level).map((z) => Object.assign(document.createElement('option'), { value: z, textContent: `${z} (manual)` })),
-  );
-  picker.value = c.zoneAuto ? 'auto' : c.zone;
-  $('ed-zone-row').hidden = false;
+// M4b §3, §5: Zone rules (with the Druid or Spots tool), Level rules and the read-only Level data.
+function showSidePanels() {
+  $('ed-zone-rules-section').hidden = !(ed.tool === 'druid' || ed.tool === 'spots');
+  if (!$('ed-zone-rules-section').hidden) fill($('ed-zone-rules'), side.zoneRules());
+  fill($('ed-level-rules'), side.levelRules());
+  showLevelData();
+}
+
+function showLevelData() {
+  if (ed.scene) fill($('ed-level-data'), side.levelData());
 }
 
 // The level's own settings edited here: corridor width (sectors: Druid tool).

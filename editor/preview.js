@@ -1,10 +1,11 @@
 // Preview a run (M4a §5.5): the level's layout rolled with a seed as the game rolls it at an
 // encounter's start (generateLayout: jitter, zone roles, feature types, the layout constraints with
-// rerolls and fallback), drawn with the game's own slot pads and resource spots. Purely a preview:
-// nothing is saved.
+// rerolls and fallback; M4b: pinned spots keep their roles), drawn with the game's own slot pads and
+// resource spots. Purely a preview: nothing is saved.
 
 import * as C from '../js/config.js';
 import { generateLayout } from '../js/layout.js';
+import { laneMinTurretSlots } from '../js/levelSettings.js';
 import { createRng } from '../js/rng.js';
 import { createFeatures } from '../js/entities/searchableFeature.js';
 
@@ -27,6 +28,6 @@ export function previewSummary(p, scene) {
     : `Draw ${L.attempts} passed${L.attempts > 1 ? ` (${L.attempts - 1} rerolled)` : ''}.`);
   lines.push(`Constraint failures over those draws: ${failures || 'none'}.`);
   lines.push(`${p.slots.length} turret slots, ${p.features.length} resource spots, ${p.vacant.length} empty; feature route ${L.routeCost} steps.`);
-  lines.push(`Lane coverage: ${scene.lanes.map((l) => `${l.name} ${L.coverage[l.id]}`).join(', ')} (needs ${C.LANE_MIN_TURRET_SLOTS}).`);
+  lines.push(`Lane coverage: ${scene.lanes.map((l) => `${l.name} ${L.coverage[l.id]}`).join(', ')} (needs ${laneMinTurretSlots(scene.level)}).`);
   return lines;
 }

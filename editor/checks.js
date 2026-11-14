@@ -14,7 +14,7 @@ import * as C from '../js/config.js';
 import { mapProblems } from '../js/mapFile.js';
 import { levelChecks } from '../js/scene.js';
 import { zoneIds, zoneQuota, zoneCandidates } from '../js/zones.js';
-import { corridorWidth, levelWaves } from '../js/levelSettings.js';
+import { corridorWidth, levelWaves, laneMinTurretSlots } from '../js/levelSettings.js';
 import { fitsCorridor } from '../js/entities/enemy.js';
 import { trialOutcome, trialFailRate, drawFitRate, routeBand, centredBudget } from '../js/layout.js';
 import { decorOverlaps } from '../js/mapDraft.js';
@@ -63,6 +63,11 @@ export function cheapChecks(scene, map, areas) {
     const times = ends.map((t) => `${C.ENEMY_TYPES[t].name} ${(lane.path.length / C.ENEMY_TYPES[t].speed).toFixed(1)} s`).join(', ');
     add('Lanes', 'ok', `${lane.name}: ${Math.round(lane.path.length)} px${times ? `, ${times}` : ''}`, { kind: 'lane', id: lane.id });
   }
+  // M4b §4: the spots whose turret range reaches each lane (a slot there would cover it).
+  for (const lane of scene.lanes) {
+    const n = scene.candidates.filter((c) => c.lanes.includes(lane.id)).length;
+    add('Lanes', n >= laneMinTurretSlots(level) ? 'ok' : 'error', `${lane.id}: ${n} spots in turret range (needs ${laneMinTurretSlots(level)} turret slots)`, { kind: 'lane', id: lane.id });
+  }
   // Corridor width against each mini-boss or boss in the waves.
   const W = corridorWidth(level);
   for (const t of types.filter((x) => C.ENEMY_TYPES[x].boss)) {
@@ -81,24 +86,31 @@ export function cheapChecks(scene, map, areas) {
 
 // Prep (from layout trials, js/layout.js): the feature route of the layouts the game would end
 // with, how often no fair draw turns up at the level's stepBudget, the share of single draws that
-// fit its band, and the budget centred on the map's typical route (shown only: the budget is in
-// the sheet).
-export function prepItems(level, trials) {
+// fit its band, the budget centred on the map's typical route (shown only: the budget is in the
+// sheet), and (M4b §4) how many turret slots typically end up covering each lane. Returns
+// { items, suggested }.
+export function prepItems(scene, trials) {
+  const { level } = scene;
   const out = [];
   const add = (severity, message) => out.push({ group: 'Prep', severity, message, target: null });
-  if (!trials.length) return out;
+  if (!trials.length) return { items: out, suggested: null };
   const pct = (x) => `${Math.round(x * 100)}%`;
   const band = routeBand(level);
-  const routes = trials.map((t) => trialOutcome(t, level.stepBudget)).filter((r) => r !== null).sort((a, b) => a - b);
-  const fail = trialFailRate(trials, level.stepBudget);
+  const ends = trials.map((t) => trialOutcome(t, level)).filter(Boolean);
+  const routes = ends.map((d) => d.route).sort((a, b) => a - b);
+  const fail = trialFailRate(trials, level);
   if (routes.length) add('ok', `feature route over ${trials.length} layouts: median ${routes[Math.floor(routes.length / 2)]} steps (${routes[0]}–${routes[routes.length - 1]})`);
   add(fail > FAIL_WARN_RATE ? 'warn' : 'ok', `${pct(fail)} of layouts find no fair draw at stepBudget ${level.stepBudget} (route band ${Math.ceil(band.min)}–${Math.floor(band.max)})`);
-  add('info', `${pct(drawFitRate(trials, level.stepBudget))} of single draws fit that band (the game rerolls until one does, up to ${C.MAX_LAYOUT_ATTEMPTS} draws)`);
-  const suggested = centredBudget(trials);
+  add('info', `${pct(drawFitRate(trials, level))} of single draws fit that band (the game rerolls until one does, up to ${C.MAX_LAYOUT_ATTEMPTS} draws)`);
+  if (ends.length) {
+    const median = (list) => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
+    add('ok', `turret slots typically covering each lane: ${scene.lanes.map((l, i) => `${l.id} ${median(ends.map((d) => d.cover[i]))}`).join(', ')} (needs ${laneMinTurretSlots(level)})`);
+  }
+  const suggested = centredBudget(trials, level);
   if (suggested === null) {
     add('warn', 'no draw covers every lane: the spots need a look');
   } else {
-    add('info', `suggested stepBudget ${suggested}, centred on the typical route: ${pct(drawFitRate(trials, suggested))} of single draws fit, ${pct(trialFailRate(trials, suggested))} of layouts find no fair draw; set it in the levels tab`);
+    add('info', `suggested stepBudget ${suggested}, centred on the typical route: ${pct(drawFitRate(trials, level, suggested))} of single draws fit, ${pct(trialFailRate(trials, level, suggested))} of layouts find no fair draw; set it in the levels tab`);
   }
-  return out;
+  return { items: out, suggested };
 }

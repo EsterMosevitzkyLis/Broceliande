@@ -1,11 +1,13 @@
 // Per-run layout (M1c §3, §4; zone-based since M1j §4): which candidate locations become turret slots, features and
 // vacant spots, the feature types, jitter, and the fairness checks, for the scene's level. Runs on every encounter
 // start and restart using the run's seeded RNG, so a fixed seed always gives the same layout.
+// M4b: candidates may pin their role (and feature type) and have their own jitter; a level may set
+// its own layout rules (lane coverage, route band).
 
 import * as C from './config.js';
 import { greedyRoute } from './systems/stepSystem.js';
 import { zoneIds, zoneQuota, zoneCandidates } from './zones.js';
-import { featureMix } from './levelSettings.js';
+import { featureMix, laneMinTurretSlots, routeFactors, spotJitter, spotPin } from './levelSettings.js';
 import { createRng } from './rng.js';
 
 function shuffle(rng, items) {
@@ -17,10 +19,11 @@ function shuffle(rng, items) {
   return a;
 }
 
-// Uniform random point in a disc of radius LOCATION_JITTER around the candidate.
+// Uniform random point in a disc of radius the candidate's jitter (M4b §2: its own, or
+// LOCATION_JITTER) around it.
 function jitter(rng, c) {
   const angle = rng.range(0, Math.PI * 2);
-  const r = C.LOCATION_JITTER * Math.sqrt(rng.next());
+  const r = spotJitter(c) * Math.sqrt(rng.next());
   return { x: c.x + Math.cos(angle) * r, y: c.y + Math.sin(angle) * r };
 }
 
@@ -39,15 +42,17 @@ function evaluate(scene, layout) {
     for (const id of slot.lanes) coverage[id]++;
   }
   const routeCost = greedyRoute(layout.features, level.druidPos, scene.mire).steps; // M3c §3.2: mire counts
-  const failed = lanes.filter((lane) => coverage[lane.id] < C.LANE_MIN_TURRET_SLOTS).map((lane) => `coverage:${lane.id}`);
+  const failed = lanes.filter((lane) => coverage[lane.id] < laneMinTurretSlots(level)).map((lane) => `coverage:${lane.id}`);
   const band = routeBand(level);
   if (routeCost < band.min || routeCost > band.max) failed.push('route');
   return { ...layout, coverage, routeCost, failed };
 }
 
-// Allowed feature-route cost in steps (§4.2), from the level's stepBudget.
-export function routeBand(level) {
-  return { min: C.FEATURE_ROUTE_MIN_FACTOR * level.stepBudget, max: C.FEATURE_ROUTE_MAX_FACTOR * level.stepBudget };
+// Allowed feature-route cost in steps (§4.2), from a stepBudget (the level's own by default) and the
+// level's route factors (M4b §3.2).
+export function routeBand(level, stepBudget = level.stepBudget) {
+  const f = routeFactors(level);
+  return { min: f.min * stepBudget, max: f.max * stepBudget };
 }
 
 // role per candidate index: { kind: 'slot' | 'feature' | 'vacant', index } (index into slots/features).
@@ -61,18 +66,47 @@ function rolesFor(level, slots, features) {
 // One random draw (M1j §4 steps 1–2, then jitter): for each zone, shuffle its candidates and
 // take its turret quota as slots and its feature quota as resource spots (the rest stay
 // vacant); then shuffle the feature type mix across all resource spots.
+// M4b §1.2: in a zone with pinned spots, pinned turrets and resource spots count towards its
+// quotas, pinned vacant ones stay empty, and what is left of the quotas goes to its "not vacant"
+// spots first, then to its unpinned ones, the roles shuffled among them. Pinned feature types are
+// taken from the mix first; the rest of the mix is shuffled over the other resource spots. A zone
+// or level without pins draws exactly as before.
 function drawLayout(rng, level) {
   const slotCandidates = [];
   const featureCandidates = [];
+  const pinOf = (i) => spotPin(level.candidateLocations[i]);
   for (const zone of zoneIds(level)) {
     const q = zoneQuota(level, zone);
-    const order = shuffle(rng, zoneCandidates(level, zone));
-    slotCandidates.push(...order.slice(0, q.turret));
-    featureCandidates.push(...order.slice(q.turret, q.turret + q.feature));
+    const here = zoneCandidates(level, zone);
+    if (here.every((i) => pinOf(i).role === 'auto')) {
+      const order = shuffle(rng, here);
+      slotCandidates.push(...order.slice(0, q.turret));
+      featureCandidates.push(...order.slice(q.turret, q.turret + q.feature));
+      continue;
+    }
+    const pinned = (role) => here.filter((i) => pinOf(i).role === role);
+    const turrets = pinned('turret');
+    const features = pinned('feature');
+    const pool = [...shuffle(rng, pinned('notVacant')), ...shuffle(rng, pinned('auto'))];
+    const left = shuffle(rng, [...Array(Math.max(0, q.turret - turrets.length)).fill('turret'), ...Array(Math.max(0, q.feature - features.length)).fill('feature')]);
+    left.forEach((role, k) => {
+      if (k >= pool.length) return;
+      (role === 'turret' ? turrets : features).push(pool[k]);
+    });
+    slotCandidates.push(...turrets);
+    featureCandidates.push(...features);
   }
-  const types = shuffle(rng, featureMixTypes(level));
+  // Pinned types come out of the mix first; the rest is shuffled over the other resource spots.
+  const rest = featureMixTypes(level);
+  for (const i of featureCandidates) {
+    const t = pinOf(i).featureType;
+    const at = t ? rest.indexOf(t) : -1;
+    if (at >= 0) rest.splice(at, 1);
+  }
+  const types = shuffle(rng, rest);
+  let next = 0;
   const slots = slotCandidates.map((candidate) => ({ ...jitter(rng, level.candidateLocations[candidate]), candidate }));
-  const features = featureCandidates.map((candidate, i) => ({ ...jitter(rng, level.candidateLocations[candidate]), type: types[i], candidate }));
+  const features = featureCandidates.map((candidate) => ({ ...jitter(rng, level.candidateLocations[candidate]), type: pinOf(candidate).featureType ?? types[next++], candidate }));
   return { slots, features };
 }
 
@@ -85,7 +119,7 @@ export function featureMixTypes(level) {
 // failed constraints: total missing slot coverage plus steps outside the route band.
 function shortfall(level, layout) {
   const band = routeBand(level);
-  const missing = Object.values(layout.coverage).reduce((sum, n) => sum + Math.max(0, C.LANE_MIN_TURRET_SLOTS - n), 0);
+  const missing = Object.values(layout.coverage).reduce((sum, n) => sum + Math.max(0, laneMinTurretSlots(level) - n), 0);
   const outside = Math.max(0, band.min - layout.routeCost, layout.routeCost - band.max);
   return missing + outside;
 }
@@ -132,19 +166,20 @@ export function generateLayout(runRng, scene, { quiet = false } = {}) {
 
 // Layout trials for the map editor's Prep check (M4a §5.4): layouts as generateLayout would make
 // them, one per seed (an RNG seeded with it). The draws an encounter tries in turn don't depend on
-// the stepBudget, so a trial keeps the route costs of its draws that pass lane coverage, in order
-// (of all MAX_LAYOUT_ATTEMPTS draws), and any budget can be tested against them: trialOutcome,
-// trialFailRate, drawFitRate, centredBudget.
+// the stepBudget, so a trial keeps its draws that pass lane coverage, in order (of all
+// MAX_LAYOUT_ATTEMPTS draws), each { route, cover: turret slots covering each lane, in lane order },
+// and any budget can be tested against them: trialOutcome, trialFailRate, drawFitRate, centredBudget.
 export function trialSetup(scene) {
   const { lanes, level } = scene;
-  // A slot lies within LOCATION_JITTER of its candidate, so the candidate's own distance to a lane
+  // A slot lies within its candidate's jitter of it, so the candidate's own distance to a lane
   // settles most coverage tests; only slots near the edge of the range are measured (the same
   // result as coveredLanes, much faster over thousands of draws).
   const centre = level.candidateLocations.map((c) => lanes.map((lane) => lane.path.distanceTo(c)));
   return (slot, i) => {
     const d = centre[slot.candidate][i];
-    if (d + C.LOCATION_JITTER <= C.TURRET_RANGE) return true;
-    if (d - C.LOCATION_JITTER > C.TURRET_RANGE) return false;
+    const j = spotJitter(level.candidateLocations[slot.candidate]);
+    if (d + j <= C.TURRET_RANGE) return true;
+    if (d - j > C.TURRET_RANGE) return false;
     return lanes[i].path.distanceTo(slot) <= C.TURRET_RANGE;
   };
 }
@@ -153,39 +188,40 @@ export function trialSetup(scene) {
 export function layoutTrial(scene, seed, covers = trialSetup(scene)) {
   const { lanes, level } = scene;
   const rng = createRng(seed);
-  const routes = [];
+  const draws = [];
+  const min = laneMinTurretSlots(level);
   for (let attempt = 0; attempt < C.MAX_LAYOUT_ATTEMPTS; attempt++) {
     const { slots, features } = drawLayout(rng, level);
-    const covered = lanes.every((lane, i) => slots.filter((slot) => covers(slot, i)).length >= C.LANE_MIN_TURRET_SLOTS);
-    if (covered) routes.push(greedyRoute(features, level.druidPos, scene.mire).steps);
+    const cover = lanes.map((lane, i) => slots.filter((slot) => covers(slot, i)).length);
+    if (cover.every((n) => n >= min)) draws.push({ route: greedyRoute(features, level.druidPos, scene.mire).steps, cover });
   }
-  return routes;
+  return draws;
 }
 
-// The route cost of the layout a trial ends with at this stepBudget, or null when no draw passes
-// (the game would use its best failed one, with a warning).
-export function trialOutcome(routes, stepBudget) {
-  const band = routeBand({ stepBudget });
-  return routes.find((r) => r >= band.min && r <= band.max) ?? null;
+// The draw a trial ends with at this stepBudget (the first whose route fits the band), or null when
+// none does (the game would use its best failed one, with a warning).
+export function trialOutcome(draws, level, stepBudget = level.stepBudget) {
+  const band = routeBand(level, stepBudget);
+  return draws.find((d) => d.route >= band.min && d.route <= band.max) ?? null;
 }
 
-export function trialFailRate(trials, stepBudget) {
-  return trials.filter((t) => trialOutcome(t, stepBudget) === null).length / trials.length;
+export function trialFailRate(trials, level, stepBudget = level.stepBudget) {
+  return trials.filter((t) => trialOutcome(t, level, stepBudget) === null).length / trials.length;
 }
 
 // Share of single draws (with lane coverage) whose route fits the band of this stepBudget.
-export function drawFitRate(trials, stepBudget) {
-  const band = routeBand({ stepBudget });
+export function drawFitRate(trials, level, stepBudget = level.stepBudget) {
+  const band = routeBand(level, stepBudget);
   const draws = trials.flat();
-  return draws.length ? draws.filter((r) => r >= band.min && r <= band.max).length / draws.length : 0;
+  return draws.length ? draws.filter((d) => d.route >= band.min && d.route <= band.max).length / draws.length : 0;
 }
 
 // The whole stepBudget whose route band is centred on the map's typical route (the median single
 // draw), so rerolls rarely matter and players see the map's full variety. Null with no draws. A
 // suggestion only: the budget lives in the levels tab.
-export function centredBudget(trials) {
-  const draws = trials.flat().sort((a, b) => a - b);
-  if (!draws.length) return null;
-  const median = draws[Math.floor(draws.length / 2)];
-  return Math.round(median / ((C.FEATURE_ROUTE_MIN_FACTOR + C.FEATURE_ROUTE_MAX_FACTOR) / 2));
+export function centredBudget(trials, level) {
+  const routes = trials.flat().map((d) => d.route).sort((a, b) => a - b);
+  if (!routes.length) return null;
+  const f = routeFactors(level);
+  return Math.round(routes[Math.floor(routes.length / 2)] / ((f.min + f.max) / 2));
 }
