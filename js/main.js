@@ -13,7 +13,7 @@ import { ActionState } from './states.js';
 import { undoLastMove } from './systems/actionSystem.js';
 import { toggleDropMult } from './systems/dropSystem.js';
 import { initAudio, toggleMute } from './audio.js';
-import { isRunComplete, availableNodeAt, validateMap, regenerateMap, addItem, equipItem, unequipSlot, randomUnownedItem, markSlotSeen, regionStartNode } from './run.js';
+import { isRunComplete, availableNodeAt, validateMap, regenerateMap, addItem, equipItem, unequipSlot, randomUnownedItem, markSlotSeen, regionStartNode, enterRegion } from './run.js';
 import { createEquipmentPanel } from './equipmentPanel.js';
 import { validateItems } from './stats.js';
 import { createRng, makeRandomSeed } from './rng.js';
@@ -320,6 +320,27 @@ function debugAddItem() {
 }
 
 newRun(game); // START → MAP on page load (M2a §2.1)
+playLevelFromUrl();
+
+// M4a §5.6: index.html?level=<id> (the map editor's Play this level) goes straight to that level's
+// Prep, in a new run of its region, with the run's starting resources; &debugResources adds the
+// debug grant (debug G). The run treats it as entering that level's map node, if any.
+function playLevelFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const levelId = params.get('level');
+  if (!levelId) return;
+  const level = C.LEVELS[levelId];
+  if (!level) {
+    console.warn(`?level=${levelId}: no such level`);
+    return;
+  }
+  if (level.region !== game.run.regionId) enterRegion(game.run, level.region);
+  const node = game.run.map.nodes.find((n) => n.levelId === levelId);
+  if (node) game.run.currentNodeId = node.id;
+  game.encounterStart = { levelId, resources: { ...game.run.inventory } };
+  restart(game.encounterStart);
+  if (params.has('debugResources')) grantResources(game);
+}
 
 // ---------------------------------------------------------------------------
 // Loop: fixed simulation step via accumulator, one render per animation frame.

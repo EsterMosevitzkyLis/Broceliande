@@ -190,7 +190,7 @@
     { "type": "mist", "x": 789.52, "y": 568.99, "rx": 156.84, "ry": 46.27, "rot": 0 },
     { "type": "mist", "x": 1068.32, "y": 1015.49, "rx": 132.08, "ry": 47.69, "rot": 0 },
     { "type": "mist", "x": 543.33, "y": 564.5, "rx": 140.46, "ry": 48.78, "rot": 0 },
-    { "type": "landmark:peatThrone", "variant": 0, "x": 212, "y": 1021, "scale": 50, "flip": false },
+    { "type": "landmark:peatThrone", "variant": 0, "x": 212, "y": 1021, "scale": 1, "flip": false },
     { "type": "bush", "variant": 1, "x": 299.85, "y": 97.05, "scale": 0.909, "flip": false },
     { "type": "bush", "variant": 1, "x": 523.83, "y": 119.01, "scale": 1.058, "flip": false },
     { "type": "bush", "variant": 2, "x": 598.73, "y": 80.16, "scale": 0.888, "flip": false },

@@ -4,7 +4,7 @@
 
 import * as C from '../js/config.js';
 import { drawFloor, drawStream, drawCorridors, drawFlats, drawMire, drawDecor, drawLaneGlow, drawAshFlecks, decorDrawable } from '../js/render/environment.js';
-import { drawDruid, DRUID_REST_POSE } from '../js/render/entities.js';
+import { drawDruid, DRUID_REST_POSE, drawTurretSlot, drawFeature, featureBase } from '../js/render/entities.js';
 import { laneEntrance, COLORS } from '../js/renderer.js';
 import { drawLane, drawZones } from '../js/debug/debugOverlay.js';
 import { geometricZone } from '../js/zones.js';
@@ -87,7 +87,8 @@ function drawOrMark(ctx, palette, kind, draw, x, y) {
 // selection (a list of refs, geometry.js), areas: [{ left, top, right, bottom, name }] (the UI
 // areas), tool (the active tool: its overlay shows whatever the layers say), box (a box being
 // dragged, or null), bgOpacity (editor only: below 1 the procedural ground shows under a background
-// image, for tracing), brush ({ x, y, r, erase } or null) }.
+// image, for tracing), brush ({ x, y, r, erase } or null), preview (preview.js previewLayout, or
+// null: Preview a run shows its slot pads, resource spots and empty spots) }.
 export function drawView(ctx, scene, view) {
   const { layers } = view;
   const level = scene.level;
@@ -115,9 +116,14 @@ export function drawView(ctx, scene, view) {
   if (layers.mire) drawMire(ctx, scene, view.time);
   if (layers.ground && level.laneGlow) for (const lane of scene.lanes) drawLaneGlow(ctx, laneEntrance(lane), level.palette.laneGlow, view.time);
 
-  // Upright layer, y-sorted: the decoration and the Druid.
+  // Preview a run: slot pads on the ground, resource spots upright (as the game draws them).
+  const preview = view.preview;
+  if (preview) for (const slot of preview.slots) drawTurretSlot(ctx, slot, false, false);
+
+  // Upright layer, y-sorted: the decoration, the Druid (and a previewed run's resource spots).
   const d = level.druidPos;
   const upright = [{ y: d.y + C.DRUID_RADIUS * 0.6, draw: () => drawDruid(ctx, d.x, d.y, false, 0, DRUID_REST_POSE) }];
+  if (preview) for (const f of preview.features) upright.push({ y: featureBase(f).y, draw: () => drawFeature(ctx, f, false) });
   if (layers.decoration) for (const item of scene.decor) upright.push({ y: item.y, draw: () => drawOrMark(ctx, level.palette, item.kind, () => drawDecor(ctx, item, level), item.x, item.y) });
   upright.sort((a, b) => a.y - b.y);
   for (const u of upright) u.draw();
@@ -141,6 +147,7 @@ export function drawView(ctx, scene, view) {
     ctx.restore();
   }
   if (layers.spots || tool === 'spots') drawSpots(ctx, scene);
+  if (preview) drawPreviewTags(ctx, scene, preview);
   if (layers.checks) drawCheckMarks(ctx, scene, view);
   if (tool === 'druid') drawDruidHandles(ctx, level);
   const decor = view.selection.some((r) => r.kind === 'decor') ? decorByIndex(scene) : null;
@@ -191,6 +198,15 @@ function drawCheckMarks(ctx, scene, view) {
     ctx.setLineDash([]);
     tag(ctx, a.name, a.left + 4, a.bottom + 16, AREA);
   }
+}
+
+// Preview a run: each resource spot's type under it, and the empty spots as faint dashed rings.
+function drawPreviewTags(ctx, scene, preview) {
+  for (const i of preview.vacant) {
+    const c = scene.candidates[i];
+    ring(ctx, c.x, c.y, C.LOCATION_RADIUS, 'rgba(255, 255, 255, 0.45)', 1.5, [4, 6]);
+  }
+  for (const f of preview.features) tag(ctx, C.FEATURE_TYPES[f.type].name, f.x - 24, f.y + C.LOCATION_RADIUS + 8, 'rgba(255, 235, 160, 0.95)');
 }
 
 // The Druid tool's handles: one per sector boundary, and the near ring drawn thick.

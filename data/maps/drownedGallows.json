@@ -188,7 +188,7 @@
     { "type": "mist", "x": 260.04, "y": 901.99, "rx": 148.19, "ry": 41.94, "rot": 0 },
     { "type": "mist", "x": 635.99, "y": 1025.97, "rx": 93.82, "ry": 42.51, "rot": 0 },
     { "type": "mist", "x": 1119.66, "y": 1028.69, "rx": 135.25, "ry": 33.41, "rot": 0 },
-    { "type": "landmark:gallows", "variant": 0, "x": 370, "y": 980, "scale": 55, "flip": false },
+    { "type": "landmark:gallows", "variant": 0, "x": 370, "y": 980, "scale": 1, "flip": false },
     { "type": "bush", "variant": 2, "x": 10.69, "y": 105.23, "scale": 1.059, "flip": false },
     { "type": "bush", "variant": 0, "x": 77.16, "y": 121.99, "scale": 0.963, "flip": false },
     { "type": "bush", "variant": 2, "x": 103.17, "y": 83.26, "scale": 0.908, "flip": false },

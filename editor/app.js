@@ -1,8 +1,8 @@
 // The map editor (M4a §5), loaded by boot.js once the data is applied: the level picker, the
 // game-accurate view with layer toggles, the live checks, saving through tools/serve.py (§4), and
 // editing: selection, undo / redo, snap to grid, and the tools (§5.2, §5.3): Lanes, Druid and
-// sectors, Spots, decoration (Place, Scatter), Mire, Palette and Background. Preview a run, Play
-// this level and Generate draft come in a later phase; their buttons are in place, disabled.
+// sectors, Spots, decoration (Place, Scatter), Mire, Palette and Background; Preview a run, Play
+// this level and Generate draft (§5.5–5.7).
 //
 // Every edit changes `ed.map` (the working copy of the map file). The scene and the cheap checks are
 // rebuilt from it once per frame while anything changes; the Prep trials run once the map has been
@@ -23,6 +23,8 @@ import { createTools, TOOLS } from './tools.js';
 import { MOVABLE } from './geometry.js';
 import { createPanels } from './panels.js';
 import { buildCatalogue, defaultMix } from './decor.js';
+import { createDraftDialog } from './draft.js';
+import { previewLayout, previewSummary } from './preview.js';
 
 const SAVE_OFF_MESSAGE = 'Saving works when the editor is run locally with tools/serve.py.';
 const LAST_LEVEL_KEY = 'broceliande.editor.level';
@@ -89,6 +91,7 @@ const ed = {
   mireSrc: null,                                   // the map's mire last decoded, and the result
   mireGrid: null,
   clipKey: '',                                     // lanes + corridor width the mire was last clipped to
+  preview: { on: false, seed: 1, data: null },     // Preview a run: its seed and layout
   gesture: false,
   needsRebuild: false,
   canSave: false,
@@ -160,6 +163,7 @@ const api = {
 };
 const tools = createTools(api, canvas);
 const panels = createPanels(api);
+const draft = createDraftDialog(api);
 
 // ---------------------------------------------------------------------------
 // Start-up
@@ -216,7 +220,7 @@ async function detectServer() {
 }
 
 // Level picker: every level of the levels tab, grouped by region in region order, by row within a
-// region; a level without a map file is marked (and can't be opened until Generate draft, §5.7).
+// region; a level without a map file is marked (it opens on a blank map, for Generate draft, §5.7).
 function buildPicker() {
   const picker = $('ed-level');
   const rows = ed.data.levelRows;
@@ -230,7 +234,6 @@ function buildPicker() {
       option.value = r.id;
       const noFile = ed.data.missing.includes(r.id);
       option.textContent = `${r.row}. ${r.name}${noFile ? '  (no map file)' : ''}`;
-      option.disabled = noFile;
       group.append(option);
     }
     if (inRegion.length) picker.append(group);
@@ -278,6 +281,14 @@ function wireControls() {
     await openLevel(id);
   });
   $('ed-save').addEventListener('click', save);
+  $('ed-preview').addEventListener('click', () => {
+    ed.preview.on = !ed.preview.on;
+    updatePreview();
+  });
+  $('ed-preview-prev').addEventListener('click', () => { ed.preview.seed = Math.max(1, ed.preview.seed - 1); updatePreview(); });
+  $('ed-preview-next').addEventListener('click', () => { ed.preview.seed++; updatePreview(); });
+  $('ed-play').addEventListener('click', play);
+  $('ed-draft-button').addEventListener('click', () => draft.open());
   $('ed-undo').addEventListener('click', () => undoRedo(ed.undo, ed.redo));
   $('ed-redo').addEventListener('click', () => undoRedo(ed.redo, ed.undo));
   for (const b of document.querySelectorAll('#ed-tools [data-tool]')) b.addEventListener('click', () => setTool(b.dataset.tool));
@@ -348,13 +359,17 @@ async function openLevel(id) {
   ed.mireSrc = null;
   ed.clipKey = '';
   ed.scatter.mix = defaultMix(ed.map);
-  // The file as it is on disk: a file saved in another layout is marked (saving rewrites it).
+  // The file as it is on disk: a file saved in another layout is marked (saving rewrites it). A level
+  // without a file starts from a blank map (boot.js), unsaved.
   let diskText = null;
   try {
-    diskText = await (await fetch(`${MAP_DIR}/${id}.json`, { cache: 'no-store' })).text();
+    const res = await fetch(`${MAP_DIR}/${id}.json`, { cache: 'no-store' });
+    if (res.ok) diskText = await res.text();
   } catch { /* shown below */ }
-  ed.savedText = formatMap(ed.map);
-  $('ed-format-note').hidden = diskText === null || diskText.replace(/\r\n/g, '\n') === ed.savedText;
+  const noFile = diskText === null && ed.data.missing.includes(id);
+  ed.savedText = noFile ? '' : formatMap(ed.map);
+  $('ed-format-note').hidden = noFile || diskText === null || diskText.replace(/\r\n/g, '\n') === ed.savedText;
+  $('ed-new-note').hidden = !noFile;
   $('ed-level').value = id;
   store.set(LAST_LEVEL_KEY, id);
   const url = new URL(location.href);
@@ -423,6 +438,38 @@ function rebuild() {
   showSelection();
   showLevelPanel();
   panels.showActions();
+  if (ed.preview.on) updatePreview();
+}
+
+// Preview a run (§5.5): the layout for the current seed, rolled again whenever the map changes.
+function updatePreview() {
+  $('ed-preview').classList.toggle('active', ed.preview.on);
+  $('ed-preview-panel').hidden = !ed.preview.on;
+  if (!ed.preview.on || !ed.scene) {
+    ed.preview.data = null;
+    return;
+  }
+  ed.preview.data = ed.scene.candidates.length ? previewLayout(ed.scene, ed.preview.seed) : null;
+  $('ed-preview-seed').textContent = `Seed ${ed.preview.seed}`;
+  const lines = ed.preview.data ? previewSummary(ed.preview.data, ed.scene) : ['The level has no spots yet.'];
+  $('ed-preview-summary').replaceChildren(...lines.map((t) => Object.assign(document.createElement('div'), { textContent: t })));
+}
+
+// Play this level (§5.6): the game in a new tab, straight into the level's Prep, after saving if
+// there are unsaved changes (the game reads the saved file).
+async function play() {
+  if (isDirty()) {
+    if (!ed.canSave) {
+      status('This level has unsaved changes, and saving needs tools/serve.py: the game will show the last saved version.', 'error');
+    } else if (confirm('Save your changes first? The game plays the saved map file.')) {
+      await save();
+      if (isDirty()) return;
+    } else if (!ed.savedText) {
+      status('This level has no map file yet: save it before playing it.', 'error');
+      return;
+    }
+  }
+  window.open(`index.html?level=${encodeURIComponent(ed.levelId)}${$('ed-play-debug').checked ? '&debugResources' : ''}`, '_blank');
 }
 
 function updateDirty() {
@@ -445,6 +492,13 @@ async function save() {
     ed.savedText = text;
     ed.data.maps[ed.levelId] = clone(ed.map);
     $('ed-format-note').hidden = true;
+    if (ed.data.missing.includes(ed.levelId)) {
+      // A new level's first save: it has a map file now.
+      ed.data.missing = ed.data.missing.filter((id) => id !== ed.levelId);
+      const option = $('ed-level').querySelector(`option[value="${ed.levelId}"]`);
+      option.textContent = option.textContent.replace('  (no map file)', '');
+      $('ed-new-note').hidden = true;
+    }
     updateDirty();
     status(`Saved ${body.saved}`, 'ok');
   } catch (err) {
@@ -632,7 +686,7 @@ function brushOutline() {
 function frame(now) {
   if (ed.needsRebuild) rebuild();
   if (ed.scene) {
-    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }] : [], tool: ed.tool, box: ed.box, bgOpacity: ed.bgOpacity, brush: brushOutline() });
+    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }] : [], tool: ed.tool, box: ed.box, bgOpacity: ed.bgOpacity, brush: brushOutline(), preview: ed.preview.data });
   }
   requestAnimationFrame(frame);
 }

@@ -187,7 +187,7 @@
     { "type": "water", "x": 1607.51, "y": 888.72, "rx": 48.82, "ry": 26.96, "rot": 0.2 },
     { "type": "water", "x": 1626.69, "y": 786.38, "rx": 42.55, "ry": 32.18, "rot": 0.274 },
     { "type": "water", "x": 1076.15, "y": 651.1, "rx": 44.73, "ry": 32.67, "rot": 0.038 },
-    { "type": "landmark:altarStone", "variant": 0, "x": 220, "y": 800, "scale": 44, "flip": false },
+    { "type": "landmark:altarStone", "variant": 0, "x": 220, "y": 800, "scale": 1, "flip": false },
     { "type": "sunkenRoof", "variant": 2, "x": 449.77, "y": 146.07, "scale": 0.824, "flip": false },
     { "type": "reeds", "variant": 2, "x": 486.95, "y": 156.32, "scale": 0.9, "flip": false },
     { "type": "reeds", "variant": 2, "x": 397.48, "y": 153.79, "scale": 0.9, "flip": false },

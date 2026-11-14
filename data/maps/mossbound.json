@@ -173,7 +173,7 @@
     { "type": "groundPatch", "x": 133.26, "y": 371.12, "rx": 90.53, "ry": 73.11, "light": false },
     { "type": "groundPatch", "x": 1732, "y": 413.75, "rx": 69.79, "ry": 74.49, "light": true },
     { "type": "groundPatch", "x": 1282.15, "y": 629.55, "rx": 119.76, "ry": 85.54, "light": true },
-    { "type": "landmark:cairn", "variant": 0, "x": 1180, "y": 860, "scale": 90, "flip": false },
+    { "type": "landmark:cairn", "variant": 0, "x": 1180, "y": 860, "scale": 1, "flip": false },
     { "type": "bush", "variant": 1, "x": 134.12, "y": 102.03, "scale": 0.802, "flip": false },
     { "type": "bush", "variant": 2, "x": 319.39, "y": 105.18, "scale": 0.853, "flip": false },
     { "type": "bush", "variant": 2, "x": 807.24, "y": 124.66, "scale": 0.837, "flip": false },

@@ -184,7 +184,7 @@
     { "type": "water", "x": 551.09, "y": 1028.12, "rx": 49.55, "ry": 27.9, "rot": -0.165 },
     { "type": "water", "x": 250.43, "y": 777.39, "rx": 62.91, "ry": 29.15, "rot": -0.13 },
     { "type": "water", "x": 412.27, "y": 1006.74, "rx": 64.11, "ry": 36.93, "rot": -0.133 },
-    { "type": "landmark:footbridge", "variant": 0, "x": 1309, "y": 125, "scale": 70, "flip": false },
+    { "type": "landmark:footbridge", "variant": 0, "x": 1309, "y": 125, "scale": 1, "flip": false },
     { "type": "sunkenRoof", "variant": 2, "x": 507.76, "y": 934.38, "scale": 0.678, "flip": false },
     { "type": "reeds", "variant": 2, "x": 538.35, "y": 944.07, "scale": 0.9, "flip": false },
     { "type": "reeds", "variant": 2, "x": 464.73, "y": 941.76, "scale": 0.9, "flip": false },

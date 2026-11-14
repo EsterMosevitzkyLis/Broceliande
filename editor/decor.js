@@ -17,23 +17,21 @@ const round3 = (v) => Math.round(v * 1000) / 1000;
 const median = (list) => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
 
 // The catalogue, from what the game can draw and how the map files use it: [{ type, label, group,
-// variants, template }], template: a new object's fields besides its position. A kind used as a
-// landmark in any map file is a landmark ("landmark:<kind>", its scale its size in px, the median
-// of its uses); flats take their size from the median of theirs.
+// variants, template }], template: a new object's fields besides its position. A kind with a
+// landmark size (config.js DECOR.landmarkSize) is a landmark ("landmark:<kind>"); every upright
+// object starts at scale 1, its default size; flats take their size from the median of theirs.
 export function buildCatalogue(maps) {
   const all = Object.values(maps).flatMap((m) => m.decor);
-  const landmarkSizes = {};
-  for (const d of all) if (d.type.startsWith('landmark:')) (landmarkSizes[d.type.slice(9)] ??= []).push(d.scale);
   const out = [];
   for (const kind of decorKinds()) {
-    const landmark = !!landmarkSizes[kind];
+    const landmark = !!C.DECOR.landmarkSize[kind];
     const group = landmark ? 'Landmarks' : /Tree$|^tree$/.test(kind) ? 'Trees' : /Bush$|^bush$/.test(kind) ? 'Bushes' : 'Props';
     out.push({
       type: landmark ? `landmark:${kind}` : kind,
       label: kind,
       group,
       variants: VARIANTS,
-      template: { variant: 0, scale: landmark ? median(landmarkSizes[kind]) : 1, flip: false },
+      template: { variant: 0, scale: 1, flip: false },
     });
   }
   for (const type of FLAT_TYPES) {
@@ -87,7 +85,7 @@ export function thumbnail(entry, variant, palette) {
     }
   } else {
     const landmark = entry.type.startsWith('landmark:');
-    const size = entry.template.scale;
+    const size = landmark ? C.DECOR.landmarkSize[entry.label] : 1;
     const e = C.DECOR.extent[extentKind(entry.label)] ?? { lift: 20, r: 25 };
     const k = landmark ? (THUMB * 0.75) / size : Math.min((THUMB * 0.42) / (e.r * size), (THUMB * 0.8) / ((e.lift + e.r) * size));
     g.translate(THUMB / 2, THUMB - 6);
@@ -152,7 +150,7 @@ export function scatterAt(map, scene, p, settings, rng) {
       const e = C.DECOR.extent[extentKind(type)] ?? { lift: 20, r: 25 };
       if (q.y < C.HUD_STRIP_HEIGHT + 10 || q.x < -20 || q.x > C.STAGE_WIDTH + 20 || q.y > C.STAGE_HEIGHT + 20) continue;
       if (keepClear && (Math.hypot(q.x - home.x, q.y - home.y) < C.DECOR.clearingRadius || !decorFits(scene, type, q, size))) continue;
-      if (near.some((d) => Math.hypot(d.x - q.x, d.y - q.y) < SPACING * (extentOf(d).r * (d.type.startsWith('landmark:') ? 1 : d.scale) + e.r * size))) continue;
+      if (near.some((d) => Math.hypot(d.x - q.x, d.y - q.y) < SPACING * (extentOf(d).r * d.scale + e.r * size))) continue;
       const d = { type, variant: rng.int(0, VARIANTS - 1), x: round2(q.x), y: round2(q.y), scale: round3(size), flip: rng.next() < 0.5 };
       map.decor.push(d);
       near.push(d);

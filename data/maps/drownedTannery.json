@@ -186,7 +186,7 @@
     { "type": "water", "x": 567.01, "y": 914.57, "rx": 54.94, "ry": 26.38, "rot": 0.287 },
     { "type": "water", "x": 1841.8, "y": 146.77, "rx": 65.67, "ry": 28.99, "rot": 0.179 },
     { "type": "water", "x": 68.91, "y": 1040.87, "rx": 66.64, "ry": 34.36, "rot": 0.249 },
-    { "type": "landmark:tanneryVats", "variant": 0, "x": 310, "y": 980, "scale": 60, "flip": false },
+    { "type": "landmark:tanneryVats", "variant": 0, "x": 310, "y": 980, "scale": 1, "flip": false },
     { "type": "sunkenRoof", "variant": 1, "x": 191.21, "y": 905.61, "scale": 0.876, "flip": false },
     { "type": "reeds", "variant": 1, "x": 230.74, "y": 918.05, "scale": 0.9, "flip": false },
     { "type": "reeds", "variant": 1, "x": 135.62, "y": 914.63, "scale": 0.9, "flip": false },

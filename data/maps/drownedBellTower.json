@@ -185,7 +185,7 @@
     { "type": "groundPatch", "x": 213.11, "y": 711.91, "rx": 175.93, "ry": 68.99, "light": true },
     { "type": "water", "x": 1860.89, "y": 131.41, "rx": 40.57, "ry": 26.25, "rot": 0.229 },
     { "type": "water", "x": 1839.26, "y": 910.24, "rx": 58.35, "ry": 27.94, "rot": 0.046 },
-    { "type": "landmark:sunkenBelfry", "variant": 0, "x": 1240, "y": 200, "scale": 46, "flip": false },
+    { "type": "landmark:sunkenBelfry", "variant": 0, "x": 1240, "y": 200, "scale": 1, "flip": false },
     { "type": "sunkenRoof", "variant": 0, "x": 1864.95, "y": 139.28, "scale": 0.58, "flip": false },
     { "type": "reeds", "variant": 0, "x": 1891.09, "y": 149.6, "scale": 0.9, "flip": false },
     { "type": "reeds", "variant": 0, "x": 1828.18, "y": 147.04, "scale": 0.9, "flip": false },

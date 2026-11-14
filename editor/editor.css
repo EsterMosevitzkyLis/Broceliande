@@ -316,6 +316,53 @@ body.map-editor .ed-choice button.active {
   letter-spacing: 0;
   margin-left: 6px;
 }
+#ed-new-note {
+  color: var(--ed-accent);
+  margin-bottom: 6px;
+}
+body.map-editor #ed-preview.active {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
+#ed-preview-seed {
+  align-self: center;
+  min-width: 70px;
+  text-align: center;
+}
+#ed-preview-summary {
+  line-height: 1.45;
+}
+.ed-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ed-dim);
+}
+/* Generate draft: a small dialog over the stage. */
+#ed-draft {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: 460px;
+  padding: 14px 16px;
+  background: var(--ed-panel);
+  border: 1px solid var(--ed-accent);
+  border-radius: 6px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+.ed-draft-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.ed-seed {
+  width: 120px;
+}
+body.map-editor .ed-primary {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
 #ed-format-note {
   color: var(--ed-warn);
   margin-bottom: 6px;

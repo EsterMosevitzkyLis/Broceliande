@@ -189,7 +189,7 @@
     { "type": "water", "x": 1357.06, "y": 809.38, "rx": 44.25, "ry": 31.22, "rot": 0.268 },
     { "type": "water", "x": 620.57, "y": 888.63, "rx": 46.43, "ry": 28.07, "rot": 0.167 },
     { "type": "water", "x": 721.59, "y": 144.53, "rx": 46.94, "ry": 33.62, "rot": -0.052 },
-    { "type": "landmark:sluiceGate", "variant": 0, "x": 1390, "y": 680, "scale": 55, "flip": false },
+    { "type": "landmark:sluiceGate", "variant": 0, "x": 1390, "y": 680, "scale": 1, "flip": false },
     { "type": "sunkenRoof", "variant": 0, "x": 551.07, "y": 162.01, "scale": 0.855, "flip": false },
     { "type": "reeds", "variant": 0, "x": 589.63, "y": 172.3, "scale": 0.9, "flip": false },
     { "type": "reeds", "variant": 0, "x": 496.82, "y": 169.75, "scale": 0.9, "flip": false },

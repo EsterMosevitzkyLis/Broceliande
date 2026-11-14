@@ -211,6 +211,12 @@ export const DECOR = {
   },
   clearingRadius: 120,        // px, open dirt clearing around the Druid
   groundPatches: 70,          // subtle floor colour blobs
+  // M4a: a signature landmark's drawn size in px at scale 1 (its drawing takes its size in px);
+  // a map file's scale multiplies it, as it multiplies every other object's default size.
+  landmarkSize: {
+    mound: 135, bell: 60, altarStone: 44, peatThrone: 50, chapelWall: 110, sunkenBelfry: 46, gallows: 55,
+    tanneryVats: 60, cairn: 90, plagueCart: 40, footbridge: 70, ossuary: 52, sluiceGate: 55, widowTree: 30,
+  },
 };
 
 // ---------------------------------------------------------------------------

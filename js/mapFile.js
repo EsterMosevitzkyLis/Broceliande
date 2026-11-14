@@ -6,7 +6,8 @@
 // and the map editor (M4a §3).
 
 import { geometricZone } from './zones.js';
-import { decodeMire } from './mire.js';
+import { decodeMire, MIRE_CELL } from './mire.js';
+import * as C from './config.js';
 
 export const MAP_VERSION = 1;
 export const MAP_DIR = 'data/maps';
@@ -72,6 +73,9 @@ export function mapProblems(map, id) {
   if (!(S.nearRadius > 0)) out.push('"sectors.nearRadius" should be a number above 0');
   if (!Array.isArray(map.candidates) || !map.candidates.every((c) => isXY(c) && (c.zoneAuto || typeof c.zone === 'string'))) out.push('each candidate needs x, y and a zone (or zoneAuto)');
   if (!Array.isArray(map.decor) || !map.decor.every((d) => typeof d.type === 'string')) out.push('each decoration object needs a type');
+  for (const kind of new Set((map.decor ?? []).filter((d) => d.type?.startsWith('landmark:')).map((d) => d.type.slice(9)))) {
+    if (!C.DECOR.landmarkSize[kind]) out.push(`landmark "${kind}" has no default size (config.js DECOR.landmarkSize)`);
+  }
   if (!(map.mire?.cell > 0) || !Array.isArray(map.mire?.rows)) out.push('"mire" needs a cell size and a rows list');
   else {
     try { decodeMire(map.mire); } catch (e) { out.push(e.message); }
@@ -83,7 +87,8 @@ export function mapProblems(map, id) {
 const xy = ([x, y]) => ({ x, y });
 
 // Ground decoration kinds (drawn flat, under everything upright); every other type is an upright
-// object, a "landmark:" prefix marking a level's signature landmark.
+// object, a "landmark:" prefix marking a level's signature landmark. Every object's scale multiplies
+// its default size: 1 for most (their drawings scale from it), a landmark's DECOR.landmarkSize px.
 const FLAT_KINDS = { water: 'water', mist: 'mist', mere: 'mere', ashPit: 'ash' };
 
 // The level fields for one map: druidPos, corridorWidth, lanes, sectorBoundaryAngles, sectorNames,
@@ -117,10 +122,76 @@ export function levelFromMap(map) {
     else if (FLAT_KINDS[d.type]) G.flats.push({ kind: FLAT_KINDS[d.type], x: d.x, y: d.y, rx: d.rx, ry: d.ry, rot: d.rot ?? 0, glow: !!d.glow, mapIndex });
     else {
       const landmark = d.type.startsWith('landmark:');
-      const item = { kind: d.type.replace(/^landmark:/, ''), x: d.x, y: d.y, size: d.scale ?? 1, variant: d.variant ?? 0, flip: !!d.flip, landmark, mapIndex };
+      const kind = d.type.replace(/^landmark:/, '');
+      const size = (d.scale ?? 1) * (landmark ? C.DECOR.landmarkSize[kind] ?? 1 : 1);
+      const item = { kind, x: d.x, y: d.y, size, variant: d.variant ?? 0, flip: !!d.flip, landmark, mapIndex };
       if (d.angle !== undefined) item.angle = d.angle;
       G.decor.push(item);
     }
   });
   return level;
+}
+
+// ---------------------------------------------------------------------------
+// New levels (M4a §5.7): a blank map and the sectors for a set of lanes
+// ---------------------------------------------------------------------------
+
+const COMPASS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'];
+const angleTo = (from, to) => ((Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI + 360) % 360;
+
+// Sectors round the Druid for lanes entering at these points, one lane per sector: boundaries
+// halfway (by angle) between neighbouring lanes, each sector named after its lane's compass
+// direction (screen y points down: 90° is S). Returns { angles, names }, angles in sector order.
+export function sectorsFor(druid, entries) {
+  const lanes = entries.map((p) => angleTo(druid, p)).sort((a, b) => a - b);
+  const angles = lanes.map((a, i) => {
+    const prev = lanes[(i + lanes.length - 1) % lanes.length];
+    const gap = (a - prev + 360) % 360 || 360;
+    return Math.round((prev + gap / 2) % 360);
+  });
+  const names = lanes.map((a) => COMPASS[Math.round(a / 45) % 8]);
+  names.forEach((n, i) => { if (names.indexOf(n) !== i) names[i] = `${n}${i + 1}`; });
+  return { angles, names };
+}
+
+// A map for a level with no map file yet, as a starting point for a draft: the Druid near the
+// middle, straight lanes from their entry points to his melee ring (lanes: [{ id, name, entry }]),
+// sectors from them, no spots, decoration or mire. settings: { corridorWidth, meleeRadius,
+// nearRadius, palette }.
+export function blankMap(levelId, lanes, settings) {
+  const druid = { x: 960, y: 600 };
+  const ring = (p) => {
+    const d = Math.hypot(p.x - druid.x, p.y - druid.y) || 1;
+    return [Math.round(druid.x + ((p.x - druid.x) / d) * settings.meleeRadius), Math.round(druid.y + ((p.y - druid.y) / d) * settings.meleeRadius)];
+  };
+  const { angles, names } = sectorsFor(druid, lanes.map((l) => l.entry));
+  return {
+    version: MAP_VERSION,
+    level: levelId,
+    druid,
+    corridorWidth: settings.corridorWidth,
+    lanes: lanes.map((l) => ({ id: l.id, name: l.name, waypoints: [[l.entry.x, l.entry.y], ring(l.entry)] })),
+    sectors: { angles, names, nearRadius: settings.nearRadius },
+    zoneQuotaOverrides: {},
+    candidates: [],
+    decor: [],
+    mire: { cell: MIRE_CELL, rows: [] },
+    palette: settings.palette,
+    presentation: { tollSound: null, laneGlow: false, ashFlecks: 0 },
+    backgroundImage: null,
+    notes: '',
+  };
+}
+
+// A level's lanes from the lanes tab (rows { level, laneId, name, entry: "x, y" }), or three lanes
+// from the left, right and bottom edges when it has none there.
+export function lanesFromTab(levelId, rows = []) {
+  const mine = rows.filter((r) => r.level === levelId && r.laneId);
+  if (mine.length) {
+    return mine.map((r) => {
+      const [x, y] = String(r.entry ?? '').split(',').map((v) => Number(v.trim()));
+      return { id: r.laneId, name: r.name ?? r.laneId, entry: Number.isFinite(x) && Number.isFinite(y) ? { x, y } : { x: -40, y: 540 } };
+    });
+  }
+  return [{ id: 'west', name: 'West', entry: { x: -40, y: 420 } }, { id: 'east', name: 'East', entry: { x: 1960, y: 460 } }, { id: 'south', name: 'South', entry: { x: 900, y: 1120 } }];
 }

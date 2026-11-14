@@ -173,7 +173,7 @@
     { "type": "groundPatch", "x": 673.12, "y": 445.37, "rx": 80.12, "ry": 61.03, "light": false },
     { "type": "groundPatch", "x": 906.73, "y": 1002.27, "rx": 89.81, "ry": 54.79, "light": false },
     { "type": "groundPatch", "x": 1664, "y": 421.54, "rx": 152.51, "ry": 41.56, "light": true },
-    { "type": "landmark:bell", "variant": 0, "x": 1150, "y": 310, "scale": 60, "flip": false },
+    { "type": "landmark:bell", "variant": 0, "x": 1150, "y": 310, "scale": 1, "flip": false },
     { "type": "bush", "variant": 1, "x": -13.09, "y": 85.36, "scale": 0.818, "flip": false },
     { "type": "bush", "variant": 1, "x": 65.28, "y": 123.03, "scale": 1.238, "flip": false },
     { "type": "bush", "variant": 0, "x": 118.99, "y": 86.86, "scale": 0.806, "flip": false },

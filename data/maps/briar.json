@@ -175,7 +175,7 @@
     { "type": "groundPatch", "x": 1735.26, "y": 487.12, "rx": 67.5, "ry": 40.45, "light": false },
     { "type": "groundPatch", "x": 1357.85, "y": 1050.32, "rx": 107.47, "ry": 34.15, "light": true },
     { "type": "groundPatch", "x": 711.28, "y": 944.22, "rx": 97.62, "ry": 44.73, "light": true },
-    { "type": "landmark:chapelWall", "variant": 0, "x": 710, "y": 1050, "scale": 110, "flip": false },
+    { "type": "landmark:chapelWall", "variant": 0, "x": 710, "y": 1050, "scale": 1, "flip": false },
     { "type": "thornBush", "variant": 0, "x": -1.81, "y": 84.64, "scale": 1.074, "flip": false },
     { "type": "thornBush", "variant": 1, "x": 232.24, "y": 83.94, "scale": 1.092, "flip": false },
     { "type": "thornBush", "variant": 0, "x": 357.84, "y": 97.78, "scale": 0.853, "flip": false },

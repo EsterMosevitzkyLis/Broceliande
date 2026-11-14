@@ -117,7 +117,7 @@ export function hitDecor(map, p, tol, { upright = true, flats = true } = {}) {
   map.decor.forEach((d, index) => {
     if (!Number.isFinite(d.x) || d.type === 'groundPatch' || d.rx !== undefined) return;
     if (!upright) return;
-    const reach = d.type.startsWith('landmark:') ? Math.max(24, d.scale * 0.5) : 18 + tol;
+    const reach = d.type.startsWith('landmark:') ? Math.max(24, d.scale * (C.DECOR.landmarkSize[d.type.slice(9)] ?? 60) * 0.5) : 18 + tol;
     const dd = dist(d, p);
     if (dd <= reach && (!best || dd < best.d)) best = { d: dd, index };
   });

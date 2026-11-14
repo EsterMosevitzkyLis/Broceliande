@@ -8,6 +8,8 @@ import { createRng } from './rng.js';
 import { corridorWidth, regionTwist } from './levelSettings.js';
 import { corridorDistance, OCCUPIED_RADIUS } from './scene.js';
 import { mireFromBlobs } from './mire.js';
+import { createLanePath } from './lanePath.js';
+import { zoneIds, zoneQuota, geometricZone } from './zones.js';
 
 // A draft of a scene's ground. scene: a scene (scene.js createScene: lanes, candidates, level);
 // opts: the generator's settings, as the old per-level geometry had them: decorSeed, decorDensity,
@@ -325,9 +327,10 @@ function scatterDecor(scene) {
 // battlefield, never on a corridor.
 const CELL = 16; // px, the grid that estimates how much ground is covered
 
-function generateMire(scene) {
+// force: even outside a region with mire ground (the map editor's mire draft, asked for).
+function generateMire(scene, force = false) {
   const level = scene.level;
-  if (!regionTwist(level, 'mireGround') || !(level.mireCoverage > 0)) return [];
+  if ((!force && !regionTwist(level, 'mireGround')) || !(level.mireCoverage > 0)) return [];
   const rng = createRng((level.decorSeed + C.MIRE_SEED_OFFSET) >>> 0);
   const top = C.HUD_STRIP_HEIGHT;
   const target = (C.STAGE_WIDTH * (C.STAGE_HEIGHT - top) * level.mireCoverage) / (CELL * CELL);
@@ -358,4 +361,112 @@ function generateMire(scene) {
 
 function clearOfCorridors(scene, b) {
   return scene.lanes.every((lane) => lane.path.distanceTo(b) >= lane.corridorWidth / 2 + b.r + C.MIRE_CORRIDOR_GAP);
+}
+
+// ---------------------------------------------------------------------------
+// The map editor's drafts, one layer at a time (M4a §5.7). Each returns map-file data.
+// ---------------------------------------------------------------------------
+
+const round2 = (v) => Math.round(v * 100) / 100;
+const round3 = (v) => Math.round(v * 1000) / 1000;
+const LANE_BENDS = 7;        // waypoints between a lane's entry and its approach to the Druid
+const LANE_MARGIN = 50;      // px a lane's bends keep inside the screen (below the HUD strip)
+const LANE_SWAY = 55;        // degrees a bend may stray from the lane's own direction round the Druid
+
+// Lanes winding from their entry points to the Druid's melee ring, each about LANE_LENGTH_FACTOR ×
+// its straight distance long. lanes: [{ id, name, entry: { x, y } }]; returns map-file lanes.
+export function draftLanes(druid, lanes, rng) {
+  return lanes.map((lane) => {
+    const e = lane.entry;
+    const straight = Math.hypot(e.x - druid.x, e.y - druid.y);
+    const ux = (druid.x - e.x) / straight;
+    const uy = (druid.y - e.y) / straight;
+    const end = { x: druid.x - ux * C.DRUID_MELEE_RADIUS, y: druid.y - uy * C.DRUID_MELEE_RADIUS };
+    const approach = { x: druid.x - ux * (C.DRUID_MELEE_RADIUS + 90), y: druid.y - uy * (C.DRUID_MELEE_RADIUS + 90) };
+    // A smooth random sway per bend, tapered to nothing at both ends.
+    const sway = [];
+    let v = 0;
+    for (let i = 0; i < LANE_BENDS; i++) sway.push((v = v * 0.4 + rng.range(-1, 1)));
+    const own = Math.atan2(e.y - druid.y, e.x - druid.x);
+    const at = (amp) => {
+      const pts = [e];
+      for (let i = 0; i < LANE_BENDS; i++) {
+        const t = (i + 1) / (LANE_BENDS + 1);
+        const off = amp * sway[i] * Math.sin(Math.PI * t);
+        let x = e.x + (approach.x - e.x) * t - uy * off;
+        let y = e.y + (approach.y - e.y) * t + ux * off;
+        x = Math.min(C.STAGE_WIDTH - LANE_MARGIN, Math.max(LANE_MARGIN, x));
+        y = Math.min(C.STAGE_HEIGHT - LANE_MARGIN, Math.max(C.HUD_STRIP_HEIGHT + LANE_MARGIN, y));
+        // Keep each bend within LANE_SWAY degrees of the lane's own direction round the Druid.
+        const a = Math.atan2(y - druid.y, x - druid.x);
+        const da = Math.atan2(Math.sin(a - own), Math.cos(a - own));
+        const lim = (LANE_SWAY * Math.PI) / 180;
+        if (Math.abs(da) > lim) {
+          const r = Math.hypot(x - druid.x, y - druid.y);
+          const b = own + Math.sign(da) * lim;
+          x = druid.x + Math.cos(b) * r;
+          y = druid.y + Math.sin(b) * r;
+        }
+        pts.push({ x, y });
+      }
+      pts.push(approach, end);
+      return pts;
+    };
+    // The sway amplitude whose lane length is nearest LANE_LENGTH_FACTOR × straight (bisection).
+    let lo = 0;
+    let hi = 600;
+    for (let k = 0; k < 24; k++) {
+      const mid = (lo + hi) / 2;
+      if (createLanePath(at(mid)).length / straight < C.LANE_LENGTH_FACTOR) lo = mid;
+      else hi = mid;
+    }
+    return { id: lane.id, name: lane.name, waypoints: at(lo).map((p) => [Math.round(p.x), Math.round(p.y)]) };
+  });
+}
+
+// Candidate spots by the candidate rules (M1c §2): clear of corridors, the Druid's clearing and
+// each other, on screen below the HUD strip, within TURRET_RANGE of a lane; for each zone its
+// turret + feature quota and one spare. scene: the level's scene with its lanes; returns map-file
+// candidates (zones worked out from the geometry).
+export function draftSpots(scene, rng, tries = 8000) {
+  const { level, lanes } = scene;
+  const want = Object.fromEntries(zoneIds(level).map((z) => {
+    const q = zoneQuota(level, z);
+    return [z, q.turret + q.feature + 1];
+  }));
+  const have = Object.fromEntries(Object.keys(want).map((z) => [z, 0]));
+  const clearance = corridorWidth(level) / 2 + OCCUPIED_RADIUS;
+  const spacing = 2 * OCCUPIED_RADIUS + C.LOCATION_GAP;
+  const home = level.druidPos;
+  const placed = [];
+  for (let t = 0; t < tries && placed.length < Object.values(want).reduce((a, b) => a + b, 0); t++) {
+    const p = { x: Math.round(rng.range(OCCUPIED_RADIUS, C.STAGE_WIDTH - OCCUPIED_RADIUS)), y: Math.round(rng.range(C.HUD_STRIP_HEIGHT + OCCUPIED_RADIUS, C.STAGE_HEIGHT - OCCUPIED_RADIUS)) };
+    const zone = geometricZone(level, p);
+    if (!(zone in want) || have[zone] >= want[zone]) continue;
+    if (Math.hypot(p.x - home.x, p.y - home.y) < C.DECOR.clearingRadius + OCCUPIED_RADIUS) continue;
+    if (corridorDistance(lanes, p) < clearance) continue;
+    if (!lanes.some((lane) => lane.path.distanceTo(p) <= C.TURRET_RANGE)) continue;
+    if (placed.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < spacing)) continue;
+    placed.push({ ...p, zone });
+    have[zone]++;
+  }
+  return placed.map((p) => ({ x: p.x, y: p.y, zone: p.zone, zoneAuto: true }));
+}
+
+// Decoration: the seeded forest scatter (trees, bushes, rocks in the given styles) and ground
+// patches, clear of corridors and spots. Returns map-file decor entries.
+export function draftDecor(scene, seed, { treeKind = 'tree', bushKind = 'bush' } = {}) {
+  const g = draftGround(scene, { decorSeed: seed, decorDensity: 1, mireCoverage: 0, treeKind, bushKind });
+  return [
+    ...g.groundPatches.map((p) => ({ type: 'groundPatch', x: round2(p.x), y: round2(p.y), rx: round2(p.rx), ry: round2(p.ry), light: p.light })),
+    ...g.decor.map((d) => ({ type: d.kind, variant: d.variant, x: round2(d.x), y: round2(d.y), scale: round3(d.size), flip: false })),
+  ];
+}
+
+// Mire: seeded patches covering about `coverage` of the ground below the HUD strip, as a grid (never
+// on a corridor).
+export function draftMire(scene, seed, coverage) {
+  const s = { ...scene, level: { ...scene.level, decorSeed: seed, mireCoverage: coverage }, mire: [] };
+  const patches = generateMire(s, true);
+  return mireFromBlobs(patches.flatMap((p) => p.blobs), scene.lanes);
 }

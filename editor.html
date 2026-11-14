@@ -16,13 +16,15 @@
     <span id="ed-dirty" title="No unsaved changes"></span>
     <button id="ed-undo" type="button" disabled title="Undo (Ctrl+Z)">Undo</button>
     <button id="ed-redo" type="button" disabled title="Redo (Ctrl+Y)">Redo</button>
-    <button type="button" disabled title="Comes in M4a phase 5">Preview a run</button>
-    <button type="button" disabled title="Comes in M4a phase 5">Play this level</button>
-    <button type="button" disabled title="Comes in M4a phase 5">Generate draft</button>
+    <button id="ed-preview" type="button" title="Roll the level's layout with a seed, as the game would">Preview a run</button>
+    <button id="ed-play" type="button" title="Open the game at this level's Prep, in a new tab">Play this level</button>
+    <label class="ed-inline" title="Start with the debug resource grant (debug G)"><input id="ed-play-debug" type="checkbox"> debug resources</label>
+    <button id="ed-draft-button" type="button" title="Generate a starting point for the level, or one layer of it">Generate draft</button>
     <span id="ed-status"></span>
     <span id="ed-readonly" hidden></span>
   </header>
   <div id="ed-data-problems" hidden></div>
+  <div id="ed-draft" hidden></div>
 
   <div id="ed-main">
     <!-- Left toolbar: the tools (M4a §5.3). -->
@@ -44,6 +46,11 @@
 
     <!-- Right panel: selection, layers, snap, checks. -->
     <aside id="ed-panel">
+      <section id="ed-preview-panel" hidden>
+        <h2>Preview a run</h2>
+        <div class="ed-choice"><button id="ed-preview-prev" type="button">Previous seed</button><span id="ed-preview-seed"></span><button id="ed-preview-next" type="button">Next seed</button></div>
+        <div id="ed-preview-summary"></div>
+      </section>
       <section class="ed-tool-section">
         <h2>Tool</h2>
         <div id="ed-tool-help"></div>
@@ -73,6 +80,7 @@
       <section class="ed-checks-section">
         <h2>Checks <span id="ed-checks-summary"></span> <span id="ed-checking" hidden>checking…</span></h2>
         <div id="ed-format-note" hidden>This file isn't in the editor's layout; saving rewrites it.</div>
+        <div id="ed-new-note" hidden>No map file yet: Generate draft for a starting point, then Save to create it.</div>
         <div id="ed-checks"></div>
       </section>
     </aside>
