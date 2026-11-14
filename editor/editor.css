@@ -120,6 +120,7 @@ body.map-editor select:disabled {
 }
 #ed-canvas {
   display: block;
+  touch-action: none;
   background: #000;
   box-shadow: 0 0 0 1px var(--ed-line);
 }
@@ -127,6 +128,7 @@ body.map-editor select:disabled {
 #ed-panel {
   flex: none;
   width: 360px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--ed-panel);
@@ -144,9 +146,50 @@ body.map-editor select:disabled {
   letter-spacing: 0.06em;
   color: var(--ed-dim);
 }
-#ed-selection {
+#ed-selection,
+#ed-tool-help,
+#ed-sectors {
   line-height: 1.5;
   word-break: break-word;
+}
+#ed-tool-help {
+  color: var(--ed-dim);
+}
+#ed-zone-row {
+  display: block;
+  margin-top: 6px;
+}
+#ed-zone {
+  margin-left: 6px;
+  padding: 2px 6px;
+}
+.ed-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ed-slider input {
+  flex: 1;
+  min-width: 0;
+}
+#ed-corridor-width-value {
+  flex: none;
+  width: 52px;
+  text-align: right;
+}
+#ed-sectors {
+  color: var(--ed-dim);
+}
+#ed-checking,
+.ed-prep-note {
+  color: var(--ed-accent);
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.ed-check.stale {
+  opacity: 0.5;
 }
 #ed-layers {
   display: grid;

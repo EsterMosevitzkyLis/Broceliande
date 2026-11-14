@@ -8,6 +8,7 @@ import { drawDruid, DRUID_REST_POSE } from '../js/render/entities.js';
 import { laneEntrance, COLORS } from '../js/renderer.js';
 import { drawLane, drawZones } from '../js/debug/debugOverlay.js';
 import { geometricZone } from '../js/zones.js';
+import { sectorHandlePos } from './geometry.js';
 
 export const LAYERS = ['ground', 'lanes', 'mire', 'decoration', 'spots', 'zones', 'checks'];
 
@@ -66,8 +67,10 @@ export function decorByIndex(scene) {
   return all;
 }
 
-// view: { layers: { name: bool }, time (s, for the mire and the glow), checks (checks.js result),
-// selection (a check target or null), areas: [{ left, top, right, bottom, name }] (the UI areas) }.
+// view: { layers: { name: bool }, time (s, for the mire and the glow), checks (the cheap checks),
+// selection (a list of refs, geometry.js), areas: [{ left, top, right, bottom, name }] (the UI
+// areas), tool (the active tool: its overlay shows whatever the layers say), box (a box being
+// dragged, or null) }.
 export function drawView(ctx, scene, view) {
   const { layers } = view;
   const level = scene.level;
@@ -105,8 +108,9 @@ export function drawView(ctx, scene, view) {
 
   // Overlays.
   ctx.font = '13px monospace';
-  if (layers.zones) drawZones(ctx, level);
-  if (layers.lanes) {
+  const tool = view.tool;
+  if (layers.zones || tool === 'druid') drawZones(ctx, level);
+  if (layers.lanes || tool === 'lanes') {
     ctx.save();
     ctx.strokeStyle = SPOT;
     ctx.fillStyle = SPOT;
@@ -115,9 +119,21 @@ export function drawView(ctx, scene, view) {
     for (const lane of scene.lanes) drawLane(ctx, lane);
     ctx.restore();
   }
-  if (layers.spots) drawSpots(ctx, scene);
+  if (layers.spots || tool === 'spots') drawSpots(ctx, scene);
   if (layers.checks) drawCheckMarks(ctx, scene, view);
-  drawSelection(ctx, scene, view.selection);
+  if (tool === 'druid') drawDruidHandles(ctx, level);
+  const decor = view.selection.some((r) => r.kind === 'decor') ? decorByIndex(scene) : null;
+  for (const ref of view.selection) drawSelected(ctx, scene, ref, decor);
+  if (view.box) {
+    const b = view.box;
+    ctx.fillStyle = 'rgba(255, 235, 90, 0.08)';
+    ctx.fillRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
+    ctx.strokeStyle = SELECT;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
+    ctx.setLineDash([]);
+  }
   ctx.restore();
 }
 
@@ -152,16 +168,33 @@ function drawCheckMarks(ctx, scene, view) {
   }
 }
 
-function drawSelection(ctx, scene, sel) {
-  if (!sel) return;
+// The Druid tool's handles: one per sector boundary, and the near ring drawn thick.
+function drawDruidHandles(ctx, level) {
+  const d = level.druidPos;
+  ring(ctx, d.x, d.y, level.nearRadius, 'rgba(255, 255, 255, 0.9)', 3);
+  level.sectorBoundaryAngles.forEach((angle, i) => {
+    const h = sectorHandlePos(level, i);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ring(ctx, h.x, h.y, 9, 'rgba(0, 0, 0, 0.8)', 2);
+    tag(ctx, `${angle}°`, h.x + 12, h.y - 10, 'rgba(255, 255, 255, 0.95)');
+  });
+}
+
+function drawSelected(ctx, scene, sel, decor) {
   if (sel.kind === 'candidate') {
     const c = scene.candidates[sel.index];
     if (c) ring(ctx, c.x, c.y, C.LOCATION_RADIUS + C.LOCATION_JITTER + 9, SELECT, 3);
+  } else if (sel.kind === 'waypoint') {
+    const w = scene.lanes[sel.lane]?.waypoints[sel.index];
+    if (w) ring(ctx, w.x, w.y, 9, SELECT, 3);
   } else if (sel.kind === 'lane') {
     const lane = scene.lanes.find((l) => l.id === sel.id);
     if (lane) strokeCentreline(ctx, lane, SELECT, 3);
   } else if (sel.kind === 'decor') {
-    const d = decorByIndex(scene).get(sel.index);
+    const d = decor.get(sel.index);
     if (d) decorMark(ctx, d, SELECT, 3);
   } else if (sel.kind === 'zone') {
     for (const c of scene.candidates) {

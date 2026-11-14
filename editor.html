@@ -14,8 +14,8 @@
     <select id="ed-level" title="Level"></select>
     <button id="ed-save" type="button" disabled>Save</button>
     <span id="ed-dirty" title="No unsaved changes"></span>
-    <button type="button" disabled title="Undo (Ctrl+Z): comes with the editing tools (M4a phase 3)">Undo</button>
-    <button type="button" disabled title="Redo (Ctrl+Y): comes with the editing tools (M4a phase 3)">Redo</button>
+    <button id="ed-undo" type="button" disabled title="Undo (Ctrl+Z)">Undo</button>
+    <button id="ed-redo" type="button" disabled title="Redo (Ctrl+Y)">Redo</button>
     <button type="button" disabled title="Comes in M4a phase 5">Preview a run</button>
     <button type="button" disabled title="Comes in M4a phase 5">Play this level</button>
     <button type="button" disabled title="Comes in M4a phase 5">Generate draft</button>
@@ -25,12 +25,12 @@
   <div id="ed-data-problems" hidden></div>
 
   <div id="ed-main">
-    <!-- Left toolbar: the tools (M4a §5.3); only Select works in this phase. -->
+    <!-- Left toolbar: the tools (M4a §5.3). -->
     <nav id="ed-tools">
-      <button type="button" class="active" title="Select: click a spot, the Druid or a decoration object to see its properties">Select</button>
-      <button type="button" disabled title="Comes in M4a phase 3">Lanes</button>
-      <button type="button" disabled title="Comes in M4a phase 3">Druid</button>
-      <button type="button" disabled title="Comes in M4a phase 3">Spots</button>
+      <button type="button" data-tool="select" title="Select and move (V)">Select</button>
+      <button type="button" data-tool="lanes" title="Lanes: waypoints (L)">Lanes</button>
+      <button type="button" data-tool="druid" title="Druid and sectors (D)">Druid</button>
+      <button type="button" data-tool="spots" title="Spots (S)">Spots</button>
       <button type="button" disabled title="Comes in M4a phase 4">Place</button>
       <button type="button" disabled title="Comes in M4a phase 4">Scatter</button>
       <button type="button" disabled title="Comes in M4a phase 4">Mire</button>
@@ -45,18 +45,31 @@
     <!-- Right panel: selection, layers, snap, checks. -->
     <aside id="ed-panel">
       <section>
+        <h2>Tool</h2>
+        <div id="ed-tool-help"></div>
+      </section>
+      <section>
         <h2>Selection</h2>
         <div id="ed-selection"></div>
+        <label id="ed-zone-row" hidden>Zone <select id="ed-zone"></select></label>
+      </section>
+      <section>
+        <h2>Level</h2>
+        <label class="ed-slider">Corridor width
+          <input id="ed-corridor-width" type="range" min="60" max="240" step="2">
+          <span id="ed-corridor-width-value"></span>
+        </label>
+        <div id="ed-sectors"></div>
       </section>
       <section>
         <h2>Layers</h2>
         <div id="ed-layers"></div>
         <label class="ed-snap">Snap to grid
-          <select disabled title="Comes with the editing tools (M4a phase 3)"><option>off</option><option>10 px</option><option>20 px</option></select>
+          <select id="ed-snap"><option value="0">off</option><option value="10">10 px</option><option value="20">20 px</option></select>
         </label>
       </section>
       <section class="ed-checks-section">
-        <h2>Checks <span id="ed-checks-summary"></span></h2>
+        <h2>Checks <span id="ed-checks-summary"></span> <span id="ed-checking" hidden>checking…</span></h2>
         <div id="ed-format-note" hidden>This file isn't in the editor's layout; saving rewrites it.</div>
         <div id="ed-checks"></div>
       </section>

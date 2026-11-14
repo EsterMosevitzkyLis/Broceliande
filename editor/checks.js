@@ -1,11 +1,14 @@
 // The editor's live checks (M4a §5.4) for the level being edited: the game's own start-up checks
 // (map file shape, candidate rules, zones, waves, lanes, the UI areas), plus figures for the
 // designer: candidates per zone against the quota, lane lengths and travel times, corridor width
-// against the level's big enemies, the Prep route cost with a suggested step budget, and decoration
-// reaching into corridors or candidate areas. Each entry: { group, severity, message, target }, with
-// severity 'error', 'warn', 'info' or 'ok' (a figure that passes) and target (what clicking it
-// selects): { kind: 'candidate', index }, { kind: 'lane', id }, { kind: 'zone', zone },
+// against the level's big enemies, the Prep route figures with a suggested step budget, and
+// decoration reaching into corridors or candidate areas. Each entry: { group, severity, message,
+// target }, with severity 'error', 'warn', 'info' or 'ok' (a figure that passes) and target (what
+// clicking it selects): { kind: 'candidate', index }, { kind: 'lane', id }, { kind: 'zone', zone },
 // { kind: 'decor', index } (index into the map file's decor list) or null.
+//
+// cheapChecks runs on every change, even while dragging; the Prep figures come from layout trials
+// (prepItems), which the editor runs once the map has been still for a moment.
 
 import * as C from '../js/config.js';
 import { mapProblems } from '../js/mapFile.js';
@@ -13,12 +16,12 @@ import { levelChecks } from '../js/scene.js';
 import { zoneIds, zoneQuota, zoneCandidates } from '../js/zones.js';
 import { corridorWidth, levelWaves } from '../js/levelSettings.js';
 import { fitsCorridor } from '../js/entities/enemy.js';
-import { layoutTrials, trialOutcome, trialFailRate, routeBand, suggestedBudget } from '../js/layout.js';
+import { trialOutcome, trialFailRate, drawFitRate, routeBand, centredBudget } from '../js/layout.js';
 import { decorOverlaps } from '../js/mapDraft.js';
 import { levelNameLabelProblems, bossBarProblems, wavePreviewProblems } from '../js/ui.js';
 
-const ROUTE_TRIALS = 50;          // layouts made as the game makes them, for the Prep figures
-const TARGET_FAIL_RATE = 0.1;     // the suggested stepBudget: the lowest with at most this share of failed layouts
+export const ROUTE_TRIALS = 50;   // layouts made as the game makes them, for the Prep figures
+const FAIL_WARN_RATE = 0.2;       // a "no fair draw" rate above this is a warning
 const DECOR_LIST_MAX = 25;        // decoration overlaps listed one by one (all are marked on the map)
 
 export const GROUPS = ['Map file', 'Candidates', 'Zones', 'Lanes', 'Waves', 'Prep', 'Decoration'];
@@ -33,16 +36,16 @@ function groupOf(check) {
   return 'Waves';
 }
 
-export function runChecks(scene, map) {
+// areas: the UI areas measured once per level, { label, bossBar, wavePreview }.
+export function cheapChecks(scene, map, areas) {
   const { level, levelId } = scene;
   const out = [];
   const add = (group, severity, message, target = null) => out.push({ group, severity, message, target });
 
   for (const m of mapProblems(map, levelId)) add('Map file', 'error', m);
   for (const c of levelChecks(scene)) add(groupOf(c), c.severity, c.message, c.target);
-  for (const p of [...levelNameLabelProblems(scene), ...bossBarProblems(scene), ...wavePreviewProblems(scene)]) {
-    add('Candidates', 'warn', p.problem, { kind: 'candidate', index: p.index });
-  }
+  const underUi = [...levelNameLabelProblems(scene, areas.label), ...bossBarProblems(scene, areas.bossBar), ...wavePreviewProblems(scene, areas.wavePreview)];
+  for (const p of underUi) add('Candidates', 'warn', p.problem, { kind: 'candidate', index: p.index });
 
   // Zones: candidates per zone against its quota (turret + feature), e.g. "fN 4 / 5".
   for (const zone of zoneIds(level)) {
@@ -67,25 +70,6 @@ export function runChecks(scene, map) {
     add('Lanes', fitsCorridor(t, W) ? 'ok' : 'error', `corridors ${W} px, ${e.name} needs ${2 * e.radius + 2}`);
   }
 
-  // Prep: layouts made as the game makes them (rerolls included): their feature route cost, how
-  // often no fair layout is found at the level's stepBudget, and the budget that would give about
-  // TARGET_FAIL_RATE of those (shown only: the budget is in the sheet).
-  if (level.candidateLocations.length) {
-    const trials = layoutTrials(scene, ROUTE_TRIALS);
-    const band = routeBand(level);
-    const routes = trials.map((t) => trialOutcome(t, level.stepBudget)).filter((r) => r !== null).sort((a, b) => a - b);
-    const rate = trialFailRate(trials, level.stepBudget);
-    if (routes.length) add('Prep', 'ok', `feature route over ${trials.length} layouts: median ${routes[Math.floor(routes.length / 2)]} steps (${routes[0]}–${routes[routes.length - 1]})`);
-    add('Prep', rate > TARGET_FAIL_RATE * 2 ? 'warn' : 'ok', `${Math.round(rate * 100)}% of layouts find no fair draw at stepBudget ${level.stepBudget} (route band ${Math.ceil(band.min)}–${Math.floor(band.max)})`);
-    const draws = trials.flat();
-    const inBand = draws.filter((r) => r >= band.min && r <= band.max).length;
-    if (draws.length) add('Prep', 'info', `${Math.round((100 * inBand) / draws.length)}% of single draws (with lane coverage) fit the band (the game rerolls until one does, up to ${C.MAX_LAYOUT_ATTEMPTS} draws)`);
-    const suggested = suggestedBudget(trials, TARGET_FAIL_RATE);
-    add('Prep', 'info', suggested === null
-      ? `no stepBudget keeps failures to ${Math.round(TARGET_FAIL_RATE * 100)}%: the spots or the feature mix need a look`
-      : `suggested stepBudget ${suggested}: the lowest with at most ${Math.round(TARGET_FAIL_RATE * 100)}% of layouts failing (${Math.round(trialFailRate(trials, suggested) * 100)}%); set it in the levels tab`);
-  }
-
   // Decoration reaching into a corridor or a candidate area: warnings.
   const overlaps = decorOverlaps(scene);
   overlaps.slice(0, DECOR_LIST_MAX).forEach((d) => {
@@ -93,4 +77,28 @@ export function runChecks(scene, map) {
   });
   if (overlaps.length > DECOR_LIST_MAX) add('Decoration', 'warn', `and ${overlaps.length - DECOR_LIST_MAX} more (all marked on the map)`);
   return { items: out, overlaps };
+}
+
+// Prep (from layout trials, js/layout.js): the feature route of the layouts the game would end
+// with, how often no fair draw turns up at the level's stepBudget, the share of single draws that
+// fit its band, and the budget centred on the map's typical route (shown only: the budget is in
+// the sheet).
+export function prepItems(level, trials) {
+  const out = [];
+  const add = (severity, message) => out.push({ group: 'Prep', severity, message, target: null });
+  if (!trials.length) return out;
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  const band = routeBand(level);
+  const routes = trials.map((t) => trialOutcome(t, level.stepBudget)).filter((r) => r !== null).sort((a, b) => a - b);
+  const fail = trialFailRate(trials, level.stepBudget);
+  if (routes.length) add('ok', `feature route over ${trials.length} layouts: median ${routes[Math.floor(routes.length / 2)]} steps (${routes[0]}–${routes[routes.length - 1]})`);
+  add(fail > FAIL_WARN_RATE ? 'warn' : 'ok', `${pct(fail)} of layouts find no fair draw at stepBudget ${level.stepBudget} (route band ${Math.ceil(band.min)}–${Math.floor(band.max)})`);
+  add('info', `${pct(drawFitRate(trials, level.stepBudget))} of single draws fit that band (the game rerolls until one does, up to ${C.MAX_LAYOUT_ATTEMPTS} draws)`);
+  const suggested = centredBudget(trials);
+  if (suggested === null) {
+    add('warn', 'no draw covers every lane: the spots need a look');
+  } else {
+    add('info', `suggested stepBudget ${suggested}, centred on the typical route: ${pct(drawFitRate(trials, suggested))} of single draws fit, ${pct(trialFailRate(trials, suggested))} of layouts find no fair draw; set it in the levels tab`);
+  }
+  return out;
 }

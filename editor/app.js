@@ -1,22 +1,40 @@
-// The map editor (M4a §5), loaded by boot.js once the data is applied. Phase 2: the level picker,
-// the game-accurate view with layer toggles, the live checks and saving through tools/serve.py
-// (§4). The editing tools, undo / redo, snap, Preview a run, Play this level and Generate draft
-// come in later phases; their controls are in place, disabled.
+// The map editor (M4a §5), loaded by boot.js once the data is applied: the level picker, the
+// game-accurate view with layer toggles, the live checks, saving through tools/serve.py (§4), and
+// editing: selection, undo / redo, snap to grid, and the Lanes, Druid and Spots tools (§5.2, §5.3).
+// Preview a run, Play this level, Generate draft and the decoration, mire, palette and background
+// tools come in later phases; their controls are in place, disabled.
+//
+// Every edit changes `ed.map` (the working copy of the map file). The scene and the cheap checks are
+// rebuilt from it once per frame while anything changes; the Prep trials run once the map has been
+// still for PREP_DELAY, a few at a time between frames, with a "checking…" marker.
 
 import * as C from '../js/config.js';
 import { levelFromMap, MAP_DIR } from '../js/mapFile.js';
 import { sceneFromLevel } from '../js/scene.js';
-import { geometricZone, zoneQuota, zoneCandidates } from '../js/zones.js';
+import { geometricZone, zoneIds, zoneQuota, zoneCandidates } from '../js/zones.js';
 import { levelNameLabelArea, bossBarArea, wavePreviewArea } from '../js/ui.js';
+import { trialSetup, layoutTrial } from '../js/layout.js';
 import { formatMap } from './mapWriter.js';
-import { runChecks, GROUPS } from './checks.js';
-import { drawView, decorByIndex, LAYERS } from './view.js';
+import { cheapChecks, prepItems, GROUPS, ROUTE_TRIALS } from './checks.js';
+import { drawView, LAYERS } from './view.js';
+import { createTools, TOOLS } from './tools.js';
+import { MOVABLE } from './geometry.js';
 
 const SAVE_OFF_MESSAGE = 'Saving works when the editor is run locally with tools/serve.py.';
 const LAST_LEVEL_KEY = 'broceliande.editor.level';
 const LAYERS_KEY = 'broceliande.editor.layers';
+const SNAP_KEY = 'broceliande.editor.snap';
 const DEFAULT_LAYERS = { ground: true, lanes: false, mire: true, decoration: true, spots: true, zones: false, checks: true };
-const CHECKS_DELAY = 150; // ms after the last change before the checks run again
+const PREP_DELAY = 1000;   // ms the map is still (no drag) before the Prep trials run
+const PREP_SLICE = 25;     // ms of trials per step, so the page stays responsive while they run
+const UNDO_LIMIT = 200;    // undo steps kept
+const TOOL_KEYS = { v: 'select', l: 'lanes', d: 'druid', s: 'spots' };
+const TOOL_HELP = {
+  select: 'Click to select a spot, the Druid or a decoration object, drag to move, drag on empty ground to box-select (Shift adds). Delete removes, arrows nudge (Shift: 10 px).',
+  lanes: 'Drag a waypoint to move it, click a corridor to insert one, Delete removes it (a lane keeps 2). Box-drag selects waypoints.',
+  druid: 'Drag the Druid (each lane\'s end follows), a sector handle to turn its boundary, or the near ring to resize it. Zones of auto spots follow.',
+  spots: 'Click empty ground to add a spot, drag to move, Delete removes. Pick a zone for a selected spot on the right.',
+};
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('ed-canvas');
@@ -29,8 +47,12 @@ const store = {
   set(key, value) { try { localStorage.setItem(key, value); } catch { /* per-viewer convenience only */ } },
 };
 
+function readJson(key) {
+  try { return JSON.parse(store.get(key) ?? 'null'); } catch { return null; }
+}
+
 // Editor state. map: the working copy of the level's map file; savedText: the file as last loaded
-// or saved (the unsaved-changes dot compares against it).
+// or saved (the unsaved-changes dot compares against it); selection: refs (geometry.js).
 const ed = {
   data: null,
   levelId: null,
@@ -38,16 +60,22 @@ const ed = {
   savedText: '',
   scene: null,
   checks: { items: [], overlaps: [] },
-  areas: [],
-  selection: null,
-  layers: { ...DEFAULT_LAYERS, ...readLayers() },
+  prep: { items: [], state: 'idle' }, // state: 'idle' | 'stale' (waiting) | 'running'
+  areas: null,
+  selection: [],
+  box: null,
+  tool: 'select',
+  snap: Number(store.get(SNAP_KEY)) || 0,
+  layers: { ...DEFAULT_LAYERS, ...(readJson(LAYERS_KEY) ?? {}) },
+  undo: [],
+  redo: [],
+  gesture: false,
+  needsRebuild: false,
   canSave: false,
   backgroundFiles: [],
 };
 
-function readLayers() {
-  try { return JSON.parse(store.get(LAYERS_KEY) ?? '{}'); } catch { return {}; }
-}
+window.mapEditor = ed; // for poking at in the browser console
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const isDirty = () => !!ed.map && formatMap(ed.map) !== ed.savedText;
@@ -57,6 +85,56 @@ function status(text, kind = '') {
   el.textContent = text;
   el.className = kind;
 }
+
+// ---------------------------------------------------------------------------
+// Edits and undo (the tools' api)
+// ---------------------------------------------------------------------------
+
+// The start of a change: the map as it was goes on the undo stack (once per gesture).
+function begin() {
+  if (ed.gesture) return;
+  ed.gesture = true;
+  ed.undo.push(JSON.stringify(ed.map));
+  if (ed.undo.length > UNDO_LIMIT) ed.undo.shift();
+  ed.redo = [];
+}
+
+function end() {
+  ed.gesture = false;
+  schedulePrep();
+}
+
+// dragging: a drag is under way: rebuilt once per frame, and the Prep trials wait for it to end.
+// Anything else is rebuilt at once.
+function changed(dragging) {
+  ed.needsRebuild = true;
+  if (dragging) {
+    stopPrep('stale');
+    return;
+  }
+  rebuild();
+  schedulePrep();
+}
+
+function undoRedo(from, to) {
+  if (!from.length || ed.gesture) return;
+  to.push(JSON.stringify(ed.map));
+  ed.map = JSON.parse(from.pop());
+  ed.selection = [];
+  changed(false);
+}
+
+const api = {
+  ed,
+  begin,
+  end,
+  changed,
+  status,
+  select: (refs) => select(refs),
+  // A few screen pixels, in stage units (hit tolerances).
+  tol: (px) => (px * C.STAGE_WIDTH) / canvas.getBoundingClientRect().width,
+};
+const tools = createTools(api, canvas);
 
 // ---------------------------------------------------------------------------
 // Start-up
@@ -148,6 +226,16 @@ function buildLayers() {
   }
 }
 
+function setTool(tool) {
+  ed.tool = tool;
+  ed.selection = ed.selection.filter((r) => tool === 'select' ? r.kind !== 'waypoint' : false);
+  for (const b of document.querySelectorAll('#ed-tools [data-tool]')) b.classList.toggle('active', b.dataset.tool === tool);
+  $('ed-tool-help').textContent = TOOL_HELP[tool];
+  showSelection();
+}
+
+const typing = (e) => ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName);
+
 function wireControls() {
   $('ed-level').addEventListener('change', async (e) => {
     const id = e.target.value;
@@ -159,21 +247,60 @@ function wireControls() {
     await openLevel(id);
   });
   $('ed-save').addEventListener('click', save);
+  $('ed-undo').addEventListener('click', () => undoRedo(ed.undo, ed.redo));
+  $('ed-redo').addEventListener('click', () => undoRedo(ed.redo, ed.undo));
+  for (const b of document.querySelectorAll('#ed-tools [data-tool]')) b.addEventListener('click', () => setTool(b.dataset.tool));
+  $('ed-snap').value = String(ed.snap);
+  $('ed-snap').addEventListener('change', (e) => {
+    ed.snap = Number(e.target.value);
+    store.set(SNAP_KEY, String(ed.snap));
+  });
+  // Corridor width: one undo step per slider gesture.
+  const width = $('ed-corridor-width');
+  width.addEventListener('input', () => {
+    begin();
+    ed.map.corridorWidth = Number(width.value);
+    $('ed-corridor-width-value').textContent = `${width.value} px`;
+    changed(true);
+  });
+  width.addEventListener('change', () => end());
+  $('ed-zone').addEventListener('change', (e) => {
+    const ref = ed.selection[0];
+    const c = ed.map.candidates[ref.index];
+    begin();
+    if (e.target.value === 'auto') Object.assign(c, { zone: geometricZone(ed.scene.level, c), zoneAuto: true });
+    else Object.assign(c, { zone: e.target.value, zoneAuto: false });
+    changed(false);
+    end();
+  });
+
   window.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      if (ed.canSave) save();
-      else status(SAVE_OFF_MESSAGE, 'error');
-    } else if (e.key === 'Escape') {
-      select(null);
+    const key = e.key.toLowerCase();
+    if (e.ctrlKey || e.metaKey) {
+      if (key === 's') {
+        e.preventDefault();
+        if (ed.canSave) save();
+        else status(SAVE_OFF_MESSAGE, 'error');
+      } else if (!typing(e) && (key === 'z' || key === 'y')) {
+        e.preventDefault();
+        if (key === 'y' || e.shiftKey) undoRedo(ed.redo, ed.undo);
+        else undoRedo(ed.undo, ed.redo);
+      }
+      return;
     }
+    if (typing(e)) return;
+    if (tools.onKey(e)) {
+      e.preventDefault();
+      return;
+    }
+    if (TOOL_KEYS[key] && !e.altKey) setTool(TOOL_KEYS[key]);
   });
   window.addEventListener('beforeunload', (e) => {
     if (isDirty()) e.preventDefault();
   });
-  canvas.addEventListener('click', (e) => select(pickAt(stagePoint(e))));
   window.addEventListener('resize', fitCanvas);
   fitCanvas();
+  setTool('select');
 }
 
 // ---------------------------------------------------------------------------
@@ -183,7 +310,10 @@ function wireControls() {
 async function openLevel(id) {
   ed.levelId = id;
   ed.map = clone(ed.data.maps[id]);
-  ed.selection = null;
+  ed.selection = [];
+  ed.undo = [];
+  ed.redo = [];
+  ed.areas = null;
   // The file as it is on disk: a file saved in another layout is marked (saving rewrites it).
   let diskText = null;
   try {
@@ -198,6 +328,7 @@ async function openLevel(id) {
   history.replaceState(null, '', url);
   document.title = `${C.LEVELS[id].name} · Map editor`;
   rebuild();
+  runPrep();
   status(`Opened ${MAP_DIR}/${id}.json`);
 }
 
@@ -207,39 +338,35 @@ function editedLevel() {
   return { ...C.LEVELS[ed.levelId], ...levelFromMap(ed.map), background: ed.data.backgrounds[ed.levelId] ?? null };
 }
 
-let checksTimer = null;
-
-// After any change to the map (later phases call it from every edit): a new scene, the checks a
-// moment later, the unsaved-changes dot.
+// A new scene and the cheap checks from the map; spots with an auto zone take their zone from the
+// geometry (so the file holds it too).
 function rebuild() {
-  ed.scene = sceneFromLevel(ed.levelId, editedLevel());
-  clearTimeout(checksTimer);
-  checksTimer = setTimeout(refreshChecks, ed.checks.items.length ? CHECKS_DELAY : 0);
+  ed.needsRebuild = false;
+  const level = editedLevel();
+  ed.map.candidates.forEach((c, i) => {
+    if (c.zoneAuto) c.zone = level.candidateLocations[i].zone;
+  });
+  ed.scene = sceneFromLevel(ed.levelId, level);
+  // The UI areas depend only on the level's name and waves: measured once per level.
+  ed.areas ??= { label: levelNameLabelArea(ed.scene), bossBar: bossBarArea(), wavePreview: wavePreviewArea(ed.scene) };
+  ed.checks = cheapChecks(ed.scene, ed.map, ed.areas);
   updateDirty();
-  showSelection();
-}
-
-function refreshChecks() {
-  const scene = ed.scene;
-  const start = performance.now();
-  ed.checks = runChecks(scene, ed.map);
-  ed.checksTime = performance.now() - start;
-  ed.areas = [
-    { ...levelNameLabelArea(scene), name: 'level name' },
-    { ...bossBarArea(), name: 'boss bar' },
-    { ...wavePreviewArea(scene), name: 'wave preview' },
-  ];
   showChecks();
+  showSelection();
+  showLevelPanel();
 }
 
 function updateDirty() {
   const dirty = isDirty();
   $('ed-dirty').classList.toggle('on', dirty);
   $('ed-dirty').title = dirty ? 'Unsaved changes' : 'No unsaved changes';
+  $('ed-undo').disabled = !ed.undo.length;
+  $('ed-redo').disabled = !ed.redo.length;
 }
 
 async function save() {
   if (!ed.canSave || !ed.map) return;
+  if (ed.needsRebuild) rebuild();
   const text = formatMap(ed.map);
   status('Saving…');
   try {
@@ -257,97 +384,160 @@ async function save() {
 }
 
 // ---------------------------------------------------------------------------
-// Checks list and selection
+// Prep trials: after PREP_DELAY of stillness, ROUTE_TRIALS layouts, a few per slice
+// ---------------------------------------------------------------------------
+
+let prepTimer = null;
+let prepRun = 0; // bumped to abandon a run under way
+
+function stopPrep(state) {
+  clearTimeout(prepTimer);
+  prepRun++;
+  if (ed.prep.state !== state) {
+    ed.prep.state = state;
+    showChecks();
+  }
+}
+
+function schedulePrep() {
+  stopPrep('stale');
+  prepTimer = setTimeout(runPrep, PREP_DELAY);
+}
+
+function runPrep() {
+  stopPrep('running');
+  if (ed.needsRebuild) rebuild();
+  const run = prepRun;
+  const scene = ed.scene;
+  const covers = trialSetup(scene);
+  const trials = [];
+  const step = () => {
+    if (run !== prepRun) return;
+    const until = performance.now() + PREP_SLICE;
+    while (trials.length < ROUTE_TRIALS && performance.now() < until) trials.push(layoutTrial(scene, trials.length + 1, covers));
+    if (trials.length < ROUTE_TRIALS) {
+      setTimeout(step, 0);
+      return;
+    }
+    ed.prep = { items: prepItems(scene.level, trials), state: 'idle' };
+    showChecks();
+  };
+  // Let the "checking…" marker show before the first slice.
+  requestAnimationFrame(() => setTimeout(step, 0));
+}
+
+// ---------------------------------------------------------------------------
+// Checks list, selection and level panels
 // ---------------------------------------------------------------------------
 
 const SEVERITY_MARK = { error: '✖', warn: '▲', info: 'i', ok: '✓' };
 
 function showChecks() {
   const list = $('ed-checks');
-  const items = ed.checks.items;
+  const items = [...ed.checks.items, ...ed.prep.items];
   const count = (s) => items.filter((i) => i.severity === s).length;
-  $('ed-checks-summary').textContent = `${count('error')} errors, ${count('warn')} warnings (${Math.round(ed.checksTime)} ms)`;
+  $('ed-checks-summary').textContent = `${count('error')} errors, ${count('warn')} warnings`;
+  $('ed-checking').hidden = ed.prep.state !== 'running';
   list.replaceChildren();
   for (const group of GROUPS) {
     const inGroup = items.filter((i) => i.group === group);
-    if (!inGroup.length) continue;
+    if (!inGroup.length && group !== 'Prep') continue;
     const head = document.createElement('div');
     head.className = 'ed-check-group';
     head.textContent = group;
+    if (group === 'Prep' && ed.prep.state !== 'idle') {
+      const note = document.createElement('span');
+      note.className = 'ed-prep-note';
+      note.textContent = ed.prep.state === 'running' ? ' checking…' : ' (out of date: rechecks when you pause)';
+      head.append(note);
+    }
     list.append(head);
     for (const item of inGroup) {
       const row = document.createElement('div');
-      row.className = `ed-check ${item.severity}${item.target ? ' target' : ''}`;
+      const stale = item.group === 'Prep' && ed.prep.state !== 'idle';
+      row.className = `ed-check ${item.severity}${item.target ? ' target' : ''}${stale ? ' stale' : ''}`;
       const mark = document.createElement('span');
       mark.className = 'mark';
       mark.textContent = SEVERITY_MARK[item.severity];
       row.append(mark, item.message);
-      if (item.target) row.addEventListener('click', () => select(item.target));
+      if (item.target) row.addEventListener('click', () => select([item.target]));
       list.append(row);
     }
   }
 }
 
-function select(target) {
-  ed.selection = target;
+function select(refs) {
+  ed.selection = refs;
   showSelection();
 }
 
-// The selection's properties (read-only in this phase).
+// The selection's properties; a single spot's zone can be picked here (auto, or a manual zone).
 function showSelection() {
   const box = $('ed-selection');
+  const zoneRow = $('ed-zone-row');
   const sel = ed.selection;
   const scene = ed.scene;
   const level = scene?.level;
   const lines = [];
-  if (!sel || !scene) {
-    lines.push('Nothing selected. Click a spot, the Druid or a decoration object, or an entry in the checks.');
-  } else if (sel.kind === 'candidate') {
-    const c = ed.map.candidates[sel.index];
-    if (c) {
-      const sc = scene.candidates[sel.index];
-      lines.push(`Candidate #${sel.index}`, `x ${c.x}, y ${c.y}`, `zone ${level.candidateLocations[sel.index].zone} (${c.zoneAuto ? 'auto' : `manual; by geometry ${geometricZone(level, c)}`})`);
-      lines.push(`covers ${sc.lanes.map((id) => scene.lanes.find((l) => l.id === id).name).join(', ') || 'no lane'}`);
+  zoneRow.hidden = true;
+  if (!scene || !sel.length) {
+    lines.push('Nothing selected.');
+  } else if (sel.length > 1) {
+    const counts = {};
+    for (const r of sel) counts[r.kind] = (counts[r.kind] ?? 0) + 1;
+    lines.push(`${sel.length} selected: ${Object.entries(counts).map(([k, n]) => `${n} ${k}${n > 1 ? 's' : ''}`).join(', ')}`);
+    if (!sel.some((r) => MOVABLE.has(r.kind))) lines.push('(highlighted only)');
+  } else {
+    const ref = sel[0];
+    if (ref.kind === 'candidate') {
+      const c = ed.map.candidates[ref.index];
+      const sc = scene.candidates[ref.index];
+      if (c && sc) {
+        lines.push(`Spot #${ref.index}`, `x ${c.x}, y ${c.y}`, `covers ${sc.lanes.map((id) => scene.lanes.find((l) => l.id === id).name).join(', ') || 'no lane'}`);
+        showZonePicker(c);
+      }
+    } else if (ref.kind === 'waypoint') {
+      const lane = ed.map.lanes[ref.lane];
+      const w = lane?.waypoints[ref.index];
+      if (w) lines.push(`Lane ${lane.name ?? lane.id}, waypoint ${ref.index} of ${lane.waypoints.length - 1}`, `x ${w[0]}, y ${w[1]}`);
+    } else if (ref.kind === 'lane') {
+      const lane = scene.lanes.find((l) => l.id === ref.id);
+      if (lane) lines.push(`Lane ${lane.name} (${lane.id})`, `${lane.waypoints.length} waypoints, ${Math.round(lane.path.length)} px`);
+    } else if (ref.kind === 'zone') {
+      const q = zoneQuota(level, ref.zone);
+      lines.push(`Zone ${ref.zone}`, `${zoneCandidates(level, ref.zone).length} spots`, `quota ${q.turret} turret + ${q.feature} feature${level.zoneQuotaOverrides[ref.zone] ? ' (override)' : ''}`);
+    } else if (ref.kind === 'decor') {
+      const d = ed.map.decor[ref.index];
+      if (d) {
+        lines.push(`Decoration #${ref.index}: ${d.type}`);
+        lines.push(Object.entries(d).filter(([k]) => k !== 'type' && k !== 'points').map(([k, v]) => `${k} ${v}`).join(', '));
+      }
+    } else if (ref.kind === 'druid') {
+      lines.push('Druid', `x ${level.druidPos.x}, y ${level.druidPos.y}`);
     }
-  } else if (sel.kind === 'lane') {
-    const lane = scene.lanes.find((l) => l.id === sel.id);
-    if (lane) lines.push(`Lane ${lane.name} (${lane.id})`, `${lane.waypoints.length} waypoints, ${Math.round(lane.path.length)} px`, `corridor width ${lane.corridorWidth} px`);
-  } else if (sel.kind === 'zone') {
-    const q = zoneQuota(level, sel.zone);
-    lines.push(`Zone ${sel.zone}`, `${zoneCandidates(level, sel.zone).length} candidates`, `quota ${q.turret} turret + ${q.feature} feature${level.zoneQuotaOverrides[sel.zone] ? ' (override)' : ''}`);
-  } else if (sel.kind === 'decor') {
-    const d = ed.map.decor[sel.index];
-    if (d) {
-      lines.push(`Decoration #${sel.index}: ${d.type}`);
-      lines.push(Object.entries(d).filter(([k]) => k !== 'type' && k !== 'points').map(([k, v]) => `${k} ${v}`).join(', '));
-    }
-  } else if (sel.kind === 'druid') {
-    lines.push('Druid', `x ${level.druidPos.x}, y ${level.druidPos.y}`, `sectors ${level.sectorNames.map((n, i) => `${n} from ${level.sectorBoundaryAngles[i]}°`).join(', ')}`, `near radius ${level.nearRadius} px`);
   }
   box.replaceChildren(...lines.map((t) => Object.assign(document.createElement('div'), { textContent: t })));
 }
 
-// What a click at p picks (inspect only in this phase): a candidate, the Druid, or the nearest
-// upright decoration object whose base is close.
-function pickAt(p) {
-  const scene = ed.scene;
-  if (!scene) return null;
-  if (ed.layers.spots) {
-    const c = scene.candidates.find((x) => Math.hypot(x.x - p.x, x.y - p.y) <= C.LOCATION_RADIUS);
-    if (c) return { kind: 'candidate', index: c.index };
-  }
-  const d = scene.level.druidPos;
-  if (Math.hypot(d.x - p.x, d.y - 15 - p.y) <= C.DRUID_RADIUS + 10) return { kind: 'druid' };
-  if (ed.layers.decoration) {
-    let best = null;
-    for (const item of decorByIndex(scene).values()) {
-      if (item.rx !== undefined || item.points) continue;
-      const dist = Math.hypot(item.x - p.x, item.y - p.y);
-      if (dist <= 24 && (!best || dist < best.dist)) best = { dist, index: item.mapIndex };
-    }
-    if (best) return { kind: 'decor', index: best.index };
-  }
-  return null;
+function showZonePicker(c) {
+  const picker = $('ed-zone');
+  const level = ed.scene.level;
+  const geo = geometricZone(level, c);
+  picker.replaceChildren(
+    Object.assign(document.createElement('option'), { value: 'auto', textContent: `auto (${geo})` }),
+    ...zoneIds(level).map((z) => Object.assign(document.createElement('option'), { value: z, textContent: `${z} (manual)` })),
+  );
+  picker.value = c.zoneAuto ? 'auto' : c.zone;
+  $('ed-zone-row').hidden = false;
+}
+
+// The level's own settings edited here: corridor width (sectors: Druid tool).
+function showLevelPanel() {
+  const level = ed.scene.level;
+  const width = $('ed-corridor-width');
+  if (document.activeElement !== width) width.value = String(ed.map.corridorWidth);
+  $('ed-corridor-width-value').textContent = `${ed.map.corridorWidth} px`;
+  $('ed-sectors').textContent = `Sectors ${level.sectorNames.map((n, i) => `${n} from ${level.sectorBoundaryAngles[i]}°`).join(', ')}; near radius ${level.nearRadius} px`;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,12 +552,10 @@ function fitCanvas() {
   canvas.style.height = `${C.STAGE_HEIGHT * s}px`;
 }
 
-function stagePoint(e) {
-  const r = canvas.getBoundingClientRect();
-  return { x: ((e.clientX - r.left) * C.STAGE_WIDTH) / r.width, y: ((e.clientY - r.top) * C.STAGE_HEIGHT) / r.height };
-}
-
 function frame(now) {
-  if (ed.scene) drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas });
+  if (ed.needsRebuild) rebuild();
+  if (ed.scene) {
+    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }] : [], tool: ed.tool, box: ed.box });
+  }
   requestAnimationFrame(frame);
 }

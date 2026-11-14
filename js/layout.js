@@ -130,35 +130,36 @@ export function generateLayout(runRng, scene, { quiet = false } = {}) {
   return { ...result, roles: rolesFor(level, result.slots, result.features), attempts, failures, fallback, randomised };
 }
 
-// Layout trials for the map editor's Prep check (M4a §5.4): n layouts as generateLayout would make
-// them, from RNGs seeded 1…n. The draws an encounter tries in turn don't depend on the stepBudget,
-// so each trial keeps the route costs of its draws that pass lane coverage, in order (of all
-// MAX_LAYOUT_ATTEMPTS draws), and any budget can be tested against them: trialOutcome,
-// trialFailRate, suggestedBudget.
-export function layoutTrials(scene, n) {
+// Layout trials for the map editor's Prep check (M4a §5.4): layouts as generateLayout would make
+// them, one per seed (an RNG seeded with it). The draws an encounter tries in turn don't depend on
+// the stepBudget, so a trial keeps the route costs of its draws that pass lane coverage, in order
+// (of all MAX_LAYOUT_ATTEMPTS draws), and any budget can be tested against them: trialOutcome,
+// trialFailRate, drawFitRate, centredBudget.
+export function trialSetup(scene) {
   const { lanes, level } = scene;
   // A slot lies within LOCATION_JITTER of its candidate, so the candidate's own distance to a lane
   // settles most coverage tests; only slots near the edge of the range are measured (the same
   // result as coveredLanes, much faster over thousands of draws).
   const centre = level.candidateLocations.map((c) => lanes.map((lane) => lane.path.distanceTo(c)));
-  const covers = (slot, i) => {
+  return (slot, i) => {
     const d = centre[slot.candidate][i];
     if (d + C.LOCATION_JITTER <= C.TURRET_RANGE) return true;
     if (d - C.LOCATION_JITTER > C.TURRET_RANGE) return false;
     return lanes[i].path.distanceTo(slot) <= C.TURRET_RANGE;
   };
-  const trials = [];
-  for (let seed = 1; seed <= n; seed++) {
-    const rng = createRng(seed);
-    const routes = [];
-    for (let attempt = 0; attempt < C.MAX_LAYOUT_ATTEMPTS; attempt++) {
-      const { slots, features } = drawLayout(rng, level);
-      const covered = lanes.every((lane, i) => slots.filter((slot) => covers(slot, i)).length >= C.LANE_MIN_TURRET_SLOTS);
-      if (covered) routes.push(greedyRoute(features, level.druidPos, scene.mire).steps);
-    }
-    trials.push(routes);
+}
+
+// One trial: covers is trialSetup(scene)'s test.
+export function layoutTrial(scene, seed, covers = trialSetup(scene)) {
+  const { lanes, level } = scene;
+  const rng = createRng(seed);
+  const routes = [];
+  for (let attempt = 0; attempt < C.MAX_LAYOUT_ATTEMPTS; attempt++) {
+    const { slots, features } = drawLayout(rng, level);
+    const covered = lanes.every((lane, i) => slots.filter((slot) => covers(slot, i)).length >= C.LANE_MIN_TURRET_SLOTS);
+    if (covered) routes.push(greedyRoute(features, level.druidPos, scene.mire).steps);
   }
-  return trials;
+  return routes;
 }
 
 // The route cost of the layout a trial ends with at this stepBudget, or null when no draw passes
@@ -172,11 +173,19 @@ export function trialFailRate(trials, stepBudget) {
   return trials.filter((t) => trialOutcome(t, stepBudget) === null).length / trials.length;
 }
 
-// The lowest whole stepBudget at which at most `target` of the trials fail: the tightest Prep that
-// still nearly always finds a fair layout. Null when no budget does. A suggestion only: the budget
-// lives in the levels tab.
-export function suggestedBudget(trials, target) {
-  const hi = Math.ceil(Math.max(1, ...trials.flat()) / C.FEATURE_ROUTE_MIN_FACTOR) + 1;
-  for (let b = 1; b <= hi; b++) if (trialFailRate(trials, b) <= target + 1e-9) return b;
-  return null;
+// Share of single draws (with lane coverage) whose route fits the band of this stepBudget.
+export function drawFitRate(trials, stepBudget) {
+  const band = routeBand({ stepBudget });
+  const draws = trials.flat();
+  return draws.length ? draws.filter((r) => r >= band.min && r <= band.max).length / draws.length : 0;
+}
+
+// The whole stepBudget whose route band is centred on the map's typical route (the median single
+// draw), so rerolls rarely matter and players see the map's full variety. Null with no draws. A
+// suggestion only: the budget lives in the levels tab.
+export function centredBudget(trials) {
+  const draws = trials.flat().sort((a, b) => a - b);
+  if (!draws.length) return null;
+  const median = draws[Math.floor(draws.length / 2)];
+  return Math.round(median / ((C.FEATURE_ROUTE_MIN_FACTOR + C.FEATURE_ROUTE_MAX_FACTOR) / 2));
 }

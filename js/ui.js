@@ -559,7 +559,8 @@ export function checkWavePreview(scenes) {
 }
 
 // The UI-area problems below return { index, problem } per candidate under the area (M4a §5.4: the
-// map editor shows them too); they measure the game page's own HTML elements.
+// map editor shows them too, passing r, its area measured once); they measure the game page's own
+// HTML elements.
 const underArea = (r, c, radius) => Math.hypot(c.x - Math.max(r.left, Math.min(c.x, r.right)), c.y - Math.max(r.top, Math.min(c.y, r.bottom))) < radius;
 
 // The rectangle the wave preview covers in one level, in stage coordinates.
@@ -583,8 +584,7 @@ export function wavePreviewArea(scene) {
   return r;
 }
 
-export function wavePreviewProblems(scene) {
-  const r = wavePreviewArea(scene);
+export function wavePreviewProblems(scene, r = wavePreviewArea(scene)) {
   const footprint = C.LOCATION_RADIUS; // visible footprint only, as for the boss bar
   return scene.candidates.filter((c) => underArea(r, c, footprint))
     .map((c) => ({ index: c.index, problem: `candidate ${c.index} at (${c.x}, ${c.y}) is under the wave preview` }));
@@ -638,8 +638,7 @@ export function bossBarArea() {
   return r;
 }
 
-export function bossBarProblems(scene) {
-  const r = bossBarArea();
+export function bossBarProblems(scene, r = bossBarArea()) {
   const footprint = C.LOCATION_RADIUS; // visible footprint only (see above)
   return scene.candidates.filter((c) => underArea(r, c, footprint))
     .map((c) => ({ index: c.index, problem: `candidate ${c.index} at (${c.x}, ${c.y}) is under the boss HP bar` }));
@@ -667,8 +666,7 @@ export function levelNameLabelArea(scene) {
   return r;
 }
 
-export function levelNameLabelProblems(scene) {
-  const r = levelNameLabelArea(scene);
+export function levelNameLabelProblems(scene, r = levelNameLabelArea(scene)) {
   const occupied = C.LOCATION_RADIUS + C.LOCATION_JITTER;
   return scene.candidates.filter((c) => underArea(r, c, occupied))
     .map((c) => ({ index: c.index, problem: `candidate ${c.index} at (${c.x}, ${c.y}) is under the level name label` }));
