@@ -6,6 +6,7 @@
 // and the map editor (M4a §3).
 
 import { geometricZone } from './zones.js';
+import { decodeMire } from './mire.js';
 
 export const MAP_VERSION = 1;
 export const MAP_DIR = 'data/maps';
@@ -71,7 +72,10 @@ export function mapProblems(map, id) {
   if (!(S.nearRadius > 0)) out.push('"sectors.nearRadius" should be a number above 0');
   if (!Array.isArray(map.candidates) || !map.candidates.every((c) => isXY(c) && (c.zoneAuto || typeof c.zone === 'string'))) out.push('each candidate needs x, y and a zone (or zoneAuto)');
   if (!Array.isArray(map.decor) || !map.decor.every((d) => typeof d.type === 'string')) out.push('each decoration object needs a type');
-  if (!Array.isArray(map.mire?.patches)) out.push('"mire" needs a patches list');
+  if (!(map.mire?.cell > 0) || !Array.isArray(map.mire?.rows)) out.push('"mire" needs a cell size and a rows list');
+  else {
+    try { decodeMire(map.mire); } catch (e) { out.push(e.message); }
+  }
   if (!map.palette || typeof map.palette !== 'object') out.push('needs a palette');
   return out;
 }
@@ -101,7 +105,7 @@ export function levelFromMap(map) {
     ashFlecks: P.ashFlecks ?? 0,
     backgroundImage: map.backgroundImage ?? null,
     ground: { decor: [], flats: [], groundPatches: [], streams: [] },
-    mire: map.mire.patches.map((p) => ({ seed: p.seed, blobs: p.blobs.map(([x, y, r]) => ({ x, y, r })) })),
+    mire: decodeMire(map.mire),
   };
   // zoneAuto: the zone worked out from the geometry; otherwise the stored zone is a manual override.
   level.candidateLocations = map.candidates.map((c) => ({ x: c.x, y: c.y, zone: c.zoneAuto ? geometricZone(level, c) : c.zone }));

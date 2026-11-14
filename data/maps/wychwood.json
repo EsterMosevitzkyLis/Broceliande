@@ -368,7 +368,7 @@
     { "type": "gnarledTree", "variant": 2, "x": 1842.63, "y": 1145.13, "scale": 0.925, "flip": false },
     { "type": "gnarledTree", "variant": 2, "x": 1942.13, "y": 1151.69, "scale": 1.1, "flip": false }
   ],
-  "mire": { "patches": [] },
+  "mire": { "cell": 16, "rows": [] },
   "palette": {
     "floor": "#1e3224",
     "floorAccent": { "dark": "rgba(8, 14, 18, 0.4)", "light": "rgba(120, 90, 170, 0.16)" },

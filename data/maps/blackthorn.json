@@ -294,7 +294,7 @@
     { "type": "thornBush", "variant": 1, "x": 1828.63, "y": 1137.82, "scale": 1.076, "flip": false },
     { "type": "thornBush", "variant": 1, "x": 1907.79, "y": 1111.66, "scale": 1.224, "flip": false }
   ],
-  "mire": { "patches": [] },
+  "mire": { "cell": 16, "rows": [] },
   "palette": {
     "floor": "#2c2330",
     "floorAccent": { "dark": "rgba(14, 8, 14, 0.4)", "light": "rgba(95, 62, 84, 0.2)" },

@@ -10,7 +10,7 @@ import { emptyResources } from './resources.js';
 import { zoneIds, geometricZone, zoneQuota, zoneCandidates, quotaTotals, isNearZone } from './zones.js';
 import { corridorWidth, featureMix, levelWaves, waveTotals } from './levelSettings.js';
 import { fitsCorridor } from './entities/enemy.js';
-import { isDecorKind } from './render/environment.js';
+import { isDecorKind, decorDrawable } from './render/environment.js';
 
 export const LEVEL_IDS = Object.keys(C.LEVELS);
 
@@ -183,6 +183,10 @@ export function levelChecks(scene) {
   // M4a §1.3: every decoration object in the map file is a kind the game can draw.
   for (const kind of new Set(scene.decor.map((d) => d.kind))) {
     if (!isDecorKind(kind)) add('error', `its map file has decoration of unknown type "${kind}"`);
+    else if (!decorDrawable(kind, level.palette)) add('error', `its palette lacks colours its "${kind}" decoration needs`);
+  }
+  for (const kind of new Set(scene.flats.map((f) => f.kind))) {
+    if (!decorDrawable(kind, level.palette)) add('error', `its palette lacks colours its "${kind}" ground needs`);
   }
   for (const { index, problem } of candidateProblems(scene)) {
     const c = scene.candidates[index];

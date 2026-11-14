@@ -4,6 +4,7 @@
 
 import * as C from '../config.js';
 import { corridorWidth } from '../levelSettings.js';
+import { hasMire } from '../mire.js';
 
 // Scene colours come from the level's palette (M2a §5.5); only the ground shadow is shared, since
 // entities use it too.
@@ -86,6 +87,25 @@ export function drawDecor(ctx, item, level) {
 
 // Whether the map file has a drawing for this decoration kind (start-up check, M4a §1.3).
 export const isDecorKind = (kind) => !!(DECOR_DRAW[kind] ?? THEMED[kind]);
+
+// Whether a kind can be drawn with this palette: a test drawing off-screen (a themed kind reads its
+// own palette colours, which a level's palette may not have). Start-up check and the map editor.
+let testCanvas = null;
+const FLAT_DRAW_KINDS = ['water', 'mist', 'mere', 'ash'];
+export function decorDrawable(kind, palette) {
+  testCanvas ??= document.createElement('canvas');
+  const g = testCanvas.getContext('2d');
+  try {
+    if (FLAT_DRAW_KINDS.includes(kind)) drawFlats(g, { level: { palette }, flats: [{ kind, x: 50, y: 50, rx: 20, ry: 10, rot: 0, glow: true }] });
+    else for (let variant = 0; variant < 3; variant++) drawDecor(g, { kind, x: 50, y: 50, size: 1, variant, flip: false }, { palette });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Every upright decoration kind the game can draw (the map editor's picker).
+export const decorKinds = () => [...Object.keys(DECOR_DRAW), ...Object.keys(THEMED)];
 
 // Flat ground decoration (M2b §3): water and mist patches (M3a §2: and ash pits), drawn over the
 // floor and under the corridors. Each avoids corridors and candidates (scene.js).
@@ -937,70 +957,137 @@ function drawRock(ctx, { x, y, size: s }, P) {
 // M3c §3.1, M3d: mire ground: darker and wetter than the ground round it, with a soft, slightly
 // lighter muddy rim, a sheen on the water, reeds along its borders and the occasional slow bubble.
 // Over the floor, under everything upright; obvious at a glance without overpowering the scene.
+// M4a §1.2: the mire is a grid of cells, each drawn as a round dab, so the patches keep soft, lumpy
+// edges; deep cells (2+ cells from the edge) are darker. Everything but the bubbles is drawn once
+// per mire to an offscreen canvas.
+const mireLayers = new WeakMap(); // mire → { canvas, bubbles: [[{ x, y }]] (per patch) }
+const DAB = 0.8;                  // dab radius, × the cell size
+
 export function drawMire(ctx, scene, t) {
+  const m = scene.mire;
+  if (!hasMire(m)) return;
+  if (!mireLayers.has(m)) mireLayers.set(m, renderMire(m));
+  const { canvas, bubbles } = mireLayers.get(m);
+  ctx.drawImage(canvas, 0, 0);
+  // An occasional slow bubble per patch: one spot at a time, swelling and popping.
   const M = C.MIRE_COLORS;
-  const insideOther = (p, x, y) => p.blobs.some((o) => Math.hypot(x - o.x, (y - o.y) / 0.8) < o.r - 2);
-  for (const p of scene.mire) {
-    // The muddy rim: a soft band round the whole patch, fading outwards.
-    for (const [grow, color] of [[14, M.rimOuter], [8, M.rim]]) {
-      ctx.fillStyle = color;
-      for (const b of p.blobs) {
-        ctx.beginPath();
-        ctx.ellipse(b.x, b.y, b.r + grow, (b.r + grow) * 0.8, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    // The wet body: dark, a little darker again towards each blob's middle.
-    ctx.fillStyle = M.base;
-    for (const b of p.blobs) {
-      ctx.beginPath();
-      ctx.ellipse(b.x, b.y, b.r, b.r * 0.8, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = M.deep;
-    for (const b of p.blobs) {
-      ctx.beginPath();
-      ctx.ellipse(b.x + b.r * 0.05, b.y + b.r * 0.04, b.r * 0.62, b.r * 0.48, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.strokeStyle = M.sheen;
-    ctx.lineWidth = 2;
-    p.blobs.forEach((b, i) => {
-      ctx.beginPath();
-      ctx.ellipse(b.x - b.r * 0.2, b.y - b.r * 0.15, b.r * 0.45, b.r * 0.16, -0.1, Math.PI * (1.1 + (i % 3) * 0.05), Math.PI * 1.8);
-      ctx.stroke();
-    });
-    // Reeds along the border: tufts round each blob's edge where it isn't inside another blob.
-    ctx.strokeStyle = M.reed;
-    ctx.lineCap = 'round';
-    p.blobs.forEach((b, i) => {
-      for (let k = 0; k < 5; k++) {
-        const a = ((p.seed % 97) * 0.07 + i * 1.3 + k * 1.26) % (Math.PI * 2);
-        const x = b.x + Math.cos(a) * (b.r + 3);
-        const y = b.y + Math.sin(a) * (b.r + 3) * 0.8;
-        if ((k + i + p.seed) % 2 || insideOther(p, x, y)) continue;
-        ctx.lineWidth = 1.6;
-        for (let j = -1; j <= 1; j++) {
-          ctx.beginPath();
-          ctx.moveTo(x + j * 3, y);
-          ctx.lineTo(x + j * 4.5, y - 13 - (j === 0 ? 5 : 0));
-          ctx.stroke();
-        }
-      }
-    });
-    // An occasional slow bubble: one blob at a time, swelling and popping.
-    const cycle = 4.5; // s per bubble
-    const k = ((t + (p.seed % 50) * 0.37) % cycle) / cycle;
-    const b = p.blobs[Math.floor((t + (p.seed % 50) * 0.37) / cycle) % p.blobs.length];
-    if (k < 0.35) {
-      const r = 2 + (k / 0.35) * 5;
-      ctx.strokeStyle = M.bubble;
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.arc(b.x + b.r * 0.15, b.y - b.r * 0.1, r, 0, Math.PI * 2);
-      ctx.stroke();
+  const cycle = 4.5; // s per bubble
+  bubbles.forEach((spots, i) => {
+    const phase = t + (i % 50) * 0.37;
+    const k = (phase % cycle) / cycle;
+    if (k >= 0.35) return;
+    const b = spots[Math.floor(phase / cycle) % spots.length];
+    ctx.strokeStyle = M.bubble;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 2 + (k / 0.35) * 5, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+}
+
+// A cell's fixed pseudo-random number in [0, 1).
+const cellHash = (c, r) => (((Math.imul(c + 1, 73856093) ^ Math.imul(r + 1, 19349663)) >>> 0) % 1000) / 1000;
+
+function renderMire(m) {
+  const M = C.MIRE_COLORS;
+  const canvas = document.createElement('canvas');
+  canvas.width = C.STAGE_WIDTH;
+  canvas.height = C.STAGE_HEIGHT;
+  const g = canvas.getContext('2d');
+  const at = (c, r) => c >= 0 && r >= 0 && c < m.cols && r < m.rows && m.cells[r * m.cols + c] === 1;
+  const cells = [];
+  // Each dab nudged a little off its cell's centre and sized a little differently, so edges look organic.
+  const jitter = m.cell * 0.18;
+  for (let r = 0; r < m.rows; r++) {
+    for (let c = 0; c < m.cols; c++) {
+      if (!at(c, r)) continue;
+      const h = cellHash(c, r);
+      const h2 = cellHash(r + 7, c + 3);
+      cells.push({ c, r, x: (c + 0.5) * m.cell + (h - 0.5) * 2 * jitter, y: (r + 0.5) * m.cell + (h2 - 0.5) * 2 * jitter, k: 0.9 + h2 * 0.2 });
     }
   }
+  // Depth: steps (in cells, 8 ways) to the nearest cell that isn't mire, up to 3.
+  const depth = new Map(cells.map((p) => [p.r * m.cols + p.c, 3]));
+  for (const p of cells) {
+    for (let d = 1; d <= 2; d++) {
+      let edge = false;
+      for (let dr = -d; dr <= d && !edge; dr++) for (let dc = -d; dc <= d && !edge; dc++) edge = !at(p.c + dc, p.r + dr);
+      if (edge) {
+        depth.set(p.r * m.cols + p.c, d);
+        break;
+      }
+    }
+  }
+  const R = m.cell * DAB;
+  const dabs = (list, radius, color) => {
+    g.fillStyle = color;
+    g.beginPath();
+    for (const p of list) {
+      g.moveTo(p.x + radius * p.k, p.y);
+      g.arc(p.x, p.y, radius * p.k, 0, Math.PI * 2);
+    }
+    g.fill();
+  };
+  // The muddy rim, a soft band round the whole patch; the wet body; darker deeper in.
+  dabs(cells, R + 14, M.rimOuter);
+  dabs(cells, R + 8, M.rim);
+  dabs(cells, R, M.base);
+  dabs(cells.filter((p) => depth.get(p.r * m.cols + p.c) >= 3), R * 0.95, M.deep);
+  // Sheen: a short pale stroke on a few deep cells.
+  g.strokeStyle = M.sheen;
+  g.lineWidth = 2;
+  for (const p of cells) {
+    if (depth.get(p.r * m.cols + p.c) < 3 || cellHash(p.c, p.r) > 0.06) continue;
+    g.beginPath();
+    g.ellipse(p.x, p.y, m.cell * 1.2, m.cell * 0.42, -0.1, Math.PI * 1.15, Math.PI * 1.8);
+    g.stroke();
+  }
+  // Reed tufts on about one border cell in six, at the side facing out.
+  g.strokeStyle = M.reed;
+  g.lineCap = 'round';
+  g.lineWidth = 1.6;
+  for (const p of cells) {
+    if (depth.get(p.r * m.cols + p.c) !== 1 || cellHash(p.c, p.r) > 0.16) continue;
+    let ox = 0;
+    let oy = 0;
+    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!at(p.c + dc, p.r + dr)) { ox += dc; oy += dr; }
+    const len = Math.hypot(ox, oy) || 1;
+    const x = p.x + (ox / len) * (R + 2);
+    const y = p.y + (oy / len) * (R + 2) * 0.8;
+    for (let j = -1; j <= 1; j++) {
+      g.beginPath();
+      g.moveTo(x + j * 3, y);
+      g.lineTo(x + j * 4.5, y - 13 - (j === 0 ? 5 : 0));
+      g.stroke();
+    }
+  }
+  // Bubble spots: a few deep cells of each patch (8-connected cells).
+  const seen = new Set();
+  const bubbles = [];
+  for (const p of cells) {
+    const key = p.r * m.cols + p.c;
+    if (seen.has(key)) continue;
+    const patch = [];
+    const stack = [p];
+    seen.add(key);
+    while (stack.length) {
+      const q = stack.pop();
+      patch.push(q);
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const k = (q.r + dr) * m.cols + (q.c + dc);
+          if (at(q.c + dc, q.r + dr) && !seen.has(k)) {
+            seen.add(k);
+            stack.push({ c: q.c + dc, r: q.r + dr, x: (q.c + dc + 0.5) * m.cell, y: (q.r + dr + 0.5) * m.cell });
+          }
+        }
+      }
+    }
+    const deep = patch.filter((q) => depth.get(q.r * m.cols + q.c) >= 2);
+    const spots = (deep.length ? deep : patch).filter((q, i) => i % 7 === 0);
+    bubbles.push(spots.map((q) => ({ x: q.x + m.cell * 0.2, y: q.y - m.cell * 0.15 })));
+  }
+  return { canvas, bubbles };
 }
 
 // ---------------------------------------------------------------------------

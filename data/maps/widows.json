@@ -294,7 +294,7 @@
     { "type": "charredTree", "variant": 0, "x": 1876.3, "y": 1119.2, "scale": 0.94, "flip": false },
     { "type": "charredTree", "variant": 2, "x": 1899, "y": 1115.95, "scale": 1, "flip": false }
   ],
-  "mire": { "patches": [] },
+  "mire": { "cell": 16, "rows": [] },
   "palette": {
     "floor": "#3e3624",
     "floorAccent": { "dark": "rgba(20, 14, 6, 0.4)", "light": "rgba(160, 130, 70, 0.14)" },

@@ -284,7 +284,7 @@
     { "type": "bush", "variant": 2, "x": 1884.66, "y": 1118.33, "scale": 1.004, "flip": false },
     { "type": "tree", "variant": 2, "x": 1896.32, "y": 1114.37, "scale": 0.874, "flip": false }
   ],
-  "mire": { "patches": [] },
+  "mire": { "cell": 16, "rows": [] },
   "palette": {
     "floor": "#142218",
     "floorAccent": { "dark": "rgba(4, 8, 4, 0.5)", "light": "rgba(120, 50, 90, 0.12)" },

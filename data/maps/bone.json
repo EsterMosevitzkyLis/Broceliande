@@ -266,7 +266,7 @@
     { "type": "bareTree", "variant": 1, "x": 1761.78, "y": 1162.02, "scale": 0.874, "flip": false },
     { "type": "bush", "variant": 2, "x": 1928.49, "y": 1114.34, "scale": 0.986, "flip": false }
   ],
-  "mire": { "patches": [] },
+  "mire": { "cell": 16, "rows": [] },
   "palette": {
     "floor": "#4a4552",
     "floorAccent": { "dark": "rgba(20, 16, 26, 0.35)", "light": "rgba(200, 190, 210, 0.14)" },

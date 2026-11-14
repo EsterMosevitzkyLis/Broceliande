@@ -6,7 +6,7 @@ import { GameState, PrepMode, ActionState } from '../states.js';
 import { canAfford } from '../resources.js';
 import { turretOnSlot } from './buildSystem.js';
 import { buildCost, buildableTypes } from '../entities/turret.js';
-import { travelDistance, mireMult, inMire } from '../mire.js';
+import { travelDistance, mireMult, inMire, hasMire } from '../mire.js';
 
 export function isStepMode(game) {
   return game.prepMode === PrepMode.STEPS;
@@ -126,7 +126,7 @@ export function footprintLayout(from, to, cost, fromMarker, mire = [], mult = 1)
       y: from.y + uy * along + ux * C.FOOTPRINT_SIDE_OFFSET * side,
       angle,
       side,
-      mire: mire.length > 0 && inMire(mire, from.x + ux * along, from.y + uy * along),
+      mire: inMire(mire, from.x + ux * along, from.y + uy * along),
     });
   }
   return prints;
@@ -135,7 +135,7 @@ export function footprintLayout(from, to, cost, fromMarker, mire = [], mult = 1)
 // The distance along the line (from start to end) at fraction f of its step cost: travel inside
 // the mire weighs mult × as much. Without mire, simply start + (end − start) × f.
 function alongByCost(from, ux, uy, start, end, mire, mult) {
-  if (!mire.length || end <= start) return (f) => start + (end - start) * f;
+  if (!hasMire(mire) || end <= start) return (f) => start + (end - start) * f;
   const n = Math.max(1, Math.ceil((end - start) / C.MIRE_SAMPLE_PX));
   const piece = (end - start) / n;
   const cum = [0];

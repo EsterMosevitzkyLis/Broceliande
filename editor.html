@@ -31,11 +31,11 @@
       <button type="button" data-tool="lanes" title="Lanes: waypoints (L)">Lanes</button>
       <button type="button" data-tool="druid" title="Druid and sectors (D)">Druid</button>
       <button type="button" data-tool="spots" title="Spots (S)">Spots</button>
-      <button type="button" disabled title="Comes in M4a phase 4">Place</button>
-      <button type="button" disabled title="Comes in M4a phase 4">Scatter</button>
-      <button type="button" disabled title="Comes in M4a phase 4">Mire</button>
-      <button type="button" disabled title="Comes in M4a phase 4">Palette</button>
-      <button type="button" disabled title="Comes in M4a phase 4">Background</button>
+      <button type="button" data-tool="place" title="Place decoration (P)">Place</button>
+      <button type="button" data-tool="scatter" title="Scatter brush (B)">Scatter</button>
+      <button type="button" data-tool="mire" title="Mire brush (M)">Mire</button>
+      <button type="button" data-tool="palette" title="Palette">Palette</button>
+      <button type="button" data-tool="background" title="Background image">Background</button>
     </nav>
 
     <main id="ed-centre">
@@ -44,14 +44,16 @@
 
     <!-- Right panel: selection, layers, snap, checks. -->
     <aside id="ed-panel">
-      <section>
+      <section class="ed-tool-section">
         <h2>Tool</h2>
         <div id="ed-tool-help"></div>
+        <div id="ed-tool-options" hidden></div>
       </section>
       <section>
         <h2>Selection</h2>
         <div id="ed-selection"></div>
         <label id="ed-zone-row" hidden>Zone <select id="ed-zone"></select></label>
+        <div id="ed-decor-actions" class="ed-choice" hidden></div>
       </section>
       <section>
         <h2>Level</h2>

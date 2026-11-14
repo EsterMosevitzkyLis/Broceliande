@@ -7,19 +7,21 @@ import * as C from './config.js';
 import { createRng } from './rng.js';
 import { corridorWidth, regionTwist } from './levelSettings.js';
 import { corridorDistance, OCCUPIED_RADIUS } from './scene.js';
+import { mireFromBlobs } from './mire.js';
 
 // A draft of a scene's ground. scene: a scene (scene.js createScene: lanes, candidates, level);
 // opts: the generator's settings, as the old per-level geometry had them: decorSeed, decorDensity,
 // decorProps, flats, landmarks, stoneRing, mere, reedWalls, mireCoverage (with a mireGround
 // region), and treeKind / bushKind (e.g. 'willowTree', 'thornBush'; default 'tree', 'bush').
-// Returns { decor, flats, groundPatches, mire }, in the scene's own shapes.
+// Returns { decor, flats, groundPatches, mire }, in the scene's own shapes (the mire's patches of
+// round blobs as a grid, mire.js).
 export function draftGround(scene, opts) {
   const s = { ...scene, level: { decorDensity: 1, ...scene.level, ...opts }, mire: [] };
   s.mire = generateMire(s);
   scatterDecor(s);
   const kinds = { tree: opts.treeKind ?? 'tree', bush: opts.bushKind ?? 'bush' };
   for (const d of s.decor) d.kind = kinds[d.kind] ?? d.kind;
-  return { decor: s.decor, flats: s.flats, groundPatches: s.groundPatches, mire: s.mire };
+  return { decor: s.decor, flats: s.flats, groundPatches: s.groundPatches, mire: mireFromBlobs(s.mire.flatMap((p) => p.blobs), scene.lanes) };
 }
 
 // ---------------------------------------------------------------------------
@@ -38,10 +40,14 @@ function circleFits(scene, centre, r) {
   return scene.candidates.every((c) => Math.hypot(centre.x - c.x, centre.y - c.y) >= keepOut);
 }
 
+// The kind whose drawn extent (C.DECOR.extent) a kind uses: its own, or a tree's or a bush's for
+// the styled trees and bushes; null when unknown.
+export const extentKind = (kind) => (C.DECOR.extent[kind] ? kind : /Tree$/.test(kind) ? 'tree' : /Bush$/.test(kind) ? 'bush' : null);
+
 // Whether a decor object of this kind and size, based at p, stays clear of corridors and of
 // every candidate. Tested on its drawn extent, not its base.
-function decorFits(scene, kind, p, size) {
-  const e = C.DECOR.extent[kind];
+export function decorFits(scene, kind, p, size) {
+  const e = C.DECOR.extent[extentKind(kind) ?? kind];
   return circleFits(scene, { x: p.x, y: p.y - e.lift * size }, e.r * size);
 }
 
@@ -70,7 +76,7 @@ export function decorOverlaps(scene) {
       if (!ellipseFits(scene, d.x, d.y - h * 0.5, d.size, h * 0.6, 0)) out.push(d);
       continue;
     }
-    const kind = C.DECOR.extent[d.kind] ? d.kind : /Tree$/.test(d.kind) ? 'tree' : /Bush$/.test(d.kind) ? 'bush' : null;
+    const kind = extentKind(d.kind);
     if (kind && !decorFits(scene, kind, d, d.size)) out.push(d);
   }
   // Mist is a veil that may drift over anything (the drafts place it anywhere).

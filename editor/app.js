@@ -1,8 +1,8 @@
 // The map editor (M4a §5), loaded by boot.js once the data is applied: the level picker, the
 // game-accurate view with layer toggles, the live checks, saving through tools/serve.py (§4), and
-// editing: selection, undo / redo, snap to grid, and the Lanes, Druid and Spots tools (§5.2, §5.3).
-// Preview a run, Play this level, Generate draft and the decoration, mire, palette and background
-// tools come in later phases; their controls are in place, disabled.
+// editing: selection, undo / redo, snap to grid, and the tools (§5.2, §5.3): Lanes, Druid and
+// sectors, Spots, decoration (Place, Scatter), Mire, Palette and Background. Preview a run, Play
+// this level and Generate draft come in a later phase; their buttons are in place, disabled.
 //
 // Every edit changes `ed.map` (the working copy of the map file). The scene and the cheap checks are
 // rebuilt from it once per frame while anything changes; the Prep trials run once the map has been
@@ -14,26 +14,36 @@ import { sceneFromLevel } from '../js/scene.js';
 import { geometricZone, zoneIds, zoneQuota, zoneCandidates } from '../js/zones.js';
 import { levelNameLabelArea, bossBarArea, wavePreviewArea } from '../js/ui.js';
 import { trialSetup, layoutTrial } from '../js/layout.js';
+import { clipMire, encodeMire } from '../js/mire.js';
+import { BACKGROUND_DIR } from '../js/mapFile.js';
 import { formatMap } from './mapWriter.js';
 import { cheapChecks, prepItems, GROUPS, ROUTE_TRIALS } from './checks.js';
 import { drawView, LAYERS } from './view.js';
 import { createTools, TOOLS } from './tools.js';
 import { MOVABLE } from './geometry.js';
+import { createPanels } from './panels.js';
+import { buildCatalogue, defaultMix } from './decor.js';
 
 const SAVE_OFF_MESSAGE = 'Saving works when the editor is run locally with tools/serve.py.';
 const LAST_LEVEL_KEY = 'broceliande.editor.level';
 const LAYERS_KEY = 'broceliande.editor.layers';
 const SNAP_KEY = 'broceliande.editor.snap';
+const BG_OPACITY_KEY = 'broceliande.editor.bgOpacity';
 const DEFAULT_LAYERS = { ground: true, lanes: false, mire: true, decoration: true, spots: true, zones: false, checks: true };
 const PREP_DELAY = 1000;   // ms the map is still (no drag) before the Prep trials run
 const PREP_SLICE = 25;     // ms of trials per step, so the page stays responsive while they run
 const UNDO_LIMIT = 200;    // undo steps kept
-const TOOL_KEYS = { v: 'select', l: 'lanes', d: 'druid', s: 'spots' };
+const TOOL_KEYS = { v: 'select', l: 'lanes', d: 'druid', s: 'spots', p: 'place', b: 'scatter', m: 'mire' };
 const TOOL_HELP = {
   select: 'Click to select a spot, the Druid or a decoration object, drag to move, drag on empty ground to box-select (Shift adds). Delete removes, arrows nudge (Shift: 10 px).',
   lanes: 'Drag a waypoint to move it, click a corridor to insert one, Delete removes it (a lane keeps 2). Box-drag selects waypoints.',
   druid: 'Drag the Druid (each lane\'s end follows), a sector handle to turn its boundary, or the near ring to resize it. Zones of auto spots follow.',
   spots: 'Click empty ground to add a spot, drag to move, Delete removes. Pick a zone for a selected spot on the right.',
+  place: 'Pick a type below and click the map to place it. Click an object to select it, drag to move; F flips, [ and ] scale, N changes the variant, Delete removes.',
+  scatter: 'Paint decoration with the brush, or erase it. Each stroke is one undo step.',
+  mire: 'Paint or erase mire with the brush. Each stroke is one undo step.',
+  palette: 'Every colour of the level\'s palette; the map updates as you pick. Works as Select on the map.',
+  background: 'An image drawn instead of the procedural ground. Works as Select on the map.',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -69,6 +79,16 @@ const ed = {
   layers: { ...DEFAULT_LAYERS, ...(readJson(LAYERS_KEY) ?? {}) },
   undo: [],
   redo: [],
+  catalogue: [],                                   // decor.js buildCatalogue
+  place: { entry: null, variant: 0 },              // the picked decoration type
+  scatter: { mode: 'paint', radius: 80, density: 1, mix: [], keepClear: true },
+  mireBrush: { mode: 'paint', radius: 40 },
+  pointer: null,                                   // the pointer on the stage (brush outline)
+  bgOpacity: Number(store.get(BG_OPACITY_KEY) ?? 1),
+  bgImages: {},                                    // background file → Image
+  mireSrc: null,                                   // the map's mire last decoded, and the result
+  mireGrid: null,
+  clipKey: '',                                     // lanes + corridor width the mire was last clipped to
   gesture: false,
   needsRebuild: false,
   canSave: false,
@@ -101,6 +121,7 @@ function begin() {
 
 function end() {
   ed.gesture = false;
+  if (ed.needsRebuild) rebuild();
   schedulePrep();
 }
 
@@ -122,6 +143,7 @@ function undoRedo(from, to) {
   ed.map = JSON.parse(from.pop());
   ed.selection = [];
   changed(false);
+  if (ed.tool === 'palette' || ed.tool === 'background') panels.show();
 }
 
 const api = {
@@ -131,10 +153,13 @@ const api = {
   changed,
   status,
   select: (refs) => select(refs),
+  decorAction: (fn) => tools.decorAction(fn),
+  saveViewSettings: () => store.set(BG_OPACITY_KEY, String(ed.bgOpacity)),
   // A few screen pixels, in stage units (hit tolerances).
   tol: (px) => (px * C.STAGE_WIDTH) / canvas.getBoundingClientRect().width,
 };
 const tools = createTools(api, canvas);
+const panels = createPanels(api);
 
 // ---------------------------------------------------------------------------
 // Start-up
@@ -142,6 +167,8 @@ const tools = createTools(api, canvas);
 
 export async function startEditor(data) {
   ed.data = data;
+  ed.catalogue = buildCatalogue(data.maps);
+  for (const [id, img] of Object.entries(data.backgrounds)) if (data.maps[id]?.backgroundImage) ed.bgImages[data.maps[id].backgroundImage] = img;
   copyGameStage(await (await fetch('index.html', { cache: 'no-store' })).text());
   await detectServer();
   buildPicker();
@@ -228,10 +255,14 @@ function buildLayers() {
 
 function setTool(tool) {
   ed.tool = tool;
-  ed.selection = ed.selection.filter((r) => tool === 'select' ? r.kind !== 'waypoint' : false);
+  const notWaypoint = (r) => r.kind !== 'waypoint';
+  const keeps = { select: notWaypoint, palette: notWaypoint, background: notWaypoint, place: (r) => r.kind === 'decor' }[tool];
+  ed.selection = keeps ? ed.selection.filter(keeps) : [];
   for (const b of document.querySelectorAll('#ed-tools [data-tool]')) b.classList.toggle('active', b.dataset.tool === tool);
   $('ed-tool-help').textContent = TOOL_HELP[tool];
+  if (ed.map) panels.show();
   showSelection();
+  panels.showActions();
 }
 
 const typing = (e) => ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName);
@@ -314,6 +345,9 @@ async function openLevel(id) {
   ed.undo = [];
   ed.redo = [];
   ed.areas = null;
+  ed.mireSrc = null;
+  ed.clipKey = '';
+  ed.scatter.mix = defaultMix(ed.map);
   // The file as it is on disk: a file saved in another layout is marked (saving rewrites it).
   let diskText = null;
   try {
@@ -328,6 +362,7 @@ async function openLevel(id) {
   history.replaceState(null, '', url);
   document.title = `${C.LEVELS[id].name} · Map editor`;
   rebuild();
+  panels.show();
   runPrep();
   status(`Opened ${MAP_DIR}/${id}.json`);
 }
@@ -335,7 +370,30 @@ async function openLevel(id) {
 // The level as the game would build it from the working map (config.js applyData): the sheet's
 // numbers from LEVELS, the ground from the map file.
 function editedLevel() {
-  return { ...C.LEVELS[ed.levelId], ...levelFromMap(ed.map), background: ed.data.backgrounds[ed.levelId] ?? null };
+  const level = { ...C.LEVELS[ed.levelId], ...levelFromMap(ed.map), background: backgroundImage(ed.map.backgroundImage) };
+  // The same mire grid while the map's mire is unchanged (its drawing is cached per grid).
+  if (ed.mireSrc === ed.map.mire) level.mire = ed.mireGrid;
+  else {
+    ed.mireSrc = ed.map.mire;
+    ed.mireGrid = level.mire;
+  }
+  return level;
+}
+
+// The Image for a background file, loaded on first use (null until it has loaded).
+function backgroundImage(file) {
+  if (!file) return null;
+  if (!(file in ed.bgImages)) {
+    ed.bgImages[file] = null;
+    const img = new Image();
+    img.onload = () => {
+      ed.bgImages[file] = img;
+      ed.needsRebuild = true;
+    };
+    img.onerror = () => status(`Could not load ${BACKGROUND_DIR}/${file}`, 'error');
+    img.src = `${BACKGROUND_DIR}/${file}`;
+  }
+  return ed.bgImages[file];
 }
 
 // A new scene and the cheap checks from the map; spots with an auto zone take their zone from the
@@ -347,6 +405,16 @@ function rebuild() {
     if (c.zoneAuto) c.zone = level.candidateLocations[i].zone;
   });
   ed.scene = sceneFromLevel(ed.levelId, level);
+  // Mire never lies on a corridor: after a lane or the corridor width changed, the cells now under
+  // a corridor are cleared (§5.3).
+  const clipKey = JSON.stringify([ed.map.lanes, ed.map.corridorWidth]);
+  if (clipKey !== ed.clipKey) {
+    ed.clipKey = clipKey;
+    if (clipMire(ed.scene.mire, ed.scene.lanes)) {
+      ed.map.mire = encodeMire(ed.scene.mire);
+      ed.mireSrc = ed.map.mire;
+    }
+  }
   // The UI areas depend only on the level's name and waves: measured once per level.
   ed.areas ??= { label: levelNameLabelArea(ed.scene), bossBar: bossBarArea(), wavePreview: wavePreviewArea(ed.scene) };
   ed.checks = cheapChecks(ed.scene, ed.map, ed.areas);
@@ -354,6 +422,7 @@ function rebuild() {
   showChecks();
   showSelection();
   showLevelPanel();
+  panels.showActions();
 }
 
 function updateDirty() {
@@ -469,6 +538,7 @@ function showChecks() {
 function select(refs) {
   ed.selection = refs;
   showSelection();
+  panels.showActions();
 }
 
 // The selection's properties; a single spot's zone can be picked here (auto, or a manual zone).
@@ -552,10 +622,17 @@ function fitCanvas() {
   canvas.style.height = `${C.STAGE_HEIGHT * s}px`;
 }
 
+// The brush's circle under the pointer (Scatter, Mire).
+function brushOutline() {
+  if (!ed.pointer || (ed.tool !== 'scatter' && ed.tool !== 'mire')) return null;
+  const b = ed.tool === 'mire' ? ed.mireBrush : ed.scatter;
+  return { x: ed.pointer.x, y: ed.pointer.y, r: b.radius, erase: b.mode === 'erase' };
+}
+
 function frame(now) {
   if (ed.needsRebuild) rebuild();
   if (ed.scene) {
-    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }] : [], tool: ed.tool, box: ed.box });
+    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }] : [], tool: ed.tool, box: ed.box, bgOpacity: ed.bgOpacity, brush: brushOutline() });
   }
   requestAnimationFrame(frame);
 }

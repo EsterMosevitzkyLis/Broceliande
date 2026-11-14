@@ -293,7 +293,7 @@
     { "type": "tree", "variant": 1, "x": 1842.23, "y": 1152.29, "scale": 0.904, "flip": false },
     { "type": "tree", "variant": 1, "x": 1930.98, "y": 1155.83, "scale": 1.244, "flip": false }
   ],
-  "mire": { "patches": [] },
+  "mire": { "cell": 16, "rows": [] },
   "palette": {
     "floor": "#1c2e1e",
     "floorAccent": { "dark": "rgba(6, 12, 6, 0.45)", "light": "rgba(160, 120, 60, 0.12)" },

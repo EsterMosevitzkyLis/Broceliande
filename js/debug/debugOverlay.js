@@ -3,7 +3,7 @@
 // all candidate locations (footprint, jitter, role, covered lanes), enemy collision radii, IDs and held melee slots, turret IDs and target
 // lines, Vulture IDs, block radii and target lines, pebble IDs. All turret ranges are drawn by the renderer in debug mode.
 
-import { inMire } from '../mire.js';
+import { inMire, hasMire } from '../mire.js';
 import * as C from '../config.js';
 import { GameState } from '../states.js';
 import { isStepMode, isVisitTarget, stepCost, routePreview, markerPos } from '../systems/stepSystem.js';
@@ -54,21 +54,22 @@ function cross(ctx, x, y, size) {
   ctx.stroke();
 }
 
-// M3c §6: mire patches outlined; along the hovered route (step-mode Prep), its part in the mire.
+// M3c §6: mire cells outlined (M4a §1.2: the grid that counts for steps); along the hovered route
+// (step-mode Prep), its part in the mire.
 function drawMireDebug(ctx, game, scene, hover) {
   ctx.save();
   ctx.strokeStyle = MIRE_COLOR;
-  ctx.setLineDash([4, 4]);
-  for (const p of scene.mire) {
-    for (const b of p.blobs) {
-      ctx.beginPath();
-      ctx.ellipse(b.x, b.y, b.r, b.r * 0.8, 0, 0, Math.PI * 2);
-      ctx.stroke();
+  ctx.lineWidth = 1;
+  const m = scene.mire;
+  if (hasMire(m)) {
+    ctx.beginPath();
+    for (let r = 0; r < m.rows; r++) {
+      for (let c = 0; c < m.cols; c++) if (m.cells[r * m.cols + c]) ctx.rect(c * m.cell + 0.5, r * m.cell + 0.5, m.cell - 1, m.cell - 1);
     }
+    ctx.stroke();
   }
-  ctx.setLineDash([]);
   const route = routePreview(game, hover);
-  if (route && scene.mire.length) {
+  if (route && hasMire(m)) {
     const to = markerPos(game, hover);
     const n = Math.ceil(Math.hypot(to.x - route.from.x, to.y - route.from.y) / 4);
     ctx.strokeStyle = MIRE_COLOR;

@@ -3,7 +3,7 @@
 // candidate spots, check marks and the selection.
 
 import * as C from '../js/config.js';
-import { drawFloor, drawStream, drawCorridors, drawFlats, drawMire, drawDecor, drawLaneGlow, drawAshFlecks } from '../js/render/environment.js';
+import { drawFloor, drawStream, drawCorridors, drawFlats, drawMire, drawDecor, drawLaneGlow, drawAshFlecks, decorDrawable } from '../js/render/environment.js';
 import { drawDruid, DRUID_REST_POSE } from '../js/render/entities.js';
 import { laneEntrance, COLORS } from '../js/renderer.js';
 import { drawLane, drawZones } from '../js/debug/debugOverlay.js';
@@ -67,10 +67,27 @@ export function decorByIndex(scene) {
   return all;
 }
 
+// A kind this palette can't draw (it lacks a colour the kind needs: the checks list says which) is
+// skipped and marked, so the rest of the level still draws while it is being fixed. Tested once
+// per palette and kind.
+const drawable = new WeakMap(); // palette → Map(kind → bool)
+function canDraw(palette, kind) {
+  if (!drawable.has(palette)) drawable.set(palette, new Map());
+  const known = drawable.get(palette);
+  if (!known.has(kind)) known.set(kind, decorDrawable(kind, palette));
+  return known.get(kind);
+}
+
+function drawOrMark(ctx, palette, kind, draw, x, y) {
+  if (canDraw(palette, kind)) draw();
+  else ring(ctx, x, y, 14, PROBLEM, 3, [3, 3]);
+}
+
 // view: { layers: { name: bool }, time (s, for the mire and the glow), checks (the cheap checks),
 // selection (a list of refs, geometry.js), areas: [{ left, top, right, bottom, name }] (the UI
 // areas), tool (the active tool: its overlay shows whatever the layers say), box (a box being
-// dragged, or null) }.
+// dragged, or null), bgOpacity (editor only: below 1 the procedural ground shows under a background
+// image, for tracing), brush ({ x, y, r, erase } or null) }.
 export function drawView(ctx, scene, view) {
   const { layers } = view;
   const level = scene.level;
@@ -79,13 +96,17 @@ export function drawView(ctx, scene, view) {
 
   // Ground (renderer.js order): the background image or the procedural ground, then the mire.
   if (layers.ground) {
-    if (scene.background) {
-      ctx.drawImage(scene.background, 0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
-    } else {
+    const opacity = view.bgOpacity ?? 1;
+    if (!scene.background || opacity < 1) {
       drawFloor(ctx, scene);
       drawStream(ctx, scene);
       drawCorridors(ctx, scene);
-      drawFlats(ctx, scene);
+      for (const f of scene.flats) drawOrMark(ctx, level.palette, f.kind, () => drawFlats(ctx, { level, flats: [f] }), f.x, f.y);
+    }
+    if (scene.background) {
+      ctx.globalAlpha = opacity;
+      ctx.drawImage(scene.background, 0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
+      ctx.globalAlpha = 1;
     }
   } else {
     ctx.fillStyle = NO_GROUND;
@@ -97,7 +118,7 @@ export function drawView(ctx, scene, view) {
   // Upright layer, y-sorted: the decoration and the Druid.
   const d = level.druidPos;
   const upright = [{ y: d.y + C.DRUID_RADIUS * 0.6, draw: () => drawDruid(ctx, d.x, d.y, false, 0, DRUID_REST_POSE) }];
-  if (layers.decoration) for (const item of scene.decor) upright.push({ y: item.y, draw: () => drawDecor(ctx, item, level) });
+  if (layers.decoration) for (const item of scene.decor) upright.push({ y: item.y, draw: () => drawOrMark(ctx, level.palette, item.kind, () => drawDecor(ctx, item, level), item.x, item.y) });
   upright.sort((a, b) => a.y - b.y);
   for (const u of upright) u.draw();
   if (layers.decoration) drawAshFlecks(ctx, scene, view.time);
@@ -124,6 +145,10 @@ export function drawView(ctx, scene, view) {
   if (tool === 'druid') drawDruidHandles(ctx, level);
   const decor = view.selection.some((r) => r.kind === 'decor') ? decorByIndex(scene) : null;
   for (const ref of view.selection) drawSelected(ctx, scene, ref, decor);
+  if (view.brush) {
+    const b = view.brush;
+    ring(ctx, b.x, b.y, b.r, b.erase ? PROBLEM : SELECT, 2, [8, 6]);
+  }
   if (view.box) {
     const b = view.box;
     ctx.fillStyle = 'rgba(255, 235, 90, 0.08)';

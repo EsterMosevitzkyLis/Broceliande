@@ -6,16 +6,25 @@
 //   Lanes    drag waypoints, click a corridor to insert one, Delete removes (a lane keeps 2)
 //   Druid    drag the Druid (each lane's last waypoint follows), the 3 sector handles, the near ring
 //   Spots    click empty ground to add a spot, drag to move, Delete removes
-// Everywhere: Delete removes, arrows nudge 1 px (Shift 10), Esc deselects.
+//   Place    click to place the picked decoration type; click an object to select it, drag to move
+//   Scatter  paint decoration with the brush (or erase it)
+//   Mire     paint or erase mire cells with the brush (never on a corridor)
+//   Palette, Background: their panels; on the stage they work as Select
+// Everywhere: Delete removes, arrows nudge 1 px (Shift 10), Esc deselects; with decoration
+// selected, F flips, [ and ] scale by 10%, N cycles the variant.
 
 import * as C from '../js/config.js';
 import { geometricZone } from '../js/zones.js';
+import { createRng } from '../js/rng.js';
+import { decodeMire, encodeMire, paintMire } from '../js/mire.js';
+import { newDecor, scatterAt, eraseAt, flipDecor, scaleDecor, nextVariant } from './decor.js';
 import {
   sameRef, refPos, setRefPos, movedRefs, snapValue, sectorHandlePos, sectorAngleTowards,
   hitCandidate, hitDruid, hitWaypoint, hitDecor, laneInsertAt, refsInBox,
 } from './geometry.js';
 
-export const TOOLS = ['select', 'lanes', 'druid', 'spots'];
+export const TOOLS = ['select', 'lanes', 'druid', 'spots', 'place', 'scatter', 'mire', 'palette', 'background'];
+const BRUSHES = new Set(['scatter', 'mire']);
 const DRAG_START = 3;    // screen px the pointer moves before a press becomes a drag
 const MIN_NEAR_RADIUS = 60;
 
@@ -25,7 +34,12 @@ const PICKS = {
   lanes: new Set(['waypoint']),
   druid: new Set(['druid']),
   spots: new Set(['candidate']),
+  place: new Set(['decor']),
+  scatter: new Set(),
+  mire: new Set(),
 };
+PICKS.palette = PICKS.select;
+PICKS.background = PICKS.select;
 
 export function createTools(api, canvas) {
   const { ed } = api;
@@ -52,6 +66,8 @@ export function createTools(api, canvas) {
     }
     if (ed.tool === 'lanes') return hitWaypoint(map, p, tol);
     if (ed.tool === 'spots') return hitCandidate(map, p);
+    if (ed.tool === 'place') return hitDecor(map, p, tol, { upright: ed.layers.decoration, flats: ed.layers.ground });
+    if (BRUSHES.has(ed.tool)) return null;
     return hitCandidate(map, p) ?? hitDruid(map, p, tol)
       ?? (ed.layers.decoration || ed.layers.ground ? hitDecor(map, p, tol, { upright: ed.layers.decoration, flats: ed.layers.ground }) : null);
   }
@@ -61,10 +77,16 @@ export function createTools(api, canvas) {
     canvas.setPointerCapture(e.pointerId);
     const p = stagePoint(e);
     press = { start: p, startScreen: { x: e.clientX, y: e.clientY }, hit: hitAt(p), shift: e.shiftKey, mode: null };
+    if (BRUSHES.has(ed.tool)) startBrush(p);
   });
 
   canvas.addEventListener('pointermove', (e) => {
     const p = stagePoint(e);
+    ed.pointer = p;
+    if (press?.mode === 'brush') {
+      brushTo(p);
+      return;
+    }
     if (!press) {
       updateCursor(p);
       return;
@@ -79,7 +101,9 @@ export function createTools(api, canvas) {
   canvas.addEventListener('pointerup', (e) => {
     if (!press) return;
     const p = stagePoint(e);
-    if (press.mode === 'box') {
+    if (press.mode === 'brush') {
+      api.end();
+    } else if (press.mode === 'box') {
       const found = refsInBox(ed.map, ed.box, PICKS[ed.tool]);
       api.select(press.shift ? [...ed.selection.filter((r) => !found.some((f) => sameRef(f, r))), ...found] : found);
       ed.box = null;
@@ -89,6 +113,10 @@ export function createTools(api, canvas) {
       click(p);
     }
     press = null;
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    ed.pointer = null;
   });
 
   canvas.addEventListener('pointercancel', () => {
@@ -111,6 +139,7 @@ export function createTools(api, canvas) {
       return;
     }
     if (ed.tool === 'spots') return addSpot(p);
+    if (ed.tool === 'place') return placeDecor(p);
     if (ed.tool === 'lanes') {
       const at = laneInsertAt(ed.map, ed.scene, p);
       if (at) return insertWaypoint(at, p);
@@ -173,12 +202,73 @@ export function createTools(api, canvas) {
     api.select([{ kind: 'waypoint', lane: at.lane, index: at.index }]);
   }
 
+  // Brushes (Scatter, Mire): one undo step per stroke; a dab where the stroke starts, then one each
+  // time the pointer has moved a third of the radius.
+  function startBrush(p) {
+    api.begin();
+    press.mode = 'brush';
+    press.rng = createRng((Date.now() >>> 0) || 1);
+    if (ed.tool === 'mire') press.grid = decodeMire(ed.map.mire);
+    dab(p);
+  }
+
+  function brushTo(p) {
+    const b = brushSettings();
+    if (Math.hypot(p.x - press.last.x, p.y - press.last.y) < Math.max(4, b.radius / 3)) return;
+    dab(p);
+  }
+
+  const brushSettings = () => (ed.tool === 'mire' ? ed.mireBrush : ed.scatter);
+
+  function dab(p) {
+    press.last = p;
+    const b = brushSettings();
+    let changed = 0;
+    if (ed.tool === 'mire') {
+      changed = paintMire(press.grid, ed.scene.lanes, p.x, p.y, b.radius, b.mode === 'paint' ? 1 : 0);
+      if (changed) ed.map.mire = encodeMire(press.grid);
+    } else if (b.mode === 'erase') {
+      changed = eraseAt(ed.map, p, b.radius);
+    } else {
+      changed = scatterAt(ed.map, ed.scene, p, b, press.rng);
+    }
+    if (changed) {
+      ed.selection = ed.selection.filter((r) => r.kind !== 'decor');
+      api.changed(true);
+    }
+  }
+
+  function placeDecor(p) {
+    const entry = ed.place.entry;
+    if (!entry) {
+      api.status('Pick a decoration type on the right first.', 'error');
+      return;
+    }
+    api.begin();
+    ed.map.decor.push(newDecor(entry, ed.place.variant, snapValue(p.x, ed.snap), snapValue(p.y, ed.snap)));
+    api.changed(false);
+    api.end();
+    api.select([{ kind: 'decor', index: ed.map.decor.length - 1 }]);
+  }
+
+  // F, [, ], N on the selected decoration.
+  function decorAction(action) {
+    const list = ed.selection.filter((r) => r.kind === 'decor').map((r) => ed.map.decor[r.index]).filter(Boolean);
+    if (!list.length) return false;
+    api.begin();
+    for (const d of list) action(d);
+    api.changed(false);
+    api.end();
+    return true;
+  }
+
   function updateCursor(p) {
     if (!ed.map) return;
     const hit = hitAt(p);
     let cursor = 'default';
-    if (hit) cursor = hit.kind === 'sector' || hit.kind === 'nearRing' ? 'grab' : 'move';
-    else if (ed.tool === 'spots' || (ed.tool === 'lanes' && laneInsertAt(ed.map, ed.scene, p))) cursor = 'copy';
+    if (BRUSHES.has(ed.tool)) cursor = 'crosshair';
+    else if (hit) cursor = hit.kind === 'sector' || hit.kind === 'nearRing' ? 'grab' : 'move';
+    else if (ed.tool === 'spots' || ed.tool === 'place' || (ed.tool === 'lanes' && laneInsertAt(ed.map, ed.scene, p))) cursor = 'copy';
     canvas.style.cursor = cursor;
   }
 
@@ -245,8 +335,10 @@ export function createTools(api, canvas) {
       api.select([]);
       return true;
     }
-    return false;
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    const action = { f: flipDecor, '[': (d) => scaleDecor(d, false), ']': (d) => scaleDecor(d, true), n: nextVariant }[e.key.toLowerCase()];
+    return action ? decorAction(action) : false;
   }
 
-  return { onKey, isDragging: () => !!press?.mode && press.mode !== 'box' };
+  return { onKey, decorAction, isDragging: () => !!press?.mode && press.mode !== 'box' };
 }
