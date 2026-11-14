@@ -553,32 +553,41 @@ function updateWavePreview(el, game) {
 // Start-up check (M2i §4.2): the preview must not cover any candidate location, in any level. It is
 // measured with the level's largest wave (most icons).
 export function checkWavePreview(scenes) {
+  for (const scene of scenes) {
+    for (const p of wavePreviewProblems(scene)) console.warn(`${scene.levelId}: ${p.problem}`);
+  }
+}
+
+// The UI-area problems below return { index, problem } per candidate under the area (M4a §5.4: the
+// map editor shows them too); they measure the game page's own HTML elements.
+const underArea = (r, c, radius) => Math.hypot(c.x - Math.max(r.left, Math.min(c.x, r.right)), c.y - Math.max(r.top, Math.min(c.y, r.bottom))) < radius;
+
+// The rectangle the wave preview covers in one level, in stage coordinates.
+export function wavePreviewArea(scene) {
   const panel = document.getElementById('wave-preview');
   const entries = document.getElementById('wave-preview-entries');
   const wasHidden = panel.hidden;
   panel.hidden = false;
   document.getElementById('wave-preview-title').textContent = 'Wave 3 of 5 — in 6';
-  const footprint = C.LOCATION_RADIUS; // visible footprint only, as for the boss bar
-  for (const scene of scenes) {
-    const waves = levelWaves(scene.level);
-    const widest = waves.reduce((a, w) => (Object.keys(waveTotals(w)).length > Object.keys(waveTotals(a)).length ? w : a), waves[0]);
-    entries.replaceChildren(wavePreviewEntries(widest));
-    // Stage coordinates (the panel sits in the HUD strip, inside the scaled stage).
-    const stage = document.getElementById('stage').getBoundingClientRect();
-    const s = stage.width / C.STAGE_WIDTH;
-    const b = panel.getBoundingClientRect();
-    const r = { left: (b.left - stage.left) / s, top: (b.top - stage.top) / s, right: (b.right - stage.left) / s, bottom: (b.bottom - stage.top) / s };
-    for (const c of scene.candidates) {
-      const nx = Math.max(r.left, Math.min(c.x, r.right));
-      const ny = Math.max(r.top, Math.min(c.y, r.bottom));
-      if (Math.hypot(c.x - nx, c.y - ny) < footprint) {
-        console.warn(`${scene.levelId}: candidate ${c.index} at (${c.x}, ${c.y}) is under the wave preview`);
-      }
-    }
-  }
+  const waves = levelWaves(scene.level);
+  const widest = waves.reduce((a, w) => (Object.keys(waveTotals(w)).length > Object.keys(waveTotals(a)).length ? w : a), waves[0]);
+  entries.replaceChildren(wavePreviewEntries(widest));
+  // Stage coordinates (the panel sits in the HUD strip, inside the scaled stage).
+  const stage = document.getElementById('stage').getBoundingClientRect();
+  const s = stage.width / C.STAGE_WIDTH;
+  const b = panel.getBoundingClientRect();
+  const r = { left: (b.left - stage.left) / s, top: (b.top - stage.top) / s, right: (b.right - stage.left) / s, bottom: (b.bottom - stage.top) / s };
   entries.replaceChildren();
   delete entries.dataset.key;
   panel.hidden = wasHidden;
+  return r;
+}
+
+export function wavePreviewProblems(scene) {
+  const r = wavePreviewArea(scene);
+  const footprint = C.LOCATION_RADIUS; // visible footprint only, as for the boss bar
+  return scene.candidates.filter((c) => underArea(r, c, footprint))
+    .map((c) => ({ index: c.index, problem: `candidate ${c.index} at (${c.x}, ${c.y}) is under the wave preview` }));
 }
 
 function updateBoss(el, game) {
@@ -612,47 +621,57 @@ function updateBoss(el, game) {
 // candidate's visible footprint (LOCATION_RADIUS) must stay clear, not its jitter allowance, so a
 // jittered top location may be partly under the bar while a boss is alive.
 export function checkBossBar(scenes) {
+  for (const scene of scenes) {
+    for (const p of bossBarProblems(scene)) console.warn(`${scene.levelId}: ${p.problem}`);
+  }
+}
+
+// The rectangle the boss HP bar covers, in stage coordinates.
+export function bossBarArea() {
   const bar = document.getElementById('boss-bar');
   const wasHidden = bar.hidden;
   bar.hidden = false;
   document.getElementById('boss-name').textContent = 'OGRE';
   document.getElementById('boss-hp').textContent = '450 / 450';
   const r = { left: bar.offsetLeft - bar.offsetWidth / 2, top: bar.offsetTop, right: bar.offsetLeft + bar.offsetWidth / 2, bottom: bar.offsetTop + bar.offsetHeight };
-  const footprint = C.LOCATION_RADIUS; // visible footprint only (see above)
-  for (const scene of scenes) {
-    for (const c of scene.candidates) {
-      const nx = Math.max(r.left, Math.min(c.x, r.right));
-      const ny = Math.max(r.top, Math.min(c.y, r.bottom));
-      if (Math.hypot(c.x - nx, c.y - ny) < footprint) {
-        console.warn(`${scene.levelId}: candidate ${c.index} at (${c.x}, ${c.y}) is under the boss HP bar`);
-      }
-    }
-  }
   bar.hidden = wasHidden;
+  return r;
+}
+
+export function bossBarProblems(scene) {
+  const r = bossBarArea();
+  const footprint = C.LOCATION_RADIUS; // visible footprint only (see above)
+  return scene.candidates.filter((c) => underArea(r, c, footprint))
+    .map((c) => ({ index: c.index, problem: `candidate ${c.index} at (${c.x}, ${c.y}) is under the boss HP bar` }));
 }
 
 // Start-up check (M2a §6): the label must not cover any candidate location, in any level. The
 // label is measured with each level's name; a candidate's footprint + jitter must stay clear.
 export function checkLevelNameLabel(scenes) {
+  for (const scene of scenes) {
+    for (const p of levelNameLabelProblems(scene)) console.warn(`${scene.levelId}: ${p.problem}`);
+  }
+}
+
+// The rectangle the level name label covers with this level's name, in stage coordinates.
+export function levelNameLabelArea(scene) {
   const label = document.getElementById('level-name');
   const wasHidden = label.hidden;
   const text = label.textContent;
   label.hidden = false;
-  const occupied = C.LOCATION_RADIUS + C.LOCATION_JITTER;
-  for (const scene of scenes) {
-    label.textContent = scene.level.name;
-    // Stage coordinates: the label sits at its CSS offsets inside the unscaled 1920×1080 stage.
-    const r = { left: label.offsetLeft, top: label.offsetTop, right: label.offsetLeft + label.offsetWidth, bottom: label.offsetTop + label.offsetHeight };
-    for (const c of scene.candidates) {
-      const nx = Math.max(r.left, Math.min(c.x, r.right));
-      const ny = Math.max(r.top, Math.min(c.y, r.bottom));
-      if (Math.hypot(c.x - nx, c.y - ny) < occupied) {
-        console.warn(`${scene.levelId}: candidate ${c.index} at (${c.x}, ${c.y}) is under the level name label`);
-      }
-    }
-  }
+  label.textContent = scene.level.name;
+  // Stage coordinates: the label sits at its CSS offsets inside the unscaled 1920×1080 stage.
+  const r = { left: label.offsetLeft, top: label.offsetTop, right: label.offsetLeft + label.offsetWidth, bottom: label.offsetTop + label.offsetHeight };
   label.textContent = text;
   label.hidden = wasHidden;
+  return r;
+}
+
+export function levelNameLabelProblems(scene) {
+  const r = levelNameLabelArea(scene);
+  const occupied = C.LOCATION_RADIUS + C.LOCATION_JITTER;
+  return scene.candidates.filter((c) => underArea(r, c, occupied))
+    .map((c) => ({ index: c.index, problem: `candidate ${c.index} at (${c.x}, ${c.y}) is under the level name label` }));
 }
 
 function updateHud(el, game) {

@@ -106,15 +106,17 @@ export function levelFromMap(map) {
   // zoneAuto: the zone worked out from the geometry; otherwise the stored zone is a manual override.
   level.candidateLocations = map.candidates.map((c) => ({ x: c.x, y: c.y, zone: c.zoneAuto ? geometricZone(level, c) : c.zone }));
   const G = level.ground;
-  for (const d of map.decor) {
-    if (d.type === 'groundPatch') G.groundPatches.push({ x: d.x, y: d.y, rx: d.rx, ry: d.ry, light: !!d.light });
-    else if (d.type === 'stream') G.streams.push({ width: d.width, points: d.points.map(xy) });
-    else if (FLAT_KINDS[d.type]) G.flats.push({ kind: FLAT_KINDS[d.type], x: d.x, y: d.y, rx: d.rx, ry: d.ry, rot: d.rot ?? 0, glow: !!d.glow });
+  // mapIndex: the object's place in the file's decor list (the map editor's checks point at it).
+  map.decor.forEach((d, mapIndex) => {
+    if (d.type === 'groundPatch') G.groundPatches.push({ x: d.x, y: d.y, rx: d.rx, ry: d.ry, light: !!d.light, mapIndex });
+    else if (d.type === 'stream') G.streams.push({ width: d.width, points: d.points.map(xy), mapIndex });
+    else if (FLAT_KINDS[d.type]) G.flats.push({ kind: FLAT_KINDS[d.type], x: d.x, y: d.y, rx: d.rx, ry: d.ry, rot: d.rot ?? 0, glow: !!d.glow, mapIndex });
     else {
-      const item = { kind: d.type.replace(/^landmark:/, ''), x: d.x, y: d.y, size: d.scale ?? 1, variant: d.variant ?? 0, flip: !!d.flip };
+      const landmark = d.type.startsWith('landmark:');
+      const item = { kind: d.type.replace(/^landmark:/, ''), x: d.x, y: d.y, size: d.scale ?? 1, variant: d.variant ?? 0, flip: !!d.flip, landmark, mapIndex };
       if (d.angle !== undefined) item.angle = d.angle;
       G.decor.push(item);
     }
-  }
+  });
   return level;
 }

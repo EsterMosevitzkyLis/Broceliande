@@ -58,6 +58,26 @@ function ellipseFits(scene, x, y, rx, ry, rot) {
   return true;
 }
 
+// M4a §5.4: the decoration objects of a scene that reach into a corridor or a candidate's footprint
+// + jitter + margin, by the same rules the drafts keep (a warning in the map editor): upright
+// objects on their drawn extent (styled trees and bushes as trees and bushes), landmarks and flats
+// on their ellipse (mist excepted). Kinds with no known extent are left out.
+export function decorOverlaps(scene) {
+  const out = [];
+  for (const d of scene.decor) {
+    if (d.landmark) {
+      const h = d.size * 0.45;
+      if (!ellipseFits(scene, d.x, d.y - h * 0.5, d.size, h * 0.6, 0)) out.push(d);
+      continue;
+    }
+    const kind = C.DECOR.extent[d.kind] ? d.kind : /Tree$/.test(d.kind) ? 'tree' : /Bush$/.test(d.kind) ? 'bush' : null;
+    if (kind && !decorFits(scene, kind, d, d.size)) out.push(d);
+  }
+  // Mist is a veil that may drift over anything (the drafts place it anywhere).
+  for (const f of scene.flats) if (f.kind !== 'mist' && !ellipseFits(scene, f.x, f.y, f.rx, f.ry, f.rot)) out.push(f);
+  return out;
+}
+
 function shuffled(rng, list) {
   const a = [...list];
   for (let i = a.length - 1; i > 0; i--) {

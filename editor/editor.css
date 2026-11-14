@@ -1,0 +1,231 @@
+/* Map editor (M4a §5.1). styles.css is loaded first for the hidden copy of the game's stage; these
+   rules lay out the editor itself. */
+
+:root {
+  --ed-bg: #16181a;
+  --ed-panel: #202326;
+  --ed-line: #34383c;
+  --ed-text: #dfe3e6;
+  --ed-dim: #8c949a;
+  --ed-accent: #e8c45a;
+  --ed-error: #ff6a5c;
+  --ed-warn: #f0a83a;
+  --ed-ok: #74c27a;
+  --ed-info: #7fb8e8;
+}
+
+body.map-editor {
+  display: flex;
+  flex-direction: column;
+  background: var(--ed-bg);
+  color: var(--ed-text);
+  font: 13px system-ui, sans-serif;
+}
+
+body.map-editor button,
+body.map-editor select {
+  font: inherit;
+  color: var(--ed-text);
+  background: #2c3034;
+  border: 1px solid var(--ed-line);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+body.map-editor button:disabled,
+body.map-editor select:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+#ed-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--ed-panel);
+  border-bottom: 1px solid var(--ed-line);
+  flex: none;
+}
+.ed-title {
+  font-weight: bold;
+  margin-right: 6px;
+}
+#ed-level {
+  min-width: 260px;
+}
+#ed-save:not(:disabled) {
+  border-color: var(--ed-accent);
+}
+/* Unsaved-changes dot. */
+#ed-dirty {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--ed-line);
+}
+#ed-dirty.on {
+  background: var(--ed-accent);
+  border-color: var(--ed-accent);
+}
+#ed-status {
+  margin-left: 8px;
+  color: var(--ed-dim);
+}
+#ed-status.ok { color: var(--ed-ok); }
+#ed-status.error { color: var(--ed-error); }
+#ed-readonly {
+  margin-left: auto;
+  color: var(--ed-warn);
+}
+
+#ed-data-problems {
+  padding: 6px 12px;
+  background: #3a1e1a;
+  color: #ffd0c8;
+  max-height: 80px;
+  overflow: auto;
+  flex: none;
+}
+
+#ed-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+#ed-tools {
+  flex: none;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px;
+  background: var(--ed-panel);
+  border-right: 1px solid var(--ed-line);
+}
+#ed-tools button.active {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
+
+#ed-centre {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#ed-canvas {
+  display: block;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--ed-line);
+}
+
+#ed-panel {
+  flex: none;
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  background: var(--ed-panel);
+  border-left: 1px solid var(--ed-line);
+  min-height: 0;
+}
+#ed-panel section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ed-line);
+}
+#ed-panel h2 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ed-dim);
+}
+#ed-selection {
+  line-height: 1.5;
+  word-break: break-word;
+}
+#ed-layers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 8px;
+  margin-bottom: 8px;
+}
+.ed-snap select {
+  margin-left: 6px;
+  padding: 2px 6px;
+}
+
+.ed-checks-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+#ed-checks-summary {
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 6px;
+}
+#ed-format-note {
+  color: var(--ed-warn);
+  margin-bottom: 6px;
+}
+#ed-checks {
+  flex: 1;
+  overflow: auto;
+}
+.ed-check-group {
+  margin: 8px 0 2px;
+  font-weight: bold;
+  color: var(--ed-dim);
+}
+.ed-check {
+  display: flex;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1.35;
+}
+.ed-check .mark {
+  flex: none;
+  width: 12px;
+  text-align: center;
+}
+.ed-check.target { cursor: pointer; }
+.ed-check.target:hover { background: #2c3034; }
+.ed-check.error .mark { color: var(--ed-error); }
+.ed-check.error { color: #ffc4bc; }
+.ed-check.warn .mark { color: var(--ed-warn); }
+.ed-check.info .mark { color: var(--ed-info); }
+.ed-check.ok .mark { color: var(--ed-ok); }
+
+/* The hidden copy of the game's stage, measured by the UI-area checks: laid out at full size,
+   never seen. */
+#ed-measure {
+  position: fixed;
+  left: -30000px;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#ed-loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ed-bg);
+  font-size: 18px;
+}
+#ed-loading.error {
+  color: var(--ed-error);
+  padding: 40px;
+  text-align: center;
+}

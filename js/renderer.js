@@ -32,7 +32,7 @@ import { drawShowcase } from './debug/showcase.js';
 const HIT_FLASH_TIME = 0.15; // s of hit flash on the Druid (bite) or an enemy (pebble); visual only
 const PROGRESS_GAP = 12;     // px between the top of a location's footprint and its progress bar
 
-const COLORS = {
+export const COLORS = {
   hudBackdrop: '#10160e',
   marker: '#ffe066',
 };
@@ -290,7 +290,7 @@ function shakeOffset(game) {
 }
 
 // Where a lane enters the screen: its first centreline point inside the stage (below the HUD).
-function laneEntrance(lane) {
+export function laneEntrance(lane) {
   const margin = 20;
   for (let s = 0; s < lane.path.length; s += 5) {
     const p = lane.path.pointAt(s);

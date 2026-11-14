@@ -17,7 +17,11 @@ export const LEVEL_IDS = Object.keys(C.LEVELS);
 // scene: { levelId, level (its LEVELS entry), lanes, candidates, decor, flats, groundPatches, streams,
 // mire (M3c §3.1), background (M4a §1.2: an Image or null) }.
 export function createScene(levelId) {
-  const level = C.LEVELS[levelId];
+  return sceneFromLevel(levelId, C.LEVELS[levelId]);
+}
+
+// The same from a level object of that shape (the map editor's level being edited, M4a §5).
+export function sceneFromLevel(levelId, level) {
   const lanes = level.lanes.map((lane) => ({
     id: lane.id,
     name: lane.name,
@@ -89,30 +93,32 @@ export function candidateProblems(scene) {
 // Zone labels (M1j §2.2, §2.3): an unknown label is an error; a label that differs from the
 // geometry is only info (the designer may have moved it on purpose); a zone with fewer
 // candidates than its turret + feature quota is an error.
-function validateZones(scene) {
-  const { level, levelId } = scene;
+function zoneChecks(scene, add) {
+  const { level } = scene;
   const ids = zoneIds(level);
   level.candidateLocations.forEach((c, i) => {
+    const target = { kind: 'candidate', index: i };
     if (!ids.includes(c.zone)) {
-      console.error(`${levelId}: candidate ${i} at (${c.x}, ${c.y}) has zone "${c.zone}", expected one of ${ids.join(', ')}`);
+      add('error', `candidate ${i} at (${c.x}, ${c.y}) has zone "${c.zone}", expected one of ${ids.join(', ')}`, target);
       return;
     }
     const geo = geometricZone(level, c);
-    if (geo !== c.zone) console.info(`${levelId}: candidate ${i} labelled ${c.zone}, geometrically ${geo} (manual override)`);
+    if (geo !== c.zone) add('info', `candidate ${i} labelled ${c.zone}, geometrically ${geo} (manual override)`, target);
   });
   for (const zone of ids) {
     const q = zoneQuota(level, zone);
     const n = zoneCandidates(level, zone).length;
+    const target = { kind: 'zone', zone };
     if (n < q.turret + q.feature) {
-      console.error(`${levelId}: zone ${zone} has ${n} candidates, fewer than its quota of ${q.turret} turret + ${q.feature} feature`);
+      add('error', `zone ${zone} has ${n} candidates, fewer than its quota of ${q.turret} turret + ${q.feature} feature`, target);
     }
     // A zoneQuotaOverrides entry can lower a zone's quota to what it holds, which hides a zone that
     // is short of room: also check every zone against the default near / far quota.
     const kind = isNearZone(zone) ? 'near' : 'far';
     const base = level.zoneQuotas[kind];
     if (n < base.turret + base.feature) {
-      console.warn(`${levelId}: ${kind} zone ${zone} has ${n} candidates, fewer than the default ${kind} quota of `
-        + `${base.turret} turret + ${base.feature} feature${level.zoneQuotaOverrides[zone] ? ' (its quota override hides this)' : ''}`);
+      add('warn', `${kind} zone ${zone} has ${n} candidates, fewer than the default ${kind} quota of `
+        + `${base.turret} turret + ${base.feature} feature${level.zoneQuotaOverrides[zone] ? ' (its quota override hides this)' : ''}`, target);
     }
   }
   // M1j §5: one feature type per resource spot.
@@ -120,31 +126,31 @@ function validateZones(scene) {
   const mixTable = featureMix(level);
   const mix = Object.values(mixTable).reduce((a, b) => a + b, 0);
   const spots = quotaTotals(level).feature;
-  if (mix !== spots) console.error(`${levelId}: feature mix has ${mix} features, but the zone quotas give ${spots} resource spots`);
+  if (mix !== spots) add('error', `feature mix has ${mix} features, but the zone quotas give ${spots} resource spots`);
   for (const type of Object.keys(mixTable)) {
-    if (!C.FEATURE_TYPES[type]) console.error(`${levelId}: feature mix has unknown feature type "${type}"`);
+    if (!C.FEATURE_TYPES[type]) add('error', `feature mix has unknown feature type "${type}"`);
   }
 }
 
 // Waves (M2i §2, after §14): every wave has spawns; every spawn a known lane id (or 'random'), a
 // known enemy type, a count ≥ 1 and t ≥ 0; an Ogre needs corridors wide enough for it (M2c §2.4).
-function validateWaves(scene) {
-  const { level, levelId } = scene;
+function waveChecks(scene, add) {
+  const { level } = scene;
   const waves = levelWaves(level);
-  if (waves.length === 0) console.error(`${levelId}: has no waves`);
+  if (waves.length === 0) add('error', 'has no waves');
   waves.forEach((wave, i) => {
-    const where = `${levelId} wave ${i + 1}`;
-    if (!wave.spawns?.length) console.error(`${where}: has no spawns`);
-    if (i < waves.length - 1 && !(wave.gapAfter >= 0)) console.error(`${where}: gapAfter should be a number of seconds`);
+    const where = `wave ${i + 1}`;
+    if (!wave.spawns?.length) add('error', `${where}: has no spawns`);
+    if (i < waves.length - 1 && !(wave.gapAfter >= 0)) add('error', `${where}: gapAfter should be a number of seconds`);
     for (const s of wave.spawns ?? []) {
       const t = C.ENEMY_TYPES[s.type];
-      if (!t) console.error(`${where}: spawn has unknown type "${s.type}"`);
+      if (!t) add('error', `${where}: spawn has unknown type "${s.type}"`);
       if (s.lane !== 'random' && !level.lanes.some((l) => l.id === s.lane)) {
-        console.error(`${where}: spawn has unknown lane "${s.lane}" (a lane id or 'random')`);
+        add('error', `${where}: spawn has unknown lane "${s.lane}" (a lane id or 'random')`);
       }
-      if (!(s.count >= 1) || !(s.t >= 0)) console.error(`${where}: spawn needs count ≥ 1 and t ≥ 0`);
+      if (!(s.count >= 1) || !(s.t >= 0)) add('error', `${where}: spawn needs count ≥ 1 and t ≥ 0`);
       if (t && !fitsCorridor(s.type, corridorWidth(level))) {
-        console.error(`${levelId}: corridors are ${corridorWidth(level)} px, too narrow for its ${t.name} (needs ${2 * t.radius + 2})`);
+        add('error', `corridors are ${corridorWidth(level)} px, too narrow for its ${t.name} (needs ${2 * t.radius + 2})`);
       }
     }
   });
@@ -164,24 +170,29 @@ export function logWaveTotals() {
   }
 }
 
-// Every per-scene check for one level (M2a §5.1).
-export function validateLevel(scene) {
-  const { levelId, level } = scene;
-  validateZones(scene);
-  validateWaves(scene);
+// Every per-scene check for one level (M2a §5.1), as a list of { severity ('error', 'warn' or
+// 'info'), message, target } (target, when there is one: { kind: 'candidate', index },
+// { kind: 'lane', id } or { kind: 'zone', zone }). The game logs them at start-up (validateLevel);
+// the map editor shows them as it edits (M4a §5.4).
+export function levelChecks(scene) {
+  const { level } = scene;
+  const out = [];
+  const add = (severity, message, target = null) => out.push({ severity, message, target });
+  zoneChecks(scene, add);
+  waveChecks(scene, add);
   // M4a §1.3: every decoration object in the map file is a kind the game can draw.
   for (const kind of new Set(scene.decor.map((d) => d.kind))) {
-    if (!isDecorKind(kind)) console.error(`${levelId}: its map file has decoration of unknown type "${kind}"`);
+    if (!isDecorKind(kind)) add('error', `its map file has decoration of unknown type "${kind}"`);
   }
   for (const { index, problem } of candidateProblems(scene)) {
     const c = scene.candidates[index];
-    console.warn(`${levelId}: candidate ${index} at (${c.x}, ${c.y}): ${problem}`);
+    add('warn', `candidate ${index} at (${c.x}, ${c.y}): ${problem}`, { kind: 'candidate', index });
   }
 
   for (const lane of scene.lanes) {
     const { factor } = laneStats(scene, lane);
     if (Math.abs(factor - C.LANE_LENGTH_FACTOR) > C.LANE_LENGTH_FACTOR * C.LANE_LENGTH_TOLERANCE) {
-      console.warn(`${levelId}: ${lane.name} lane is ${factor.toFixed(2)}× its straight-line distance; target is LANE_LENGTH_FACTOR = ${C.LANE_LENGTH_FACTOR}`);
+      add('warn', `${lane.name} lane is ${factor.toFixed(2)}× its straight-line distance; target is LANE_LENGTH_FACTOR = ${C.LANE_LENGTH_FACTOR}`, { kind: 'lane', id: lane.id });
     }
   }
 
@@ -189,9 +200,15 @@ export function validateLevel(scene) {
     const end = lane.waypoints[lane.waypoints.length - 1];
     const r = Math.hypot(end.x - level.druidPos.x, end.y - level.druidPos.y);
     if (Math.abs(r - C.DRUID_MELEE_RADIUS) > 2) {
-      console.warn(`${levelId}: ${lane.name} lane ends ${Math.round(r)} px from the Druid, expected DRUID_MELEE_RADIUS = ${C.DRUID_MELEE_RADIUS}`);
+      add('warn', `${lane.name} lane ends ${Math.round(r)} px from the Druid, expected DRUID_MELEE_RADIUS = ${C.DRUID_MELEE_RADIUS}`, { kind: 'lane', id: lane.id });
     }
   }
+  return out;
+}
+
+// One level's checks, logged as console errors, warnings and info.
+export function validateLevel(scene) {
+  for (const { severity, message } of levelChecks(scene)) console[severity](`${scene.levelId}: ${message}`);
 }
 
 // Start-up: every level's checks (M2a §5.1).

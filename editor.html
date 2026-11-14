@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Map editor</title>
+  <!-- The game's styles, for the hidden copy of its stage the UI-area checks measure (M4a §5.4). -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="editor/editor.css">
+</head>
+<body class="map-editor">
+  <!-- Top bar (M4a §5.1). -->
+  <header id="ed-top">
+    <span class="ed-title">Map editor</span>
+    <select id="ed-level" title="Level"></select>
+    <button id="ed-save" type="button" disabled>Save</button>
+    <span id="ed-dirty" title="No unsaved changes"></span>
+    <button type="button" disabled title="Undo (Ctrl+Z): comes with the editing tools (M4a phase 3)">Undo</button>
+    <button type="button" disabled title="Redo (Ctrl+Y): comes with the editing tools (M4a phase 3)">Redo</button>
+    <button type="button" disabled title="Comes in M4a phase 5">Preview a run</button>
+    <button type="button" disabled title="Comes in M4a phase 5">Play this level</button>
+    <button type="button" disabled title="Comes in M4a phase 5">Generate draft</button>
+    <span id="ed-status"></span>
+    <span id="ed-readonly" hidden></span>
+  </header>
+  <div id="ed-data-problems" hidden></div>
+
+  <div id="ed-main">
+    <!-- Left toolbar: the tools (M4a §5.3); only Select works in this phase. -->
+    <nav id="ed-tools">
+      <button type="button" class="active" title="Select: click a spot, the Druid or a decoration object to see its properties">Select</button>
+      <button type="button" disabled title="Comes in M4a phase 3">Lanes</button>
+      <button type="button" disabled title="Comes in M4a phase 3">Druid</button>
+      <button type="button" disabled title="Comes in M4a phase 3">Spots</button>
+      <button type="button" disabled title="Comes in M4a phase 4">Place</button>
+      <button type="button" disabled title="Comes in M4a phase 4">Scatter</button>
+      <button type="button" disabled title="Comes in M4a phase 4">Mire</button>
+      <button type="button" disabled title="Comes in M4a phase 4">Palette</button>
+      <button type="button" disabled title="Comes in M4a phase 4">Background</button>
+    </nav>
+
+    <main id="ed-centre">
+      <canvas id="ed-canvas"></canvas>
+    </main>
+
+    <!-- Right panel: selection, layers, snap, checks. -->
+    <aside id="ed-panel">
+      <section>
+        <h2>Selection</h2>
+        <div id="ed-selection"></div>
+      </section>
+      <section>
+        <h2>Layers</h2>
+        <div id="ed-layers"></div>
+        <label class="ed-snap">Snap to grid
+          <select disabled title="Comes with the editing tools (M4a phase 3)"><option>off</option><option>10 px</option><option>20 px</option></select>
+        </label>
+      </section>
+      <section class="ed-checks-section">
+        <h2>Checks <span id="ed-checks-summary"></span></h2>
+        <div id="ed-format-note" hidden>This file isn't in the editor's layout; saving rewrites it.</div>
+        <div id="ed-checks"></div>
+      </section>
+    </aside>
+  </div>
+
+  <div id="ed-measure" aria-hidden="true"></div>
+  <div id="ed-loading">Loading…</div>
+
+  <script type="module" src="editor/boot.js"></script>
+</body>
+</html>

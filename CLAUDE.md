@@ -29,7 +29,7 @@ ES modules need a server. From the project root:
 ```
 python tools/serve.py
 ```
-Open http://localhost:8000 in Chrome.
+Open http://localhost:8000 in Chrome. The map editor is at http://localhost:8000/editor.html (saving needs this server).
 
 ## Working style
 - This is a throwaway prototype. I test by playing it myself. Speed matters more than test coverage.

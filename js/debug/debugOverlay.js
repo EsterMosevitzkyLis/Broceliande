@@ -134,7 +134,7 @@ function roleTag(game, role, index) {
 // Zones (M1j §6): each zone faintly tinted (near brighter than far) with its ID, the sector
 // boundary lines from the Druid and the NEAR_RADIUS ring.
 const ZONE_TINTS = ['120, 200, 255', '255, 190, 110', '170, 255, 150']; // per sector, in order
-function drawZones(ctx, level) {
+export function drawZones(ctx, level) {
   const D = level.druidPos;
   const B = level.sectorBoundaryAngles;
   const far = 3000; // px, past every screen corner
@@ -226,7 +226,7 @@ function drawCandidates(ctx, game, scene) {
   }
 }
 
-function drawLane(ctx, lane) {
+export function drawLane(ctx, lane) {
   const { path } = lane;
   const half = lane.corridorWidth / 2;
 

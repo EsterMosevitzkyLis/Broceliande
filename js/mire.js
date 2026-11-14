@@ -12,11 +12,17 @@ export function inMire(mire, x, y) {
 export function mireLength(mire, a, b) {
   const len = Math.hypot(b.x - a.x, b.y - a.y);
   if (!mire.length || len === 0) return 0;
+  // Only blobs reaching the line's bounding box can hold a sample point (the same result, faster).
+  const near = mire.flatMap((p) => p.blobs).filter((o) => o.x + o.r > Math.min(a.x, b.x) && o.x - o.r < Math.max(a.x, b.x)
+    && o.y + o.r > Math.min(a.y, b.y) && o.y - o.r < Math.max(a.y, b.y));
+  if (!near.length) return 0;
   const n = Math.max(1, Math.ceil(len / C.MIRE_SAMPLE_PX));
   let inside = 0;
   for (let i = 0; i < n; i++) {
     const t = (i + 0.5) / n;
-    if (inMire(mire, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) inside++;
+    const x = a.x + (b.x - a.x) * t;
+    const y = a.y + (b.y - a.y) * t;
+    if (near.some((o) => Math.hypot(x - o.x, y - o.y) < o.r)) inside++;
   }
   return (len * inside) / n;
 }
