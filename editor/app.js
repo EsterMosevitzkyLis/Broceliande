@@ -26,6 +26,7 @@ import { buildCatalogue, defaultMix } from './decor.js';
 import { createDraftDialog } from './draft.js';
 import { previewLayout, previewSummary } from './preview.js';
 import { createSidePanels } from './sidePanels.js';
+import { createLanePanels, entryAt } from './lanePanels.js';
 
 const SAVE_OFF_MESSAGE = 'Saving works when the editor is run locally with tools/serve.py.';
 const LAST_LEVEL_KEY = 'broceliande.editor.level';
@@ -39,8 +40,8 @@ const UNDO_LIMIT = 200;    // undo steps kept
 const TOOL_KEYS = { v: 'select', l: 'lanes', d: 'druid', s: 'spots', p: 'place', b: 'scatter', m: 'mire' };
 const TOOL_HELP = {
   select: 'Click to select a spot, the Druid or a decoration object, drag to move, drag on empty ground to box-select (Shift adds). Delete removes, arrows nudge (Shift: 10 px).',
-  lanes: 'Drag a waypoint to move it, click a corridor to insert one, Delete removes it (a lane keeps 2). Box-drag selects waypoints.',
-  druid: 'Drag the Druid (each lane\'s end follows), a sector handle to turn its boundary, or the near ring to resize it. Zones of auto spots follow.',
+  lanes: 'Drag a waypoint to move it, click a corridor to insert one, Delete removes it (a lane keeps 2). Box-drag selects waypoints. New lane and Delete lane are below.',
+  druid: 'Drag the Druid (each lane\'s end follows), a sector handle to turn its boundary, or the near ring to resize it. Zones of auto spots follow. The sector count is below.',
   spots: 'Click empty ground to add a spot, drag to move, Delete removes. Pick a zone for a selected spot on the right.',
   place: 'Pick a type below and click the map to place it. Click an object to select it, drag to move; F flips, [ and ] scale, N changes the variant, Delete removes.',
   scatter: 'Paint decoration with the brush, or erase it. Each stroke is one undo step.',
@@ -159,6 +160,8 @@ const api = {
   select: (refs) => select(refs),
   decorAction: (fn) => tools.decorAction(fn),
   saveViewSettings: () => store.set(BG_OPACITY_KEY, String(ed.bgOpacity)),
+  refresh: () => showSidePanels(),
+  addLaneAt: (p) => lanePanels.addLaneAt(p),
   // A few screen pixels, in stage units (hit tolerances).
   tol: (px) => (px * C.STAGE_WIDTH) / canvas.getBoundingClientRect().width,
 };
@@ -166,6 +169,7 @@ const tools = createTools(api, canvas);
 const panels = createPanels(api);
 const draft = createDraftDialog(api);
 const side = createSidePanels(api);
+const lanePanels = createLanePanels(api);
 
 // ---------------------------------------------------------------------------
 // Start-up
@@ -260,6 +264,7 @@ function buildLayers() {
 
 function setTool(tool) {
   ed.tool = tool;
+  ed.newLane = false;
   const notWaypoint = (r) => r.kind !== 'waypoint';
   const kind = (k) => (r) => r.kind === k;
   const keeps = { select: notWaypoint, palette: notWaypoint, background: notWaypoint, place: kind('decor'), spots: kind('candidate'), lanes: kind('waypoint'), druid: kind('druid') }[tool];
@@ -346,6 +351,7 @@ function wireControls() {
 
 async function openLevel(id) {
   ed.levelId = id;
+  ed.newLane = false;
   ed.map = clone(ed.data.maps[id]);
   ed.selection = [];
   ed.undo = [];
@@ -427,7 +433,7 @@ function rebuild() {
   }
   // The UI areas depend only on the level's name and waves: measured once per level.
   ed.areas ??= { label: levelNameLabelArea(ed.scene), bossBar: bossBarArea(), wavePreview: wavePreviewArea(ed.scene) };
-  ed.checks = cheapChecks(ed.scene, ed.map, ed.areas);
+  ed.checks = cheapChecks(ed.scene, ed.map, ed.areas, ed.data.laneRows);
   updateDirty();
   showChecks();
   showSelection();
@@ -646,6 +652,8 @@ function showSelection() {
 
 // M4b §3, §5: Zone rules (with the Druid or Spots tool), Level rules and the read-only Level data.
 function showSidePanels() {
+  const extra = { lanes: lanePanels.lanes, druid: lanePanels.sectors }[ed.tool];
+  fill($('ed-tool-extra'), extra && ed.scene ? extra() : []);
   $('ed-zone-rules-section').hidden = !(ed.tool === 'druid' || ed.tool === 'spots');
   if (!$('ed-zone-rules-section').hidden) fill($('ed-zone-rules'), side.zoneRules());
   fill($('ed-level-rules'), side.levelRules());
@@ -687,7 +695,7 @@ function brushOutline() {
 function frame(now) {
   if (ed.needsRebuild) rebuild();
   if (ed.scene) {
-    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }] : [], tool: ed.tool, box: ed.box, bgOpacity: ed.bgOpacity, brush: brushOutline(), preview: ed.preview.data });
+    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }] : [], tool: ed.tool, box: ed.box, bgOpacity: ed.bgOpacity, brush: brushOutline(), preview: ed.preview.data, newLaneAt: ed.newLane && ed.pointer ? entryAt(ed.pointer) : null });
   }
   requestAnimationFrame(frame);
 }

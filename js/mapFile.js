@@ -10,6 +10,12 @@ import { decodeMire, MIRE_CELL } from './mire.js';
 import * as C from './config.js';
 
 export const MAP_VERSION = 1;
+export const MIN_LANES = 1;
+export const MAX_LANES = 4;
+export const MIN_SECTORS = 1;
+export const MAX_SECTORS = 6;
+export const DEFAULT_SECTORS = 3;
+const ID_RE = /^[A-Za-z0-9]+$/; // as the sheet's ids (data/loader.js): a lane id is what spawns rows name
 export const MAP_DIR = 'data/maps';
 export const BACKGROUND_DIR = 'data/maps/backgrounds';
 
@@ -63,13 +69,25 @@ export function mapProblems(map, id) {
   if (map.level !== id) out.push(`"level" is "${map.level}", should be "${id}"`);
   if (!isXY(map.druid)) out.push('"druid" needs x and y');
   if (!(map.corridorWidth > 0)) out.push('"corridorWidth" should be a number above 0');
-  if (!Array.isArray(map.lanes) || map.lanes.length !== 3) out.push('needs 3 lanes');
+  if (!Array.isArray(map.lanes) || map.lanes.length < MIN_LANES || map.lanes.length > MAX_LANES) out.push(`needs ${MIN_LANES} to ${MAX_LANES} lanes`);
+  const laneIds = new Set();
   for (const lane of map.lanes ?? []) {
     if (!lane.id) out.push('a lane has no id');
+    else if (!ID_RE.test(lane.id)) out.push(`lane id "${lane.id}" should be letters and digits only`);
+    else if (laneIds.has(lane.id)) out.push(`two lanes have the id "${lane.id}"`);
+    laneIds.add(lane.id);
     if (!Array.isArray(lane.waypoints) || lane.waypoints.length < 2 || !lane.waypoints.every(isPoint)) out.push(`lane ${lane.id}: needs at least 2 waypoints, each [x, y]`);
   }
+  // Sectors are the map's own (zones come from them, not from the lanes): any count from
+  // MIN_SECTORS to MAX_SECTORS, one angle and one name each.
   const S = map.sectors ?? {};
-  if (!Array.isArray(S.angles) || S.angles.length !== 3 || !Array.isArray(S.names) || S.names.length !== 3) out.push('"sectors" needs 3 angles and 3 names');
+  if (!Array.isArray(S.angles) || !Array.isArray(S.names) || S.angles.length !== S.names.length
+    || S.angles.length < MIN_SECTORS || S.angles.length > MAX_SECTORS) {
+    out.push(`"sectors" needs ${MIN_SECTORS} to ${MAX_SECTORS} angles and as many names`);
+  } else {
+    if (!S.angles.every((a) => Number.isFinite(a) && a >= 0 && a < 360)) out.push('each sector angle should be a number of degrees, 0 to 359');
+    if (new Set(S.names).size !== S.names.length || !S.names.every((n) => typeof n === 'string' && ID_RE.test(n))) out.push('sector names should be different, letters and digits only');
+  }
   if (!(S.nearRadius > 0)) out.push('"sectors.nearRadius" should be a number above 0');
   if (!Array.isArray(map.candidates) || !map.candidates.every((c) => isXY(c) && (c.zoneAuto || typeof c.zone === 'string'))) out.push('each candidate needs x, y and a zone (or zoneAuto)');
   if (!Array.isArray(map.decor) || !map.decor.every((d) => typeof d.type === 'string')) out.push('each decoration object needs a type');
@@ -149,30 +167,68 @@ export function levelFromMap(map) {
 }
 
 // ---------------------------------------------------------------------------
-// New levels (M4a §5.7): a blank map and the sectors for a set of lanes
+// Sectors and new levels (M4a §5.7): a blank map, the sectors for a set of lanes, and changing a
+// map's sector count
 // ---------------------------------------------------------------------------
 
 const COMPASS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'];
-const angleTo = (from, to) => ((Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI + 360) % 360;
+export const angleTo = (from, to) => ((Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI + 360) % 360;
+const compass = (a) => COMPASS[Math.round((((a % 360) + 360) % 360) / 45) % 8];
+const span = (angles, i) => ((angles[(i + 1) % angles.length] - angles[i] + 360) % 360) || 360;
 
-// Sectors round the Druid for lanes entering at these points, one lane per sector: boundaries
-// halfway (by angle) between neighbouring lanes, each sector named after its lane's compass
-// direction (screen y points down: 90° is S). Returns { angles, names }, angles in sector order.
-export function sectorsFor(druid, entries) {
+// A name for a new sector centred on angle a: its compass direction, with a number when taken.
+function freeName(names, a) {
+  const base = compass(a);
+  if (!names.includes(base)) return base;
+  for (let k = 2; ; k++) if (!names.includes(`${base}${k}`)) return `${base}${k}`;
+}
+
+// One more sector: the widest is split in half; the new half (clockwise) is named after its
+// direction. sectors: { angles, names }, changed in place. The other sectors keep their names, so
+// the zones already in use keep theirs.
+export function splitSector(sectors) {
+  const { angles, names } = sectors;
+  let i = 0;
+  for (let k = 1; k < angles.length; k++) if (span(angles, k) > span(angles, i)) i = k;
+  const w = span(angles, i);
+  const at = Math.round((angles[i] + w / 2) % 360) % 360;
+  angles.splice(i + 1, 0, at);
+  names.splice(i + 1, 0, freeName(names, at + w / 4));
+}
+
+// One sector fewer: the narrowest joins the sector before it (anticlockwise), which keeps its
+// name. Returns the removed sector's name.
+export function mergeSector(sectors) {
+  const { angles, names } = sectors;
+  let i = 0;
+  for (let k = 1; k < angles.length; k++) if (span(angles, k) < span(angles, i)) i = k;
+  angles.splice(i, 1);
+  return names.splice(i, 1)[0];
+}
+
+// Sectors round the Druid for lanes entering at these points: with one sector per lane (count
+// equal to the lanes), boundaries halfway (by angle) between neighbouring lanes, each sector named
+// after its lane's compass direction (screen y points down: 90° is S); with another count, those
+// sectors are split (the widest first) or merged (the narrowest first) to it. Returns
+// { angles, names }, angles in sector order.
+export function sectorsFor(druid, entries, count = entries.length) {
   const lanes = entries.map((p) => angleTo(druid, p)).sort((a, b) => a - b);
   const angles = lanes.map((a, i) => {
     const prev = lanes[(i + lanes.length - 1) % lanes.length];
     const gap = (a - prev + 360) % 360 || 360;
     return Math.round((prev + gap / 2) % 360);
   });
-  const names = lanes.map((a) => COMPASS[Math.round(a / 45) % 8]);
+  const names = lanes.map((a) => compass(a));
   names.forEach((n, i) => { if (names.indexOf(n) !== i) names[i] = `${n}${i + 1}`; });
-  return { angles, names };
+  const sectors = { angles, names };
+  while (sectors.angles.length < count) splitSector(sectors);
+  while (sectors.angles.length > count) mergeSector(sectors);
+  return sectors;
 }
 
 // A map for a level with no map file yet, as a starting point for a draft: the Druid near the
 // middle, straight lanes from their entry points to his melee ring (lanes: [{ id, name, entry }]),
-// sectors from them, no spots, decoration or mire. settings: { corridorWidth, meleeRadius,
+// DEFAULT_SECTORS sectors arranged round them, no spots, decoration or mire. settings: { corridorWidth, meleeRadius,
 // nearRadius, palette }.
 export function blankMap(levelId, lanes, settings) {
   const druid = { x: 960, y: 600 };
@@ -180,7 +236,7 @@ export function blankMap(levelId, lanes, settings) {
     const d = Math.hypot(p.x - druid.x, p.y - druid.y) || 1;
     return [Math.round(druid.x + ((p.x - druid.x) / d) * settings.meleeRadius), Math.round(druid.y + ((p.y - druid.y) / d) * settings.meleeRadius)];
   };
-  const { angles, names } = sectorsFor(druid, lanes.map((l) => l.entry));
+  const { angles, names } = sectorsFor(druid, lanes.map((l) => l.entry), DEFAULT_SECTORS);
   return {
     version: MAP_VERSION,
     level: levelId,
@@ -199,10 +255,11 @@ export function blankMap(levelId, lanes, settings) {
   };
 }
 
-// A level's lanes from the lanes tab (rows { level, laneId, name, entry: "x, y" }), or three lanes
-// from the left, right and bottom edges when it has none there.
+// A level's lanes from the lanes tab (rows { level, laneId, name, entry: "x, y" }; any number from
+// MIN_LANES to MAX_LANES, the first MAX_LANES used), or three lanes from the left, right and bottom
+// edges when it has none there.
 export function lanesFromTab(levelId, rows = []) {
-  const mine = rows.filter((r) => r.level === levelId && r.laneId);
+  const mine = rows.filter((r) => r.level === levelId && r.laneId).slice(0, MAX_LANES);
   if (mine.length) {
     return mine.map((r) => {
       const [x, y] = String(r.entry ?? '').split(',').map((v) => Number(v.trim()));

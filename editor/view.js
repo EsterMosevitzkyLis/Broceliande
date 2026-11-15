@@ -9,6 +9,7 @@ import { laneEntrance, COLORS } from '../js/renderer.js';
 import { drawLane, drawZones } from '../js/debug/debugOverlay.js';
 import { geometricZone } from '../js/zones.js';
 import { spotPin } from '../js/levelSettings.js';
+import { entryMark } from './lanePanels.js';
 import { sectorHandlePos } from './geometry.js';
 
 export const LAYERS = ['ground', 'lanes', 'mire', 'decoration', 'spots', 'zones', 'checks', 'laneLabels'];
@@ -160,6 +161,20 @@ export function drawView(ctx, scene, view) {
   if (view.brush) {
     const b = view.brush;
     ring(ctx, b.x, b.y, b.r, b.erase ? PROBLEM : SELECT, 2, [8, 6]);
+  }
+  // New lane: where a click would put its entry, and a dashed line to the Druid.
+  if (view.newLaneAt) {
+    const m = entryMark(view.newLaneAt);
+    ctx.save();
+    ctx.strokeStyle = SELECT;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(m.x, m.y);
+    ctx.lineTo(d.x, d.y);
+    ctx.stroke();
+    ctx.restore();
+    ring(ctx, m.x, m.y, 12, SELECT, 3);
   }
   if (view.box) {
     const b = view.box;

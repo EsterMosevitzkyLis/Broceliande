@@ -8,6 +8,7 @@ import { sceneFromLevel } from '../js/scene.js';
 import { createRng, makeRandomSeed } from '../js/rng.js';
 import { encodeMire } from '../js/mire.js';
 import { draftLanes, draftSpots, draftDecor, draftMire } from '../js/mapDraft.js';
+import { zoneIds, zoneQuota } from '../js/zones.js';
 import { defaultMix } from './decor.js';
 
 const LAYERS = { all: 'every layer', lanes: 'the lanes', spots: 'the spots', decoration: 'the decoration', mire: 'the mire' };
@@ -65,15 +66,26 @@ export function createDraftDialog(api) {
     const all = layer === 'all';
     api.begin();
     if (all || layer === 'lanes') {
-      // A new level: lanes from the lanes tab, sectors from them; otherwise the same lanes (ids,
-      // names, entry points) rerouted, and the sectors kept.
+      // A new level: lanes from the lanes tab (1 to 4), the map's sector count (3 unless changed in
+      // the Druid tool) arranged round them; otherwise the same lanes (ids, names, entry points)
+      // rerouted, and the sectors kept.
       const lanes = all && !ed.savedText
         ? lanesFromTab(ed.levelId, ed.data.laneRows)
         : map.lanes.map((l) => ({ id: l.id, name: l.name ?? l.id, entry: { x: l.waypoints[0][0], y: l.waypoints[0][1] } }));
       map.lanes = draftLanes(map.druid, lanes, rng);
-      if (all && !ed.savedText) Object.assign(map.sectors, sectorsFor(map.druid, lanes.map((l) => l.entry)));
+      if (all && !ed.savedText) Object.assign(map.sectors, sectorsFor(map.druid, lanes.map((l) => l.entry), map.sectors.angles.length));
     }
-    if (all || layer === 'spots') map.candidates = draftSpots(sceneOf(map), rng);
+    let short = [];
+    if (all || layer === 'spots') {
+      const scene = sceneOf(map);
+      map.candidates = draftSpots(scene, rng);
+      // Zones the generator couldn't fill (no lane within turret range there, or no room).
+      short = zoneIds(scene.level).map((z) => {
+        const q = zoneQuota(scene.level, z);
+        const n = map.candidates.filter((c) => c.zone === z).length;
+        return n < q.turret + q.feature ? `${z} ${n}/${q.turret + q.feature}` : null;
+      }).filter(Boolean);
+    }
     if (all || layer === 'decoration') {
       const mix = defaultMix(map);
       const kept = map.decor.filter((d) => d.type.startsWith('landmark:'));
@@ -83,7 +95,11 @@ export function createDraftDialog(api) {
     api.changed(false);
     api.end();
     api.select([]);
-    api.status(`Generated a draft of ${LAYERS[layer]} (seed ${seed}). Undo brings the previous one back.`, 'ok');
+    if (short.length) {
+      api.status(`Generated a draft of ${LAYERS[layer]} (seed ${seed}), but some zones are short of spots: ${short.join(', ')}. With few lanes some sectors have no lane in turret range: try fewer sectors (Druid tool), or another seed.`, 'error');
+    } else {
+      api.status(`Generated a draft of ${LAYERS[layer]} (seed ${seed}). Undo brings the previous one back.`, 'ok');
+    }
   }
 
   return { open };

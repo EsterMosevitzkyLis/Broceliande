@@ -1,5 +1,6 @@
-// Battlefield zones (M1j §2): three sectors around a level's Druid, one per lane, each split into
-// near and far by the level's nearRadius, giving six zones. Each candidate location carries an
+// Battlefield zones (M1j §2): sectors around a level's Druid (its map file's own, 3 by default and
+// independent of its lanes), each split into near and far by the level's nearRadius, giving two
+// zones per sector. Each candidate location carries an
 // explicit `zone` label in its level; the label decides its zone, the geometry here is only for
 // start-up checks and the debug overlay. `level` is a LEVELS entry (M2a §5.1).
 

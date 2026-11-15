@@ -171,7 +171,7 @@ function waveChecks(scene, add) {
       const t = C.ENEMY_TYPES[s.type];
       if (!t) add('error', `${where}: spawn has unknown type "${s.type}"`);
       if (s.lane !== 'random' && !level.lanes.some((l) => l.id === s.lane)) {
-        add('error', `${where}: spawn has unknown lane "${s.lane}" (a lane id or 'random')`);
+        add('error', `${where}: spawn at t ${s.t} (${s.type}) names lane "${s.lane}", which the level doesn't have (its lanes: ${level.lanes.map((l) => l.id).join(', ')}, or random)`);
       }
       if (!(s.count >= 1) || !(s.t >= 0)) add('error', `${where}: spawn needs count ≥ 1 and t ≥ 0`);
       if (t && !fitsCorridor(s.type, corridorWidth(level))) {

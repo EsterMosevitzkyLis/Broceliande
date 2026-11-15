@@ -3,8 +3,9 @@
 //
 //   Select   click to select, drag to move, box-drag to multi-select (Shift adds), on spots, the
 //            Druid and decoration
-//   Lanes    drag waypoints, click a corridor to insert one, Delete removes (a lane keeps 2)
-//   Druid    drag the Druid (each lane's last waypoint follows), the 3 sector handles, the near ring
+//   Lanes    drag waypoints, click a corridor to insert one, Delete removes (a lane keeps 2); after
+//            New lane (lanePanels.js), a click picks the new lane's entry on the nearest screen edge
+//   Druid    drag the Druid (each lane's last waypoint follows), the sector handles, the near ring
 //   Spots    click empty ground to add a spot, drag to move, Delete removes
 //   Place    click to place the picked decoration type; click an object to select it, drag to move
 //   Scatter  paint decoration with the brush (or erase it)
@@ -55,7 +56,7 @@ export function createTools(api, canvas) {
     const tol = api.tol(6);
     const map = ed.map;
     if (ed.tool === 'druid') {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < map.sectors.angles.length; i++) {
         const h = sectorHandlePos(ed.scene.level, i);
         if (Math.hypot(h.x - p.x, h.y - p.y) <= 10 + tol) return { kind: 'sector', index: i };
       }
@@ -127,6 +128,7 @@ export function createTools(api, canvas) {
 
   // A press that didn't move.
   function click(p) {
+    if (ed.tool === 'lanes' && ed.newLane) return api.addLaneAt(p);
     const hit = press.hit;
     if (hit && (hit.kind === 'sector' || hit.kind === 'nearRing')) return;
     if (hit) {
@@ -267,6 +269,7 @@ export function createTools(api, canvas) {
     const hit = hitAt(p);
     let cursor = 'default';
     if (BRUSHES.has(ed.tool)) cursor = 'crosshair';
+    else if (ed.tool === 'lanes' && ed.newLane) cursor = 'crosshair';
     else if (hit) cursor = hit.kind === 'sector' || hit.kind === 'nearRing' ? 'grab' : 'move';
     else if (ed.tool === 'spots' || ed.tool === 'place' || (ed.tool === 'lanes' && laneInsertAt(ed.map, ed.scene, p))) cursor = 'copy';
     canvas.style.cursor = cursor;
@@ -332,6 +335,10 @@ export function createTools(api, canvas) {
       return true;
     }
     if (e.key === 'Escape') {
+      if (ed.newLane) {
+        ed.newLane = false;
+        api.refresh();
+      }
       api.select([]);
       return true;
     }

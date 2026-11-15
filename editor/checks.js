@@ -13,7 +13,7 @@
 import * as C from '../js/config.js';
 import { mapProblems } from '../js/mapFile.js';
 import { levelChecks } from '../js/scene.js';
-import { zoneIds, zoneQuota, zoneCandidates } from '../js/zones.js';
+import { zoneIds, zoneQuota, zoneCandidates, quotaTotals } from '../js/zones.js';
 import { corridorWidth, levelWaves, laneMinTurretSlots } from '../js/levelSettings.js';
 import { fitsCorridor } from '../js/entities/enemy.js';
 import { trialOutcome, trialFailRate, drawFitRate, routeBand, centredBudget } from '../js/layout.js';
@@ -37,7 +37,8 @@ function groupOf(check) {
 }
 
 // areas: the UI areas measured once per level, { label, bossBar, wavePreview }.
-export function cheapChecks(scene, map, areas) {
+// laneRows: the sheet's lanes reference tab (data/lanes.csv), whose ids the spawns tab offers.
+export function cheapChecks(scene, map, areas, laneRows = []) {
   const { level, levelId } = scene;
   const out = [];
   const add = (group, severity, message, target = null) => out.push({ group, severity, message, target });
@@ -67,6 +68,19 @@ export function cheapChecks(scene, map, areas) {
   for (const lane of scene.lanes) {
     const n = scene.candidates.filter((c) => c.lanes.includes(lane.id)).length;
     add('Lanes', n >= laneMinTurretSlots(level) ? 'ok' : 'error', `${lane.id}: ${n} spots in turret range (needs ${laneMinTurretSlots(level)} turret slots)`, { kind: 'lane', id: lane.id });
+  }
+  // Coverage grows with the lane count: the zone quotas' turret slots against what every lane needs
+  // (a slot near two lanes counts for both, so this is a hint, not an error).
+  const slots = quotaTotals(level).turret;
+  const need = scene.lanes.length * laneMinTurretSlots(level);
+  if (slots < need) add('Lanes', 'warn', `${scene.lanes.length} lanes × ${laneMinTurretSlots(level)} turret slots = ${need}, but the zone quotas give ${slots} turret slots: only slots covering two lanes can make up the difference`);
+  // The lanes tab lists each level's lane ids for the spawns tab's dropdown: after a lane is added,
+  // deleted or renamed it needs the same change.
+  const tab = laneRows.filter((r) => r.level === levelId);
+  const ids = scene.lanes.map((l) => l.id);
+  if (tab.length && (tab.length !== ids.length || !ids.every((id) => tab.some((r) => r.laneId === id)))) {
+    const rows = scene.lanes.map((l) => `${levelId},${l.id},${l.name},"${l.waypoints[0].x}, ${l.waypoints[0].y}"`);
+    add('Lanes', 'warn', `the sheet's lanes tab lists ${tab.map((r) => r.laneId).join(', ')} for this level, the map has ${ids.join(', ')}: give the lanes tab these rows: ${rows.join('  ')}`);
   }
   // Corridor width against each mini-boss or boss in the waves.
   const W = corridorWidth(level);
