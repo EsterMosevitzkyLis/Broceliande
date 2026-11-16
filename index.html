@@ -234,8 +234,22 @@
       <!-- M2p §3.3: a short message on the map, e.g. "Pattern learned: …". -->
       <div id="map-message" hidden></div>
 
+      <!-- M5a §3: the dialogue box, over everything but the debug panel; built by js/dialogueBox.js.
+           While it's open it takes every click and key. -->
+      <div id="dialogue" hidden>
+        <div class="dialogue-side" data-side="left"><canvas></canvas><div class="dialogue-name"></div></div>
+        <div class="dialogue-side" data-side="right"><canvas></canvas><div class="dialogue-name"></div></div>
+        <div id="dialogue-box"><div id="dialogue-text"></div><div id="dialogue-continue" hidden>▸</div></div>
+        <button id="btn-dialogue-skip" type="button">Skip <span class="key-hint">(Esc)</span></button>
+      </div>
+
       <div id="debug-box" hidden>
         <pre id="debug-panel"></pre>
+        <!-- M5a §5: dialogue debug: forget the seen lists, or play any dialogue now. -->
+        <div id="debug-dialogue-buttons">
+          <button id="btn-forget-dialogues" type="button">Forget seen dialogues</button>
+          <select id="debug-play-dialogue"><option value="">Play dialogue…</option></select>
+        </div>
         <!-- M2p §6: pattern debug buttons; Forget asks for confirmation here, not in a browser dialog. -->
         <div id="debug-pattern-buttons">
           <button id="btn-learn-patterns" type="button">Learn all patterns</button>

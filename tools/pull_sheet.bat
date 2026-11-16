@@ -1,5 +1,5 @@
 @echo off
-rem Double-click to pull the published Google Sheet into data\*.csv (M2j section 5).
+rem Double-click to pull the published Google Sheets into data\*.csv and data\narrative\*.csv (M2j section 5, M5a section 1.1).
 cd /d "%~dp0"
 py -3 --version >nul 2>nul
 if %errorlevel%==0 (

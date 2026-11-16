@@ -1,0 +1,2 @@
+id,enabled,event,regionOrder,row,level,item,occurrence,dialogue,left,right,repeat,priority,notes
+introAwakening,TRUE,prepStart,1,1,,,,introAwakening,druid,diaena,onceEver,0,"The first Prep of the first region, row 1"

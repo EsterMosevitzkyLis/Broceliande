@@ -54,5 +54,8 @@ Then open http://localhost:8000 in Chrome.
 
 Balancing data (stats, costs, levels, waves, candidates, palettes, sounds…) lives in `data/*.csv`, one file per tab of the Google Sheet, loaded at start-up; data problems show in the page. Code-side settings (lane geometry, decoration, UI and drawing sizes, debug) live in `js/config.js`. See `docs/M2J_DATA_SHEET_ADDENDUM.md`.
 
-- **Live data:** open `http://localhost:8000/?live` to load every tab straight from the published Google Sheet (`data/sheet_sources.json`); a LIVE DATA badge shows. Google can take a few minutes to refresh after an edit.
-- **Pull the sheet into `data/`:** double-click `tools/pull_sheet.bat` (or run `python tools/pull_sheet.py`), then commit the CSVs. If any tab fails, nothing is written.
+Dialogues (characters, lines and the triggers that start them) live in a second Google Sheet, **Broceliande Narrative**, pulled into `data/narrative/*.csv`; portrait images, when there are any, go in `data/narrative/portraits/`. See `docs/M5A_DIALOGUE_ADDENDUM.md`.
+
+- **Live data:** open `http://localhost:8000/?live` to load every tab straight from the published Google Sheets (`data/sheet_sources.json`: the main sheet, and under `narrative` the Narrative sheet); a LIVE DATA badge shows. Until the Narrative sheet's publishedId and gids are filled in, the dialogues come from `data/narrative/*.csv`, with a warning. Google can take a few minutes to refresh after an edit.
+- **Pull the sheets into `data/`:** double-click `tools/pull_sheet.bat` (or run `python tools/pull_sheet.py`), then commit the CSVs. It pulls both sheets (a sheet whose IDs are still placeholders is skipped). If any tab fails, nothing is written.
+- **Dialogue debug:** the debug panel (D) shows the open dialogue and its line, and the triggers the last dialogue event matched; under it, **Forget seen dialogues** and **Play dialogue…**.

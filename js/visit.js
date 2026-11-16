@@ -157,6 +157,7 @@ export function makeDeal(game) {
   else v.qty = clampQty(v.qty, currentDeal(game).max);
   syncResources(game);
   events.emit(deal.side === 'buy' ? 'shopBuy' : 'shopSell', { pattern: deal.kind === 'pattern' });
+  if (deal.kind === 'item' && deal.side === 'buy') events.emit('itemAcquired', { run: game.run, itemId: deal.id }); // M5a §2.1
   return true;
 }
 

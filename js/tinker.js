@@ -89,6 +89,7 @@ export function craft(game) {
   v.appeared = false;
   syncResources(game);
   events.emit('craftHammer', {});
+  events.emit('itemAcquired', { run: game.run, itemId: id }); // M5a §2.1
   return true;
 }
 

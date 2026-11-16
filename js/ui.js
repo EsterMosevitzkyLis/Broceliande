@@ -32,6 +32,7 @@ import { knownPatterns, newPatterns, totalPatterns } from './patterns.js';
 import { resourcePrice, sellBundle, shopSummary, cheapResources } from './trade.js';
 import { currentDeal } from './visit.js';
 import { craftableCount, craftBlocker } from './tinker.js';
+import { dialogueChoices, dialogueDebugLines } from './dialogue.js';
 
 const RESOURCE_LABELS = Object.fromEntries(Object.entries(C.RESOURCES).map(([k, r]) => [k, r.name])); // full names (data/resources.csv)
 // "Pits 3  Reeds 0  Feathers 2  Boughs 1": every resource, in display order (debug panel).
@@ -405,7 +406,7 @@ export function createUI(callbacks) {
         ? 'Bough Double — click a highlighted slot or turret · Esc / right-click to cancel'
         : `Placing ${SUMMONS[game.action.target].name} — click the battlefield to place · Esc / right-click to cancel`);
     }
-    updateEndOverlay(el, game);
+    updateEndOverlay(el, game, view);
     updateCrossing(el, game);
     updateLevelName(el, game);
     updateBoss(el, game);
@@ -435,6 +436,22 @@ export function createUI(callbacks) {
   const closeConfirm = () => { confirmForget.hidden = true; forgetBtn.hidden = false; };
   document.getElementById('btn-forget-yes').addEventListener('click', () => { callbacks.onForgetAllPatterns(); closeConfirm(); });
   document.getElementById('btn-forget-no').addEventListener('click', closeConfirm);
+
+  // M5a §5: dialogue debug: forget the seen lists; play any dialogue (with its trigger's characters).
+  document.getElementById('btn-forget-dialogues').addEventListener('click', (e) => { e.currentTarget.blur(); callbacks.onForgetDialogues(); });
+  const playSelect = document.getElementById('debug-play-dialogue');
+  for (const { id, label } of dialogueChoices()) {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    playSelect.append(option);
+  }
+  playSelect.addEventListener('change', () => {
+    const id = playSelect.value;
+    playSelect.value = '';
+    playSelect.blur(); // so the game's keys work again
+    if (id) callbacks.onPlayDialogue(id);
+  });
 
   return { update, resourceTargets };
 }
@@ -1214,8 +1231,9 @@ function updateCrossing(el, game) {
   setText(el.cross, `Enter ${next.name}`);
 }
 
-function updateEndOverlay(el, game) {
-  const ended = game.state === GameState.VICTORY || game.state === GameState.DEFEAT;
+function updateEndOverlay(el, game, view) {
+  // M5a §2.1: a battleWon / death dialogue plays first; the overlay shows when it closes.
+  const ended = (game.state === GameState.VICTORY || game.state === GameState.DEFEAT) && !view.dialogueOpen;
   el.endOverlay.hidden = !ended;
   if (!ended) return;
   setText(el.endTitle, game.state);
@@ -1366,16 +1384,17 @@ function tinkerDebugLines(game) {
 function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
   el.debugBox.hidden = !view.debug;
   if (!view.debug) return;
+  const dialogueLines = dialogueDebugLines(game.run); // M5a §5
   if (game.state === GameState.MAP || game.state === GameState.CROSSING) {
-    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), `Level:  ${game.levelId} (last scene)`].join('\n'));
+    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), `Level:  ${game.levelId} (last scene)`, ...dialogueLines].join('\n'));
     return;
   }
   if (game.state === GameState.TRADER) {
-    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...traderDebugLines(game)].join('\n'));
+    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...traderDebugLines(game), ...dialogueLines].join('\n'));
     return;
   }
   if (game.state === GameState.TINKER) {
-    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...tinkerDebugLines(game)].join('\n'));
+    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...tinkerDebugLines(game), ...dialogueLines].join('\n'));
     return;
   }
   const speed = clock.paused ? `PAUSED (×${clock.speed})` : `×${clock.speed}`;
@@ -1404,6 +1423,7 @@ function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
     `Seed:   ${game.seed}`,
     `Mode:   ${game.prepMode}  (M to toggle + restart)`,
     `State:  ${game.state}`,
+    ...dialogueLines,
     `Action: ${action}`,
     ...stepLines,
     `Speed:  ${speed}`,

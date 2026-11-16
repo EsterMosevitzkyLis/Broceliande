@@ -34,6 +34,7 @@ export const GLOBAL_TYPES = {
   GOLD_PER_VALUE: 'number', RESOURCE_SELL_FRACTION: 'number', ITEM_SELL_FRACTION: 'number', SHOP_PRICE_JITTER: 'number', // M3e §4
   ITEM_PRICE_R0: 'number', ITEM_PRICE_R1: 'number', ITEM_PRICE_R2: 'number', ITEM_PRICE_R3: 'number',
   PATTERN_PRICE_R0: 'number', PATTERN_PRICE_R1: 'number', PATTERN_PRICE_R2: 'number', PATTERN_PRICE_R3: 'number',
+  DIALOGUE_TYPE_SPEED: 'number', DIALOGUE_HOP_HEIGHT: 'number', DIALOGUE_HOP_TIME: 'number', DIALOGUE_DIM_BRIGHTNESS: 'number', // M5a §3.6
 };
 
 // Druid stats: key → type. Every key must have a row.
@@ -158,3 +159,18 @@ export const TABS = {
 
 // Exported from code for the sheet's lane dropdown (M2j §3.2); never loaded by the game.
 export const REFERENCE_TABS = ['lanes'];
+
+// M5a §1: the Broceliande Narrative sheet's tabs, loaded from data/narrative/<tab>.csv (or, with
+// ?live, that sheet). Checked by js/data/validateNarrative.js.
+export const NARRATIVE_TABS = {
+  characters: { columns: { id: { type: 'id', required: true }, name: { type: 'text', required: true }, portrait: { type: 'text' } } },
+  dialogues: { columns: { dialogue: { type: 'id', required: true }, line: { type: 'int', required: true }, speaker: { type: 'id', required: true }, text: { type: 'text', required: true } } },
+  triggers: {
+    columns: {
+      id: { type: 'id', required: true }, enabled: { type: 'bool', required: true }, event: { type: 'id', required: true },
+      regionOrder: { type: 'int' }, row: { type: 'int' }, level: { type: 'id' }, item: { type: 'id' }, occurrence: { type: 'int' },
+      dialogue: { type: 'id', required: true }, left: { type: 'id', required: true }, right: { type: 'id', required: true },
+      repeat: { type: 'id' }, priority: { type: 'number' },
+    },
+  },
+};

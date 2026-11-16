@@ -35,8 +35,8 @@ function convert(type, raw) {
 }
 
 // Column spec for a header in a tab, or null if unknown.
-function columnSpec(tab, name) {
-  const def = TABS[tab];
+function columnSpec(tabs, tab, name) {
+  const def = tabs[tab];
   if (def.columns[name]) return def.columns[name];
   if (def.pattern && def.pattern[0].test(name)) {
     const spec = def.pattern[1];
@@ -47,7 +47,7 @@ function columnSpec(tab, name) {
 }
 
 // Parses one tab's CSV text into typed rows.
-export function readTab(tab, text, problems) {
+export function readTab(tab, text, problems, tabs = TABS) {
   const records = parseCsv(text);
   const rows = [];
   if (records.length === 0) {
@@ -57,14 +57,14 @@ export function readTab(tab, text, problems) {
   const header = records[0].map((h) => h.trim());
   const columns = header.map((name) => {
     if (name === '' || name === 'notes' || name.startsWith('_')) return null;
-    const spec = columnSpec(tab, name);
+    const spec = columnSpec(tabs, tab, name);
     if (!spec) {
       problems.warnings.push({ tab, row: 1, column: name, message: 'unknown column (ignored)' });
       return null;
     }
     return { name, spec };
   });
-  for (const [name, spec] of Object.entries(TABS[tab].columns)) {
+  for (const [name, spec] of Object.entries(tabs[tab].columns)) {
     if (spec.required && !header.includes(name)) problems.errors.push({ tab, row: 1, column: name, message: 'required column is missing' });
   }
   records.slice(1).forEach((record, i) => {
@@ -109,10 +109,11 @@ export function readTab(tab, text, problems) {
 
 // Fetches and reads every tab. urlFor(tab) gives each tab's URL. Returns { tables, problems }.
 // urlFor(tab) gives each tab's address; failHint is added to a tab's "could not load" error.
-export async function loadTables(urlFor, failHint = '') {
+// tabs: the tab definitions (schema.js TABS, or NARRATIVE_TABS for the Narrative sheet, M5a §1).
+export async function loadTables(urlFor, failHint = '', tabs = TABS) {
   const problems = { errors: [], warnings: [] };
   const tables = {};
-  await Promise.all(Object.keys(TABS).map(async (tab) => {
+  await Promise.all(Object.keys(tabs).map(async (tab) => {
     let text;
     try {
       const res = await fetch(urlFor(tab), { cache: 'no-store' });
@@ -125,7 +126,7 @@ export async function loadTables(urlFor, failHint = '') {
       tables[tab] = [];
       return;
     }
-    tables[tab] = readTab(tab, text, problems);
+    tables[tab] = readTab(tab, text, problems, tabs);
   }));
   return { tables, problems };
 }

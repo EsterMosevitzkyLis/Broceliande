@@ -1,8 +1,11 @@
-"""Pull the game data from the published Google Sheet into data/*.csv (M2j §5).
+"""Pull the game data from the published Google Sheets into data/ (M2j sec. 5, M5a sec. 1.1).
 
-Reads data/sheet_sources.json, downloads every tab's published CSV and writes it to
-data/<tab>.csv. Python 3, standard library only. Touches no other files. If any tab fails,
-nothing is written, so data/ never ends up half old and half new.
+Reads data/sheet_sources.json and downloads every tab's published CSV:
+  - the main sheet (publishedId, tabs) into data/<tab>.csv;
+  - the Broceliande Narrative sheet (narrative.publishedId, narrative.tabs) into data/narrative/<tab>.csv.
+Python 3, standard library only. Touches no other files. If any tab fails, nothing is written, so
+data/ never ends up half old and half new. A sheet whose publishedId or gids are still placeholders
+is skipped with a note (the other one is still pulled).
 
 Run from anywhere:  python tools/pull_sheet.py   (or double-click tools/pull_sheet.bat)
 Google can take a few minutes to refresh the published data after an edit.
@@ -37,40 +40,54 @@ def data_rows(text):
     return sum(1 for r in rows if any(cell.strip() for cell in r))
 
 
+def is_placeholder(published_id, tabs):
+    # Not set up yet: no published ID, the placeholder text, or a tab without a gid.
+    return (not published_id or published_id.startswith("PASTE")
+            or any(not isinstance(gid, int) for gid in tabs.values()))
+
+
 def main():
     try:
         sources = json.loads((DATA / "sheet_sources.json").read_text(encoding="utf-8"))
-        published_id = sources["publishedId"]
-        tabs = sources["tabs"]
+        sheets = [("main sheet", sources["publishedId"], sources["tabs"], DATA)]
+        narrative = sources.get("narrative")
+        if narrative:
+            sheets.append(("Narrative sheet", narrative["publishedId"], narrative["tabs"], DATA / "narrative"))
     except (OSError, ValueError, KeyError) as err:
         print(f"Could not read data/sheet_sources.json: {err}")
         return 1
 
-    pulled, failed = {}, []
-    for tab, gid in tabs.items():
-        name = f"{tab}.csv"
-        if tab in RETIRED:
-            print(f"{name:<16} -  retired, skipped (remove it from data/sheet_sources.json)")
+    pulled, failed = [], []
+    for label, published_id, tabs, folder in sheets:
+        print(f"-- {label} --")
+        if is_placeholder(published_id, tabs):
+            print(f"skipped: its publishedId or gids in data/sheet_sources.json are not filled in yet")
+            print()
             continue
-        try:
-            text = download(URL.format(published_id=published_id, gid=gid))
-        except Exception as err:  # network, HTTP or content error: report it and carry on
-            print(f"{name:<16} ✗  {err}")
-            failed.append(tab)
-            continue
-        pulled[tab] = text
-        print(f"{name:<16} ✓  {data_rows(text)} rows")
+        for tab, gid in tabs.items():
+            name = f"{tab}.csv"
+            if tab in RETIRED:
+                print(f"{name:<16} -  retired, skipped (remove it from data/sheet_sources.json)")
+                continue
+            try:
+                text = download(URL.format(published_id=published_id, gid=gid))
+            except Exception as err:  # network, HTTP or content error: report it and carry on
+                print(f"{name:<16} ✗  {err}")
+                failed.append(f"{label} {tab}")
+                continue
+            pulled.append((folder / name, text))
+            print(f"{name:<16} ✓  {data_rows(text)} rows")
+        print()
 
     if failed:
-        print()
         print(f"Failed: {', '.join(failed)}. Nothing was written.")
         print("Check that the sheet is published (File > Share > Publish to web) and that the")
         print("tab gids in data/sheet_sources.json match the sheet's tabs.")
         return 1
 
-    for tab, text in pulled.items():
-        (DATA / f"{tab}.csv").write_text(text, encoding="utf-8", newline="\n")
-    print()
+    for path, text in pulled:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="\n")
     print(f"Wrote {len(pulled)} tabs to data/. Commit them when you're happy.")
     return 0
 

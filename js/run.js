@@ -13,7 +13,7 @@ import { generateMap, mapSeedFor, nodeRadius } from './mapGen.js';
 export { nodeRadius };
 
 // run: { seed, regionId, regionVisits, deaths, map, currentNodeId, completedNodeIds, inventory, druidHp,
-//        items, equipped, seenItems, traders, traderProfilesUsed }
+//        items, equipped, seenItems, traders, traderProfilesUsed, dialoguesSeen }
 // regionId (M3a): the region the run is in; regionVisits: how many times it has entered one (each
 // entry gets a new map); deaths: deaths so far (each death's losses are rolled from it).
 // map (M2g): the current region's generated map (mapGen.js), nodes with positions and `next` roads.
@@ -40,6 +40,7 @@ export function createRun() {
     seenItems: [],
     traders: {},
     traderProfilesUsed: [],
+    dialoguesSeen: [], // M5a §2.2: oncePerRun dialogue triggers already played this run
   };
   enterRegion(run, C.REGION_ORDER[0]);
   return run;

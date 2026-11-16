@@ -806,6 +806,113 @@ html, body {
   cursor: pointer;
 }
 
+/* M5a §5: dialogue debug buttons under the panel. */
+#debug-dialogue-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  pointer-events: auto;
+}
+#debug-dialogue-buttons button,
+#debug-dialogue-buttons select {
+  font: 13px 'Consolas', monospace;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+/* ---------- Dialogue box (M5a §3) ---------- */
+/* --dialogue-dim and --dialogue-hop-time are set from the globals tab by js/dialogueBox.js. */
+#dialogue {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.dialogue-side {
+  position: absolute;
+  bottom: 22px;
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.dialogue-side[data-side="left"] { left: 36px; }
+.dialogue-side[data-side="right"] { right: 36px; }
+.dialogue-side canvas {
+  width: 380px;
+  height: 480px;
+  transition: filter var(--dialogue-hop-time, 0.22s) ease;
+}
+.dialogue-side.listening canvas {
+  filter: brightness(var(--dialogue-dim, 0.45)) saturate(0.6);
+}
+.dialogue-name {
+  margin-top: 6px;
+  min-width: 170px;
+  padding: 6px 22px;
+  text-align: center;
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  color: #e6f2ea;
+  background: #142624;
+  border: 2px solid #3f6a5e;
+  border-radius: 8px;
+  transition: opacity var(--dialogue-hop-time, 0.22s) ease;
+}
+.dialogue-side.listening .dialogue-name { opacity: 0.55; }
+/* The storybook text box, as the crossing dialog (M3a §3). */
+#dialogue-box {
+  position: absolute;
+  left: 450px;
+  right: 450px;
+  bottom: 60px;
+  min-height: 190px;
+  box-sizing: border-box;
+  padding: 34px 48px 40px;
+  background: #142624;
+  border: 3px solid #3f6a5e;
+  border-radius: 10px;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+}
+#dialogue-text {
+  font-size: 32px;
+  line-height: 1.5;
+  color: #dbe8df;
+}
+.dialogue-untyped { visibility: hidden; }
+#dialogue-continue {
+  position: absolute;
+  right: 22px;
+  bottom: 10px;
+  font-size: 30px;
+  color: #9fd0b8;
+  animation: dialogue-pulse 1.1s ease-in-out infinite;
+}
+@keyframes dialogue-pulse {
+  0%, 100% { opacity: 0.35; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #dialogue-continue { animation: none; }
+}
+#btn-dialogue-skip {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  font-size: 20px;
+  padding: 6px 18px;
+  background: #142624;
+  color: #cfe3d4;
+  border: 2px solid #3f6a5e;
+  border-radius: 6px;
+}
+#btn-dialogue-skip:hover { background: #1f3a35; }
+#btn-dialogue-skip .key-hint { opacity: 0.7; }
+
 /* M2p §3.3: the map's short message ("Pattern learned: …"), centred over the map. */
 #map-message {
   position: absolute;

@@ -99,3 +99,8 @@ BOG_KING_SINK_TIME,3,"TUNING - s he stays sunk in the bog at half HP, then he re
 MIRE_STEP_MULT,2,TUNING - each px of travel inside mire ground costs this many px of steps (M3c sec. 3.2)
 ITEM_BURN_TICK,1.2,"TUNING - s between ticks of a burn set by an item (Peatsmoke Crown, Ashen Censer, M3c sec. 5)"
 ITEM_BURN_DAMAGE,1,TUNING - damage per tick of that burn
+# Dialogue,,
+DIALOGUE_TYPE_SPEED,45,TUNING - characters per second of the dialogue box typewriter text (M5a sec. 3.3)
+DIALOGUE_HOP_HEIGHT,10,TUNING - px the speaking portrait hops up on each new line (M5a sec. 3.2)
+DIALOGUE_HOP_TIME,0.22,"TUNING - s of that hop, up and back (also the speaker light-up and listener dim)"
+DIALOGUE_DIM_BRIGHTNESS,0.45,TUNING - brightness of the listening portrait (1 = fully lit)

@@ -237,6 +237,7 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.tolls = []; // M2f §4.10: this wave's bell tolls still to ring (s, wave time)
   game.enemyCounts = emptyEnemyCounts();
   setState(game, GameState.PREP);
+  events.emit('prepStart', { run: game.run, levelId: game.levelId }); // M5a §2.1: its dialogue shows before anything else
 }
 
 // Prep timer reaching 0, Start Combat / Start Battle button, or debug N.
@@ -284,13 +285,17 @@ function finishEnding(game) {
     // M2e §3.3: a found item joins the run only now, on Victory. M2p §3.3: a found pattern is
     // learned now (permanently), and named on the map afterwards.
     const h = game.hiddenFind;
-    if (h?.found && h.kind === 'item') addItem(game.run, h.itemId);
+    const itemJoined = h?.found && h.kind === 'item' && addItem(game.run, h.itemId);
     if (h?.found && h.kind === 'pattern' && learnPattern(h.itemId)) {
       game.mapMessage = { text: `Pattern learned: ${C.ITEMS[h.itemId].name}`, age: 0 };
     }
     recordVictory(game.run, game.resources, game.druidHp);
     if (isRunComplete(game.run)) events.emit('runComplete', {});
+    // M5a §2.1: dialogue events; battleWon's shows before the Victory overlay, the item's on the map.
+    events.emit('battleWon', { run: game.run, levelId: game.levelId });
+    if (itemJoined) events.emit('itemAcquired', { run: game.run, levelId: game.levelId, itemId: h.itemId });
   }
+  if (game.state === GameState.DEFEAT) events.emit('death', { run: game.run, levelId: game.levelId }); // M5a §2.1: before the Defeat overlay
   // M3a §4: a death where deathLossPct < 1 takes its share now (listed on the Defeat overlay); the
   // run goes on from the region's start (Return) unless the player abandons it.
   game.deathLoss = null;
@@ -312,6 +317,12 @@ export function newRun(game) {
   game.deathLoss = null;
   showRunOnHud(game);
   setState(game, GameState.MAP);
+  emitRegionEntered(game);
+}
+
+// M5a §2.1: a region's map opens at its start (a new run, a crossing, a return after a death).
+function emitRegionEntered(game) {
+  events.emit('regionEntered', { run: game.run, regionId: game.run.regionId });
 }
 
 // On the map the HUD shows the run (M3a: after a crossing or a return too): its carried resources and
@@ -362,7 +373,9 @@ export function continueRun(game) {
 export function crossRegion(game) {
   if (game.state !== GameState.CROSSING) return false;
   arriveInNextRegion(game);
-  return setState(game, GameState.MAP);
+  if (!setState(game, GameState.MAP)) return false;
+  emitRegionEntered(game);
+  return true;
 }
 
 function arriveInNextRegion(game) {
@@ -380,7 +393,9 @@ export function returnToRegion(game) {
   enterRegion(game.run, game.run.regionId);
   game.encounterStart = null;
   showRunOnHud(game);
-  return setState(game, GameState.MAP);
+  if (!setState(game, GameState.MAP)) return false;
+  emitRegionEntered(game);
+  return true;
 }
 
 // Debug Shift+H on the map (M3a §7): straight to the next region's map (Hag's Causeway from the
@@ -388,6 +403,7 @@ export function returnToRegion(game) {
 export function debugNextRegion(game) {
   if (game.state !== GameState.MAP || !nextRegionId(game.run)) return false;
   arriveInNextRegion(game);
+  emitRegionEntered(game);
   return true;
 }
 

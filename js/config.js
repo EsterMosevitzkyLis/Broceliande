@@ -443,6 +443,12 @@ export const ITEM_FOUND_TIME = 2.5;       // s the "You found a …!" message st
 export const MAP_MESSAGE_TIME = 4;        // s the map's "Pattern learned: …" message stays, fading over its last third (M2p §3.3)
 export const ITEM_FLOATER_SIZE = 40;      // px, the slot-type silhouette floater rising from the spot
 
+// Dialogues (M5a §3): the box's sizes (its timings are in the globals tab). Visual only.
+export const DIALOGUE_PORTRAIT_W = 380;     // px, each portrait's frame (§3.1)
+export const DIALOGUE_PORTRAIT_H = 480;
+export const DIALOGUE_SEEN_KEY = 'broceliande.dialoguesSeen.v1';   // localStorage: onceEver trigger IDs already played (§2.2)
+export const DIALOGUE_COUNTS_KEY = 'broceliande.dialogueCounts.v1'; // localStorage: how often each dialogue event has fired, all runs (occurrence)
+
 // Equipment area on the map (M2e §4, as revised): about the left half of the screen, below the HUD
 // strip, drawn straight over the map's ground (no panel background). Panel px: x from the stage's
 // left edge, y from the HUD strip's bottom. The portrait's centre is at about mid-screen height.
@@ -517,6 +523,7 @@ export let MASTER_VOLUME, SOUND_PITCH_JITTER;
 export let TRADE_TAG_CHEAP, TRADE_TAG_PRICEY, GOLD_PER_VALUE, RESOURCE_SELL_FRACTION, ITEM_SELL_FRACTION, SHOP_PRICE_JITTER;
 export let ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3;
 export let ITEM_PRICE, PATTERN_PRICE; // M3e §4: rarity → default price (from the globals above)
+export let DIALOGUE_TYPE_SPEED, DIALOGUE_HOP_HEIGHT, DIALOGUE_HOP_TIME, DIALOGUE_DIM_BRIGHTNESS; // M5a §3.6
 
 // druid tab
 export let DRUID_HP, DRUID_RADIUS, DRUID_MELEE_RADIUS, DRUID_MELEE_SLOTS, DRUID_MELEE_DAMAGE, DRUID_MELEE_INTERVAL,
@@ -605,6 +612,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     MASTER_VOLUME, SOUND_PITCH_JITTER,
     TRADE_TAG_CHEAP, TRADE_TAG_PRICEY, GOLD_PER_VALUE, RESOURCE_SELL_FRACTION, ITEM_SELL_FRACTION, SHOP_PRICE_JITTER,
     ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3,
+    DIALOGUE_TYPE_SPEED, DIALOGUE_HOP_HEIGHT, DIALOGUE_HOP_TIME, DIALOGUE_DIM_BRIGHTNESS,
   } = keyed(t.globals));
   ITEM_PRICE = [ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3];
   PATTERN_PRICE = [PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3];

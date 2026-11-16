@@ -74,3 +74,5 @@ bogKingSinks,0.8,1,1,1,TRUE
 bogKingSurfaces,0.8,1,1,1,TRUE
 peatChime,0.6,1,0.05,4,TRUE
 goldClink,0.5,1,0.05,4,TRUE
+dialogueOpen,0.5,1,0.3,1,TRUE
+dialogueAdvance,0.3,1,0.05,2,TRUE

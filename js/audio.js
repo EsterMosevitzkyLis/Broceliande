@@ -138,6 +138,7 @@ function subscribe() {
   });
   events.on('summonPlaced', (e) => play(e.kind === 'slowWisp' ? 'wispSummoned' : 'summon', e));
   events.on('wispBursts', (e) => play('wispBursts', e)); // M2k §3.5
+  for (const name of ['dialogueOpen', 'dialogueAdvance']) events.on(name, (e) => play(name, e)); // M5a §3.5
 }
 
 // An enemy's sound from a per-type table (M2l §2.3): a variant (a Grim) plays its base type's,
@@ -939,5 +940,18 @@ const RECIPES = {
     });
     noise(t, out, { filter: 'highpass', freq: 6000, dur: 0.3, attack: 0.05, gain: 0.12 });
     return 0.47;
+  },
+
+  // A dialogue opens (M5a §3.5): a soft, low chime, a warm bell over a gently swelling low fifth.
+  dialogueOpen(t, out, p) {
+    tone(t, out, { type: 'triangle', freq: 196 * p, dur: 1.3, attack: 0.12, gain: 0.35 });
+    tone(t, out, { freq: 294 * p, dur: 1.1, attack: 0.15, gain: 0.2 });
+    return bell(t, out, 392 * p, 0.02, 1.4, 0.45);
+  },
+
+  // The next dialogue line (M5a §3.5): a quiet page-turn tick, a short papery swish and a soft tap.
+  dialogueAdvance(t, out, p) {
+    noise(t, out, { freq: 3200 * p, to: 1400 * p, q: 1.2, dur: 0.07, attack: 0.01, gain: 0.5 });
+    return tone(t, out, { type: 'triangle', freq: 1100 * p, to: 900 * p, dur: 0.03, attack: 0.002, gain: 0.25, delay: 0.04 });
   },
 };

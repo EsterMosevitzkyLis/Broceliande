@@ -25,5 +25,13 @@
     "traderProfiles": 665610694,
     "traderTables": 1240628912,
     "traderStock": 2001937262
+  },
+  "narrative": {
+    "publishedId": "PASTE_THE_NARRATIVE_SHEET_PUBLISHED_ID_HERE",
+    "tabs": {
+      "characters": null,
+      "dialogues": null,
+      "triggers": null
+    }
   }
 }

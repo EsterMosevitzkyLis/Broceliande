@@ -25,6 +25,8 @@ import { createTinkerScreen } from './tinkerScreen.js';
 import { openDebugTinker, selectTab, selectRecipe, craft, undoCraft, leaveTinker } from './tinker.js';
 import { learnPattern, randomUnknownPattern, knownPatterns, learnAllPatterns, forgetAllPatterns } from './patterns.js';
 import { openDebugTrader, selectGoods, stepQty, maxQty, makeDeal, undoVisitTrade, leaveVisit } from './visit.js';
+import { initDialogues, takeNextDialogue, isDialogueOpen, forgetSeenDialogues, playDialogueNow } from './dialogue.js';
+import { createDialogueBox } from './dialogueBox.js';
 
 const stage = document.getElementById('stage');
 const canvas = document.getElementById('game-canvas');
@@ -114,6 +116,14 @@ function switchLevel(step) {
 }
 
 initAudio(); // M1g §3: subscribes to gameplay events; starts on the first click or key press
+initDialogues(); // M5a §2: subscribes to the dialogue events, before the first run starts (regionEntered)
+const dialogueBox = createDialogueBox(); // M5a §3: after initAudio, so the first key still unlocks audio
+
+// M5a §2: opens the next queued dialogue if one can show now (none while one is open).
+function openNextDialogue() {
+  const entry = takeNextDialogue(game);
+  if (entry) dialogueBox.open(entry);
+}
 
 const renderer = createRenderer(canvas);
 const ui = createUI({
@@ -128,6 +138,8 @@ const ui = createUI({
   onSetSpeed: setSpeed,                     // M2k §1.1
   onLearnAllPatterns: learnAllPatterns,     // M2p §6
   onForgetAllPatterns: forgetAllPatterns,
+  onForgetDialogues: () => forgetSeenDialogues(game.run), // M5a §5
+  onPlayDialogue: playDialogueNow,
 });
 checkLevelNameLabel(LEVEL_IDS.map(sceneFor)); // M2a §6: the label must not cover a candidate in any level
 checkBossBar(LEVEL_IDS.map(sceneFor));        // M2c §2.7: nor may the boss HP bar
@@ -355,19 +367,29 @@ function frame(now) {
 
   if (game.state !== GameState.COMBAT) resetChosenSpeed(); // every battle's Combat starts at ×1 (M2m §1)
   clock.speed = game.state === GameState.COMBAT ? chosenSpeed() : 1; // M2k §1.2
-  if (!clock.paused) accumulator += realDt * clock.speed;
+  // M5a §3.1: a dialogue pauses the game underneath. One that became due since the last frame (a
+  // map node's prepStart, an item bought) opens before any simulation runs.
+  openNextDialogue();
+  if (!clock.paused && !isDialogueOpen()) accumulator += realDt * clock.speed;
 
   let steps = 0;
-  while (accumulator >= C.SIM_STEP && steps < C.MAX_STEPS_PER_FRAME) {
+  while (accumulator >= C.SIM_STEP && steps < C.MAX_STEPS_PER_FRAME && !isDialogueOpen()) {
     updateGame(game, C.SIM_STEP);
     accumulator -= C.SIM_STEP;
     steps++;
+    openNextDialogue(); // e.g. battleWon / death, as the end delay ends: before the overlay is drawn
   }
   if (steps === C.MAX_STEPS_PER_FRAME) accumulator = 0; // drop backlog rather than spiral
+  dialogueBox.update(now);
+  view.dialogueOpen = isDialogueOpen(); // the UI holds back the Victory / Defeat overlay meanwhile
 
   // Hover is re-picked every frame so it stays correct when objects change under a still cursor.
   view.pointer = input.mouse.inside ? { x: input.mouse.x, y: input.mouse.y } : null;
-  if (isPlaceScene(game.state) || game.state === GameState.CROSSING) {
+  if (view.dialogueOpen) {
+    view.hover = null; // M5a §3.3: nothing under the dialogue reacts to the pointer
+    view.mapHover = null;
+    canvas.style.cursor = 'default';
+  } else if (isPlaceScene(game.state) || game.state === GameState.CROSSING) {
     view.hover = null; // M2n §4, M2p §4: the scene's controls are HTML (M3a §3: and the crossing dialog's)
     view.mapHover = null;
     canvas.style.cursor = 'default';
