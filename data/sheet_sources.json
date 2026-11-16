@@ -27,11 +27,11 @@
     "traderStock": 2001937262
   },
   "narrative": {
-    "publishedId": "PASTE_THE_NARRATIVE_SHEET_PUBLISHED_ID_HERE",
+    "publishedId": "2PACX-1vQccw2Zo4aRoF1BCfqwaDxWlXuP7j9LWImnt8W_dZ_d-3JFBmoKLf9Rm-rulbyrpDuyUYnfiPLKFE2E",
     "tabs": {
-      "characters": null,
-      "dialogues": null,
-      "triggers": null
+      "characters": 0,
+      "dialogues": 981630606,
+      "triggers": 1391797035
     }
   }
 }
