@@ -408,7 +408,7 @@ export function createUI(callbacks) {
     }
     updateEndOverlay(el, game, view);
     updateCrossing(el, game);
-    updateLevelName(el, game);
+    updateLevelName(el, game, view);
     updateBoss(el, game);
     updateWavePreview(el, game);
     updateFoundItem(el, game);
@@ -467,8 +467,9 @@ function updateMapMessage(el, game) {
 
 // The current Wilds' name, bottom-left (M2a §6): during Prep and Combat, and still through
 // ENDING and under the Victory / Defeat overlay.
-function updateLevelName(el, game) {
-  const shown = ![GameState.START, GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.CROSSING].includes(game.state); // not in a place scene (M2n §4.2)
+// M5a §3.1: hidden under a dialogue, where it would show beside the left name plate.
+function updateLevelName(el, game, view) {
+  const shown = !view.dialogueOpen && ![GameState.START, GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.CROSSING].includes(game.state); // not in a place scene (M2n §4.2)
   el.levelName.hidden = !shown;
   if (shown) setText(el.levelName, game.scene.level.name);
 }

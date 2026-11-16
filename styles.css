@@ -861,9 +861,10 @@ html, body {
   background: #142624;
   border: 2px solid #3f6a5e;
   border-radius: 8px;
-  transition: opacity var(--dialogue-hop-time, 0.22s) ease;
+  transition: color var(--dialogue-hop-time, 0.22s) ease, border-color var(--dialogue-hop-time, 0.22s) ease;
 }
-.dialogue-side.listening .dialogue-name { opacity: 0.55; }
+/* Dimmed by colour, not opacity, so the plate stays opaque over the game. */
+.dialogue-side.listening .dialogue-name { color: #7f8c85; border-color: #2c4a42; }
 /* The storybook text box, as the crossing dialog (M3a §3). */
 #dialogue-box {
   position: absolute;
@@ -899,10 +900,11 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   #dialogue-continue { animation: none; }
 }
+/* Top left, just below the HUD strip: clear of the HUD's buttons and of the debug panel (top right). */
 #btn-dialogue-skip {
   position: absolute;
-  top: 22px;
-  right: 28px;
+  top: 100px;
+  left: 28px;
   font-size: 20px;
   padding: 6px 18px;
   background: #142624;
