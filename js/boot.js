@@ -36,6 +36,16 @@ document.querySelector('#data-warnings button').addEventListener('click', () => 
   document.getElementById('data-warnings').hidden = true;
 });
 
+// The warnings panel shows only with the debug overlay on (D, main.js sets body.debug-on) or with
+// ?debug in the URL (styles.css); warnings always go to the console. Errors always show.
+if (new URLSearchParams(location.search).has('debug')) document.body.classList.add('debug-param');
+
+// Data warnings found before the game starts (the start-up checks' own warnings are console
+// output already, captured below).
+function logWarnings(warnings) {
+  for (const p of warnings) if (p.tab !== 'start-up check') console.warn(`Data warning: ${problemLine(p)}`);
+}
+
 // Console errors and warnings from main.js's start-up checks, as problems.
 function captureConsole(problems) {
   const original = { error: console.error, warn: console.warn };
@@ -108,6 +118,7 @@ if (problems.errors.length === 0) {
   }
 }
 
+logWarnings(problems.warnings);
 if (problems.errors.length > 0) {
   loadingScreen.hidden = true;
   showProblems('error', problems.errors);

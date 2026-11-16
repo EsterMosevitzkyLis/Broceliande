@@ -64,6 +64,7 @@ const clock = { speed: 1, paused: false };
 // UI-only state: never read by the simulation.
 let wavesLogged = C.DEBUG_START_ENABLED; // per-wave totals logged (M2i §2)
 const view = { debug: C.DEBUG_START_ENABLED, showcase: null, revealItem: false, clickMarker: null, fps: 0, hover: null, menu: null, pointer: null, menuHoverType: null, mapHover: null }; // menuHoverType: build-menu card under the pointer (range preview); mapHover: available map node under the pointer; showcase: debug Shift+C comparison row
+document.body.classList.toggle('debug-on', view.debug); // the data warnings panel shows only with the debug overlay on (boot.js, styles.css)
 const interaction = createInteraction(game, view);
 
 // UI state to clear whenever an encounter (re)starts or the map opens.
@@ -222,6 +223,7 @@ const input = createInput(stage, canvas, () => scale, {
     switch (key) {
       case 'd':
         view.debug = !view.debug;
+        document.body.classList.toggle('debug-on', view.debug); // the data warnings panel shows with the overlay (boot.js)
         if (view.debug && !wavesLogged) { logWaveTotals(); wavesLogged = true; } // M2i §2: once
         break;
       case ' ': callNextWave(game); e.preventDefault(); break; // M2i §3.2: Call next wave (countdown / gap only)

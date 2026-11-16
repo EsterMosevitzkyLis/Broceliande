@@ -3,6 +3,9 @@
 Like `python -m http.server`, but it tells browsers not to keep old copies of the files, so a
 reload always shows the latest code. Python 3, standard library only.
 
+It listens on this computer's loopback addresses only, IPv4 (127.0.0.1) and IPv6 (::1), so
+http://localhost works whichever one the browser picks; nothing on the network can reach it.
+
 For the map editor (editor.html, M4a §4) it also has:
   POST /api/save-map?level=<id>   writes the request body (the map JSON) to data/maps/<id>.json
   GET  /api/backgrounds           lists the images in data/maps/backgrounds/
@@ -14,8 +17,10 @@ Run from anywhere:  python tools/serve.py [port]   (default 8000; or double-clic
 import json
 import os
 import re
+import socket
 import sys
 import tempfile
+import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -105,14 +110,26 @@ class Server(ThreadingHTTPServer):
     allow_reuse_address = False  # on Windows it would let two servers share a port without an error
 
 
+class Server6(Server):
+    address_family = socket.AF_INET6
+
+
 port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
+handler = partial(NoCacheHandler, directory=str(ROOT))
 try:
-    server = Server(('127.0.0.1', port), partial(NoCacheHandler, directory=str(ROOT)))
+    servers = [Server(('127.0.0.1', port), handler)]
 except OSError:
     sys.exit(f'Port {port} is already in use: another server is probably running. Stop it first.')
+try:
+    servers.append(Server6(('::1', port), handler))
+except OSError as e:
+    # No IPv6 on this computer, or the port is taken there: carry on with IPv4 (127.0.0.1) only.
+    print(f'Note: not listening on IPv6 [::1]:{port} ({e}); use http://127.0.0.1:{port}', flush=True)
 print(f'Serving the game at http://localhost:{port} (Ctrl+C to stop)', flush=True)
 print(f'Map editor: http://localhost:{port}/editor.html', flush=True)
+for extra in servers[1:]:
+    threading.Thread(target=extra.serve_forever, daemon=True).start()
 try:
-    server.serve_forever()
+    servers[0].serve_forever()
 except KeyboardInterrupt:
     pass

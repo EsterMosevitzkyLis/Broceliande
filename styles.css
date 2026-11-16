@@ -1439,6 +1439,10 @@ html, body {
   display: flex;
   flex-direction: column;
 }
+/* Only with the debug overlay on (D) or ?debug in the URL; the warnings are in the console anyway. */
+body:not(.debug-on):not(.debug-param) #data-warnings {
+  display: none !important;
+}
 #data-warnings button {
   align-self: flex-end;
   margin-top: 8px;
