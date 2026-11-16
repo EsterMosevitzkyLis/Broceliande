@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# The data CSVs stay LF in the working copy too (tools/pull_sheet.py writes them LF), so a pull
+# never shows line-ending-only changes.
+data/**/*.csv text eol=lf

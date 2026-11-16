@@ -31,7 +31,10 @@ def download(url):
     # An unpublished sheet answers with a sign-in page rather than an HTTP error.
     if text.lstrip().startswith("<"):
         raise ValueError("got a web page, not CSV")
-    return text.replace("\r\n", "\n").replace("\r", "\n")
+    # Every CSV is written the same way (main and narrative): LF line endings and a final newline
+    # (Google's export has none), so a pull only changes files whose content changed.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    return text if text.endswith("\n") else text + "\n"
 
 
 def data_rows(text):
