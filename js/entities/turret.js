@@ -44,7 +44,18 @@ export function createTurret(id, slotIndex, slot, type) {
     targetId: null,       // enemy currently aimed at (re-evaluated before every shot)
     angle: -Math.PI / 2,  // facing, turned toward the target at TURRET_TURN_SPEED
     lastFireTime: -Infinity, // combat time it last fired (Toader mouth animation)
+    hp: levelStats(type, 1).hp, // M6b §2.1: only attacksTurrets enemies (Lizard Hunters) can lower it
+    lastHitTime: -Infinity, // combat time a spear last hit it (flash)
   };
+}
+
+// M6b §2.1: its HP at its current level.
+export function turretMaxHp(turret) {
+  return levelStats(turret.type, turret.level).hp;
+}
+
+export function isDamaged(turret) {
+  return turret.hp < turretMaxHp(turret);
 }
 
 // Stats of a level (1-based) of a type.

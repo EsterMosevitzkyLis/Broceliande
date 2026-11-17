@@ -35,6 +35,9 @@ export const GLOBAL_TYPES = {
   ITEM_PRICE_R0: 'number', ITEM_PRICE_R1: 'number', ITEM_PRICE_R2: 'number', ITEM_PRICE_R3: 'number',
   PATTERN_PRICE_R0: 'number', PATTERN_PRICE_R1: 'number', PATTERN_PRICE_R2: 'number', PATTERN_PRICE_R3: 'number',
   DIALOGUE_TYPE_SPEED: 'number', DIALOGUE_HOP_HEIGHT: 'number', DIALOGUE_HOP_TIME: 'number', DIALOGUE_DIM_BRIGHTNESS: 'number', // M5a §3.6
+  REPAIR_COST: 'int', REPAIR_TIME: 'number', // M6b §2.3
+  SHAMAN_SHIELD_INTERVAL: 'number', SHAMAN_SHIELD_TARGETS: 'int', SHAMAN_SHIELD_RANGE: 'number', SHAMAN_SHIELD_AMOUNT: 'number', SHAMAN_SHIELD_DURATION: 'number', // M6b §4.3
+  GRIM_SHAMAN_SHIELD_INTERVAL: 'number', GRIM_SHAMAN_SHIELD_AMOUNT: 'number',
 };
 
 // Druid stats: key → type. Every key must have a row.
@@ -73,6 +76,8 @@ export const TABS = {
       // M3b §1–§3: role (swarm, brute, miniboss, flyer, boss), rises again (rising dead), region
       // (blank: every region) and a boss's arrival banner.
       role: { type: 'id' }, rises: { type: 'bool' }, region: { type: 'id' }, banner: { type: 'text' },
+      // M6b §2.1, §4.2: it can damage turrets; a ranged enemy's range; camouflage (M6c, not used yet).
+      attacksTurrets: { type: 'bool' }, attackRange: { type: 'number' }, camouflage: { type: 'bool' },
     },
   },
   drops: { columns: { enemy: { type: 'id', required: true }, resource: { type: 'id', required: true }, chance: { type: 'number', required: true }, min: { type: 'int', required: true }, max: { type: 'int', required: true } } },
@@ -87,6 +92,7 @@ export const TABS = {
       cloudTick: { type: 'number' }, cloudTickDamage: { type: 'number' },
       levelName: { type: 'text' }, targets: { type: 'int' }, corrodeMult: { type: 'number' }, corrodeLinger: { type: 'number' }, // M2m §2
       coneAngle: { type: 'number' }, burnDuration: { type: 'number' }, burnTick: { type: 'number' }, burnTickDamage: { type: 'number' }, spreadRadius: { type: 'number' }, // M2o §3
+      hp: { type: 'number' }, // M6b §2.1: the turret's HP at that level
     },
     pattern: [/^cost_[a-z][a-zA-Z0-9]*$/, COST],
   },

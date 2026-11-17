@@ -59,6 +59,11 @@ export function updateEffects(game, dt) {
   game.emberJumps = game.emberJumps.filter((j) => j.age < C.EMBER_JUMP_TIME);
   for (const s of game.healSparkles) s.age += dt;
   game.healSparkles = game.healSparkles.filter((s) => s.age < C.HEAL_SPARKLE_TIME);
+  // M6b §2.2, §3: a turret's collapse debris and shields shattering.
+  for (const d of game.debris) d.age += dt;
+  game.debris = game.debris.filter((d) => d.age < C.WRECK_DEBRIS_TIME);
+  for (const s of game.shieldShatters) s.age += dt;
+  game.shieldShatters = game.shieldShatters.filter((s) => s.age < C.SHIELD_SHATTER_TIME);
   if (game.shake) {
     game.shake.age += dt;
     if (game.shake.age >= (game.shake.time ?? C.OGRE_SHAKE_TIME)) game.shake = null;

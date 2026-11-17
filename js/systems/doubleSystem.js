@@ -9,7 +9,7 @@ import * as C from '../config.js';
 import { GameState, ActionState } from '../states.js';
 import { canAfford, deduct, add, RESOURCE_KEYS } from '../resources.js';
 import { turretOnSlot, placeTurret, raiseTurretLevel } from './buildSystem.js';
-import { buildCost, buildTime, nextLevelStats } from '../entities/turret.js';
+import { buildCost, buildTime, nextLevelStats, isDamaged, turretMaxHp } from '../entities/turret.js';
 import { createDouble, DoubleState } from '../entities/boughDouble.js';
 import { events } from '../events.js';
 import { addResourceFloaters } from '../effects.js';
@@ -20,16 +20,19 @@ export function doubleOnSlot(game, slotIndex) {
   return game.doubles.find((d) => d.slotIndex === slotIndex) ?? null;
 }
 
-// The turret on this slot is being upgraded by a Double: it does not fire (M1i §2.5).
+// The turret on this slot is being upgraded (or, M6b §2.3, repaired) by a Double: it does not fire
+// (M1i §2.5).
 export function isBeingUpgraded(game, slotIndex) {
-  return doubleOnSlot(game, slotIndex)?.job === 'upgrade';
+  const job = doubleOnSlot(game, slotIndex)?.job;
+  return job === 'upgrade' || job === 'repair';
 }
 
-// A valid target (§2.4): an empty slot, or a turret below max level, with no Double on it.
+// A valid target (§2.4): an empty slot (or a wreck, M6b §2.2), a turret below max level, or a
+// damaged turret (M6b §2.3), with no Double on it.
 export function isDoubleTarget(game, slotIndex) {
   if (doubleOnSlot(game, slotIndex)) return false;
   const turret = turretOnSlot(game, slotIndex);
-  return !turret || nextLevelStats(turret) !== null;
+  return !turret || nextLevelStats(turret) !== null || isDamaged(turret);
 }
 
 export function doubleTargets(game) {
@@ -51,9 +54,13 @@ function doubleWorkSpeed(game) {
 
 // The job a Double would do on a slot: { job, turretType, toLevel, cost, time }, with cost the
 // full price (resources + Bough) and time divided by the Double's work speed.
-// An empty slot needs the turret type chosen; null if none fits.
+// An empty slot needs the turret type chosen; null if none fits. M6b §2.3: a damaged turret's job
+// is Repair (REPAIR_COST, REPAIR_TIME; it restores full HP), before any upgrade.
 export function doubleJob(game, slotIndex, turretType = null) {
   const turret = turretOnSlot(game, slotIndex);
+  if (turret && isDamaged(turret)) {
+    return { job: 'repair', turretType: turret.type, toLevel: turret.level, cost: sumCosts(C.REPAIR_COST, C.BOUGH_DOUBLE_COST), time: C.REPAIR_TIME / doubleWorkSpeed(game) };
+  }
   if (turret) {
     const next = nextLevelStats(turret);
     if (!next) return null;
@@ -132,6 +139,8 @@ function refundBough(game, d) {
 }
 
 export function updateDoubles(game, dt) {
+  // M6b §2.2: the turret an upgrade or repair was for has been wrecked: the job is cancelled and refunded.
+  for (const d of [...game.doubles]) if (d.job !== 'build' && !turretOnSlot(game, d.slotIndex)) cancelDoubleJob(game, d.slotIndex);
   for (const d of [...game.doubles]) {
     if (d.state === DoubleState.WISP) {
       d.wispElapsed += dt;
@@ -150,6 +159,7 @@ export function updateDoubles(game, dt) {
     }
     if (d.elapsed < d.duration - TIMER_EPSILON) continue;
     if (d.job === 'build') placeTurret(game, d.slotIndex, d.turretType);
+    else if (d.job === 'repair') repairTurret(game, d.slotIndex);
     else raiseTurretLevel(game, d.slotIndex);
     game.doubleStats.completed++;
     removeDouble(game, d);
@@ -165,4 +175,13 @@ function craftHit(game, d) {
     game.chips.push({ x: slot.x, y: slot.y + (C.TURRET_BASE_OFFSET - 12) * C.SPOT_SCALE, vx: Math.cos(a) * 70, vy: Math.sin(a) * 90, age: 0 });
   }
   events.emit('doubleCraftHit', { slotIndex: d.slotIndex });
+}
+
+// M6b §2.3: a Repair job done: the turret is back to full HP.
+function repairTurret(game, slotIndex) {
+  const turret = turretOnSlot(game, slotIndex);
+  if (!turret) return;
+  turret.hp = turretMaxHp(turret);
+  game.doubleStats.repairs = (game.doubleStats.repairs ?? 0) + 1;
+  events.emit('turretRepaired', { slotIndex });
 }

@@ -173,15 +173,31 @@ export function updateProjectiles(game, dt) {
 // is counted (no overkill). Every damage source goes through here, so armor (M2l §1.3, the Grim
 // Bear's Thick hide) applies to all of them: each hit loses `armor`, but never below 1 (a hit of 1
 // or less stays as it is). A reduced hit throws a small grey spark. A Corroded enemy (M2m §2.4)
-// takes its mult more from every hit, before armor. Returns the damage actually taken.
+// takes its mult more from every hit, before armor. M6b §3: then a shield takes what it can (it
+// shatters when used up), and the rest comes off HP. Returns the HP damage actually taken.
 export function damageEnemy(game, enemy, damage, source = null) {
   const armor = enemyType(enemy).armor ?? 0;
   const afterArmor = (d) => (armor > 0 ? Math.min(d, Math.max(1, d - armor)) : d);
-  const plain = afterArmor(damage);
-  const dealt = afterArmor(damage * corrodeMult(enemy));
+  let plain = afterArmor(damage);
+  let dealt = afterArmor(damage * corrodeMult(enemy));
   if (plain < damage) {
     game.traitStats.armorBlocked += damage - plain;
     game.armorSparks.push({ x: enemy.x, y: enemy.y - enemyType(enemy).hitHeight * 0.6, age: 0 });
+  }
+  const shield = enemy.statuses.shielded;
+  if (shield) {
+    const absorbed = Math.min(shield.amount, dealt);
+    shield.amount -= absorbed;
+    game.traitStats.shieldAbsorbed += absorbed;
+    dealt -= absorbed;
+    plain = Math.max(0, plain - absorbed);
+    if (shield.amount <= 1e-9) {
+      delete enemy.statuses.shielded;
+      game.shieldShatters.push({ x: enemy.x, y: enemy.y - enemyType(enemy).hitHeight * 0.6, r: enemy.radius, seed: enemy.id, age: 0 });
+      events.emit('shieldBroken', { type: enemy.type, x: enemy.x, y: enemy.y });
+    }
+    enemy.lastHitTime = game.combatTime;
+    if (dealt <= 0) return 0;
   }
   const left = Math.max(0, enemy.hp);
   const taken = Math.min(dealt, left);
@@ -212,7 +228,7 @@ function recordDamage(game, source, amount) {
 // Enemies attacking the Druid (§12.5), each with its type's damage and interval
 // ---------------------------------------------------------------------------
 // An enemy's blow lands on the Druid: its damage × druid.damageTakenMult (M2p, Ward Torc).
-function hurtDruid(game, damage) {
+export function hurtDruid(game, damage) {
   game.druidHp = Math.max(0, game.druidHp - damage * game.stats['druid.damageTakenMult']);
 }
 

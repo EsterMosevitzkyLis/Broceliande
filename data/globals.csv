@@ -104,3 +104,13 @@ DIALOGUE_TYPE_SPEED,45,TUNING - characters per second of the dialogue box typewr
 DIALOGUE_HOP_HEIGHT,10,TUNING - px the speaking portrait hops up on each new line (M5a sec. 3.2)
 DIALOGUE_HOP_TIME,0.22,"TUNING - s of that hop, up and back (also the speaker light-up and listener dim)"
 DIALOGUE_DIM_BRIGHTNESS,0.45,TUNING - brightness of the listening portrait (1 = fully lit)
+"# Vale enemies, turret HP and repair (M6b)",,
+REPAIR_COST,2,"TUNING - Pits a Bough Double's Repair job costs, on top of its own Bough (M6b sec. 2.3)"
+REPAIR_TIME,2.5,TUNING - s of a Repair job (divided by the Double work speed). It restores full HP
+SHAMAN_SHIELD_INTERVAL,6,TUNING - s between a Lizard Shaman shield casts (M6b sec. 4.3)
+SHAMAN_SHIELD_TARGETS,3,"TUNING - nearest lizardfolk shielded per cast, the shaman included"
+SHAMAN_SHIELD_RANGE,180,TUNING - px from the shaman
+SHAMAN_SHIELD_AMOUNT,12,TUNING - shield per target (x the level enemyHpMult)
+SHAMAN_SHIELD_DURATION,8,TUNING - s a shield lasts unless used up first
+GRIM_SHAMAN_SHIELD_INTERVAL,5,TUNING - the Grim Lizard Shaman cast interval (s)
+GRIM_SHAMAN_SHIELD_AMOUNT,18,TUNING - the Grim Lizard Shaman shield per target

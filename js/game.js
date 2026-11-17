@@ -1,5 +1,7 @@
 // Game state, phase transitions and restart (spec §6).
 
+import { updateRanged, updateSpears } from './systems/rangedSystem.js';
+import { updateShamans } from './systems/shamanSystem.js';
 import * as C from './config.js';
 import { createRng, makeRandomSeed } from './rng.js';
 import { buildWavePlans, updateSpawning, queueDebugEnemy } from './systems/spawnSystem.js';
@@ -224,7 +226,7 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.coneBursts = [];         // M2o §4.2: Cinderjaw breaths { x, y, aim, half, range, level, age } (visual only)
   game.emberJumps = [];         // M2o §4.2: Wildfire embers { from, toId, to, age } (visual only)
   game.healSparkles = [];       // M2l §2.2: { enemyId, age } when a bite healed its biter (visual only)
-  game.traitStats = { armorBlocked: 0, splashDamage: 0, lifestealHealed: 0, twinShotDamage: 0, corrosionExtra: 0, wildfireSpreads: 0, rises: 0, burnedToAsh: 0 }; // M2l §4, M2m §3, M2o §5, M3b §6: this battle's figures
+  game.traitStats = { armorBlocked: 0, splashDamage: 0, lifestealHealed: 0, twinShotDamage: 0, corrosionExtra: 0, wildfireSpreads: 0, rises: 0, burnedToAsh: 0, shieldAbsorbed: 0 }; // M2l §4, M2m §3, M2o §5, M3b §6, M6b §3: this battle's figures
   game.shake = null;            // M2c §2.5: { age } of the screen shake after a blow (drawing only)
   game.nextEntityId = 1;
   game.enemies = [];
@@ -232,6 +234,11 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.ashes = [];   // M3b §3.1: risers burnt to ash (visual only)
   game.bossEntrances = []; // M3b §5.3: a Bog King about to rise from his lane's entrance
   game.submerged = [];     // M3b §5.2: a Bog King under the bog
+  game.spears = [];        // M6b §4.2: Lizard Hunters' spears in flight
+  game.wrecks = [];        // M6b §2.2: { slotIndex, x, y, type, seed } turrets collapsed on their slots
+  game.debris = [];        // M6b §2.2: { x, y, seed, age } a collapse's flying pieces (visual only)
+  game.shieldShatters = []; // M6b §3: { x, y, r, seed, age } a shield breaking (visual only)
+  game.turretsWrecked = 0;  // M6b: this battle's figure (debug panel)
   game.meleeSlots = createMeleeSlots(level.druidPos);
   game.wavePlans = buildWavePlans(level, game.lanes, game.rng);
   game.spawnQueues = [];
@@ -631,9 +638,11 @@ export function updateGame(game, dt) {
       updateTolls(game);             // M2f §4.10: a bell toll just before each surge (sound only)
       updateBlocking(game, dt);      // wolves held by landed Vultures (and, if enabled, waiting Squirrels) stop and bite them
       updateSquirrelStrikes(game, dt); // M1h §3: a Squirrel being attacked strikes back
+      updateRanged(game, dt);        // M6b §4.2: hunters stop and throw spears at what is in range
       updateEnemyMovement(game, dt);
       updateTurrets(game, dt);
       updateProjectiles(game, dt);
+      updateSpears(game, dt);
       updateClouds(game, dt);
       updateVultures(game, dt);
       updateDrops(game, dt);         // drop pop flight (M1g §1); before Squirrels so a just-landed item can be claimed
@@ -642,6 +651,7 @@ export function updateGame(game, dt) {
       updateBurns(game);             // M2o §2.2: burn ticks (before burns run out)
       updateBodies(game, dt);        // M3b §3: bodies waiting to rise stand up
       updateBogKing(game, dt);       // M3b §5: his entrance, raising Thralls, resurfacing
+      updateShamans(game, dt);       // M6b §4.3: shield casts
       updateStatuses(game);          // M2k §3.4: timed statuses (slowed) run out
       updateDoubles(game, dt);       // Bough Double jobs (M1i §2)
       updateMelee(game, dt);

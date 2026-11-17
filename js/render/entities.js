@@ -823,15 +823,24 @@ export function drawDruidHpBar(ctx, x, y, hp, maxHp = C.DRUID_HP) {
 const HP_BAR = {
   wolf: { lift: 2.9, width: 30 }, bear: { lift: 1.75, width: 48 }, ogre: { lift: 2.15, width: 90 }, stirge: { lift: 3.1, width: 22 }, // stirge: above its flying body
   thrall: { lift: 3.3, width: 30 }, brute: { lift: 2.2, width: 48 }, knight: { lift: 2.35, width: 90 }, bogKing: { lift: 2.65, width: 120 }, // M3b §2, §5
+  spider: { lift: 2.2, width: 26 }, lizardman: { lift: 3, width: 30 }, hunter: { lift: 3.2, width: 28 }, giantLizard: { lift: 1.25, width: 52 }, shaman: { lift: 3.2, width: 30 }, // M6b §4
 };
 
-// Mini-bosses (M2c §2.7) keep theirs visible all the time.
+// Mini-bosses (M2c §2.7) keep theirs visible all the time. M6b §3: a shield shows (and shows the
+// bar) as a thin cyan-green segment after the HP, its length the shield's share of max HP.
 export function drawEnemyHpBar(ctx, enemy) {
   const t = C.ENEMY_TYPES[enemy.type];
   const maxHp = enemy.maxHp; // scaled by the level's enemyHpMult (M2f §3.1)
-  if (enemy.hp >= maxHp && !t.boss) return;
+  const shield = enemy.statuses.shielded?.amount ?? 0;
+  if (enemy.hp >= maxHp && !t.boss && shield <= 0) return;
   const bar = HP_BAR[t.baseType]; // a Grim uses its base type's (M2l §1.1)
-  drawHpBar(ctx, enemy.x, enemy.y - enemy.radius * bar.lift, bar.width, enemy.hp / maxHp);
+  const y = enemy.y - enemy.radius * bar.lift;
+  drawHpBar(ctx, enemy.x, y, bar.width, enemy.hp / maxHp);
+  if (shield <= 0) return;
+  const f = Math.max(0, Math.min(1, enemy.hp / maxHp));
+  const w = Math.min(bar.width * (1 - f) + bar.width * 0.25, bar.width * (shield / maxHp)); // may overhang a full bar a little
+  ctx.fillStyle = C.SHIELD_BAR_COLOR;
+  ctx.fillRect(enemy.x - bar.width / 2 + bar.width * f, y + 1, Math.max(2, w), 4);
 }
 
 const BEAR_LOOK = { body: COLORS.bear, dark: COLORS.bearDark, hit: COLORS.bearHit, muzzle: COLORS.bearMuzzle, nose: COLORS.wolfDark };

@@ -79,8 +79,18 @@ const OWN_CHIME = { shells: 'shellChime', peat: 'peatChime', gold: 'goldClink' }
 const TURRET_FIRE_SOUND = { sprinkler: 'sprinklerFire', toader: 'toaderFire', cinderjaw: 'cinderjawFires' };
 // M3b §2.2: Hag's Causeway's undead: wet groans (Thrall), a deep creaking groan (Brute), a metallic,
 // sloshing roar (the Drowned Knight).
-const ENEMY_ATTACK_SOUND = { wolf: 'wolfBite', bear: 'bearAttack', ogre: 'ogreBlow', stirge: 'stirgeBite', thrall: 'thrallAttack', brute: 'bruteAttack', knight: 'knightBlow', bogKing: 'bogKingBlow' };
-const ENEMY_DEATH_SOUND = { wolf: 'wolfDie', bear: 'bearDie', ogre: 'ogreDies', stirge: 'stirgeDies', thrall: 'thrallDie', brute: 'bruteDie', knight: 'knightDies', bogKing: 'bogKingDies' };
+// M6b §4: the Vale's: a dry chitter (spiders), hisses and grunts (lizardfolk), a heavy hissing bite
+// (Giant Lizard); a hunter in melee stabs with its spear (the Lizardman's sound).
+const ENEMY_ATTACK_SOUND = {
+  wolf: 'wolfBite', bear: 'bearAttack', ogre: 'ogreBlow', stirge: 'stirgeBite', thrall: 'thrallAttack', brute: 'bruteAttack', knight: 'knightBlow', bogKing: 'bogKingBlow',
+  spider: 'spiderBite', lizardman: 'lizardmanAttack', hunter: 'lizardmanAttack', giantLizard: 'giantLizardAttack', shaman: 'shamanAttack',
+};
+const ENEMY_DEATH_SOUND = {
+  wolf: 'wolfDie', bear: 'bearDie', ogre: 'ogreDies', stirge: 'stirgeDies', thrall: 'thrallDie', brute: 'bruteDie', knight: 'knightDies', bogKing: 'bogKingDies',
+  spider: 'spiderDie', lizardman: 'lizardmanDie', hunter: 'hunterDie', giantLizard: 'giantLizardDie', shaman: 'shamanDie',
+};
+const SPEAR_THROW_SOUND = { hunter: 'hunterThrow' }; // M6b §4.2
+const SHAMAN_CAST_SOUND = { shaman: 'shamanCast' };  // M6b §4.3
 // M2c §2.9: a mini-boss's arrival, footsteps and wind-up (none for wolves and Bears).
 const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns', knight: 'knightSpawns', bogKing: 'bogKingRoar' }; // M2h: once per flock (its first Stirge)
 const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep', bogKing: 'bogKingStep' };
@@ -108,6 +118,10 @@ function subscribe() {
   events.on('enemySpawned', (e) => { if (e.first !== false) playEnemy(ENEMY_SPAWN_SOUND, e); });
   events.on('enemyStep', (e) => playEnemy(ENEMY_STEP_SOUND, e));
   events.on('enemyWindup', (e) => playEnemy(ENEMY_WINDUP_SOUND, e));
+  // M6b: spears, shields and turret damage.
+  events.on('spearThrown', (e) => playEnemy(SPEAR_THROW_SOUND, e));
+  events.on('shamanCast', (e) => playEnemy(SHAMAN_CAST_SOUND, e));
+  for (const name of ['spearHit', 'shieldBroken', 'turretHit', 'turretWrecked', 'turretRepaired']) events.on(name, (e) => play(name, e));
   events.on('resourcesGained', (e) => { // M2k §2.1: Shells have their own chime (and sounds row)
     const resources = e.resources ?? [];
     const others = resources.filter((r) => !OWN_CHIME[r]);
@@ -580,6 +594,122 @@ const RECIPES = {
     tone(t, out, { freq: 70 * p, to: 26 * p, dur: 0.5, gain: 1.5, delay: 1.35 });
     noise(t, out, { filter: 'lowpass', freq: 400 * p, dur: 0.35, gain: 1, delay: 1.35 });
     return 1.9;
+  },
+
+  // M6b §4: the Vale's enemies.
+  // A spider's bite: a dry, fast chitter.
+  spiderBite(t, out, p) {
+    for (let i = 0; i < 3; i++) noise(t, out, { freq: (2600 + i * 400) * p, q: 6, dur: 0.025, gain: 0.7, delay: i * 0.03 });
+    return 0.11;
+  },
+
+  // A spider dies: a crackle and a dry squeal, curling up.
+  spiderDie(t, out, p) {
+    noise(t, out, { filter: 'highpass', freq: 2200 * p, dur: 0.12, gain: 0.6 });
+    tone(t, out, { type: 'triangle', freq: 1800 * p, to: 700 * p, dur: 0.16, gain: 0.3, delay: 0.02 });
+    return 0.2;
+  },
+
+  // A Lizardman's blow: a sharp hiss and a dull thump.
+  lizardmanAttack(t, out, p) {
+    noise(t, out, { filter: 'highpass', freq: 3000 * p, dur: 0.12, attack: 0.01, gain: 0.45 });
+    tone(t, out, { freq: 140 * p, to: 70 * p, dur: 0.12, gain: 0.8, delay: 0.06 });
+    return 0.2;
+  },
+
+  // A lizard falls: a hissing rattle running down.
+  lizardmanDie(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 2400 * p, to: 900 * p, q: 2, dur: 0.4, attack: 0.01, gain: 0.5 });
+    growl(t, out, { freq: 150 * p, to: 70 * p, dur: 0.35, attack: 0.02, cutoff: 700, trem: 34, gain: 0.35 });
+    return 0.42;
+  },
+
+  // A spear thrown: a quick airy whoosh.
+  hunterThrow(t, out, p) {
+    noise(t, out, { freq: 900 * p, to: 2600 * p, q: 2.5, dur: 0.18, attack: 0.04, gain: 0.6 });
+    return 0.2;
+  },
+
+  // A spear lands: a wooden thock.
+  spearHit(t, out, p) {
+    tone(t, out, { type: 'triangle', freq: 420 * p, to: 260 * p, dur: 0.06, gain: 0.7 });
+    noise(t, out, { freq: 1400 * p, q: 3, dur: 0.04, gain: 0.5 });
+    return 0.08;
+  },
+
+  // A hunter falls: a short hiss and a yelp.
+  hunterDie(t, out, p) {
+    noise(t, out, { filter: 'highpass', freq: 2600 * p, dur: 0.16, gain: 0.4 });
+    tone(t, out, { type: 'triangle', freq: 700 * p, to: 300 * p, dur: 0.2, gain: 0.45, delay: 0.04 });
+    return 0.26;
+  },
+
+  // A Giant Lizard's bite: a deep hiss and a heavy snap of the jaws.
+  giantLizardAttack(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 1500 * p, to: 800 * p, q: 1.2, dur: 0.22, attack: 0.03, gain: 0.6 });
+    tone(t, out, { freq: 95 * p, to: 38 * p, dur: 0.24, gain: 1.1, delay: 0.14 });
+    noise(t, out, { filter: 'lowpass', freq: 800 * p, dur: 0.1, gain: 0.8, delay: 0.14 });
+    return 0.4;
+  },
+
+  // A Giant Lizard falls: a long rasping hiss and a heavy thud.
+  giantLizardDie(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 1800 * p, to: 500 * p, q: 1.5, dur: 0.8, attack: 0.03, gain: 0.55 });
+    tone(t, out, { freq: 70 * p, to: 28 * p, dur: 0.4, gain: 1.2, delay: 0.6 });
+    return 1;
+  },
+
+  // A shaman's staff strike: a light knock.
+  shamanAttack(t, out, p) {
+    tone(t, out, { type: 'triangle', freq: 320 * p, to: 200 * p, dur: 0.08, gain: 0.6 });
+    noise(t, out, { filter: 'highpass', freq: 2800 * p, dur: 0.08, gain: 0.3 });
+    return 0.1;
+  },
+
+  // A shield cast: a soft rising shimmer of small bells.
+  shamanCast(t, out, p) {
+    [660, 830, 990].forEach((f, i) => bell(t, out, f * p, i * 0.07, 0.5, 0.18));
+    noise(t, out, { freq: 3000 * p, to: 5000 * p, q: 4, dur: 0.4, attack: 0.1, gain: 0.15 });
+    return 0.66;
+  },
+
+  // A shaman dies: a hiss with a falling chime.
+  shamanDie(t, out, p) {
+    noise(t, out, { filter: 'highpass', freq: 2400 * p, dur: 0.2, gain: 0.4 });
+    bell(t, out, 700 * p, 0.05, 0.5, 0.15);
+    bell(t, out, 520 * p, 0.15, 0.5, 0.12);
+    return 0.65;
+  },
+
+  // A shield shatters: a glassy chime with a tinkle.
+  shieldBreak(t, out, p) {
+    bell(t, out, 1500 * p, 0, 0.35, 0.25);
+    bell(t, out, 2100 * p, 0.03, 0.25, 0.15);
+    noise(t, out, { filter: 'highpass', freq: 5000 * p, dur: 0.15, gain: 0.3 });
+    return 0.38;
+  },
+
+  // A turret hit by a spear: a wooden knock.
+  turretHit(t, out, p) {
+    tone(t, out, { type: 'triangle', freq: 240 * p, to: 150 * p, dur: 0.07, gain: 0.7 });
+    noise(t, out, { filter: 'lowpass', freq: 1200 * p, dur: 0.05, gain: 0.5 });
+    return 0.09;
+  },
+
+  // A turret collapses: a crunch of splintering wood and falling stones.
+  turretWrecked(t, out, p) {
+    creak(t, out, 60 * p, 30 * p, 0.25, 0.7);
+    noise(t, out, { filter: 'lowpass', freq: 1400 * p, to: 400 * p, dur: 0.35, gain: 1 });
+    for (let i = 0; i < 4; i++) tone(t, out, { type: 'triangle', freq: (300 - i * 40) * p, dur: 0.05, gain: 0.4, delay: 0.12 + i * 0.07 });
+    return 0.5;
+  },
+
+  // A repair done: two light taps and a settling creak.
+  turretRepaired(t, out, p) {
+    tone(t, out, { type: 'triangle', freq: 520 * p, dur: 0.05, gain: 0.5 });
+    tone(t, out, { type: 'triangle', freq: 620 * p, dur: 0.05, gain: 0.5, delay: 0.1 });
+    bell(t, out, 880 * p, 0.2, 0.3, 0.15);
+    return 0.5;
   },
 
   // M3b §2.2: the Drowned Thrall's bite: a short wet groan over a soft slap.

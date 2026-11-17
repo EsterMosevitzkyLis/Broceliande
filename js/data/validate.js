@@ -6,7 +6,7 @@
 import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES, PLACEHOLDER_LEVELS, isVillageRow } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 
-const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss']; // M3b §1
+const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss', 'warrior', 'ranged', 'support']; // M3b §1, M6b §4.1
 import { STAT_KEYS } from '../stats.js';
 
 // maps: each level's map file (M4a §1.3; a missing one is already an error from loadMaps).
@@ -89,6 +89,7 @@ export function validateTables(t, problems, maps = {}) {
     const m = { ...enemyRows[r.baseType], ...r };
     if (m.flying && m.flyHeight === undefined) err('enemies', r, 'flyHeight', 'a flying enemy needs flyHeight');
     if ((m.splashRatio === undefined) !== (m.splashRadius === undefined)) err('enemies', r, 'splashRatio', 'splashRatio and splashRadius must both be set or both blank');
+    if (m.role === 'ranged' && !(m.attackRange > 0)) err('enemies', r, 'attackRange', 'a ranged enemy needs an attackRange'); // M6b §4.2
   }
 
   // turrets: levels 1, 2, 3… per turret; cloud attacks need their cloud values; corrosion (M2m §2.4) is a cloud's.
@@ -108,6 +109,7 @@ export function validateTables(t, problems, maps = {}) {
     if (r.attack === 'cloud') {
       for (const c of ['cloudRadius', 'cloudDuration', 'cloudTick', 'cloudTickDamage']) if (r[c] === undefined) err('turrets', r, c, 'a cloud turret needs a value');
     }
+    if (!(r.hp > 0)) err('turrets', r, 'hp', 'every turret level needs its hp (M6b §2.1)');
     if (r.targets !== undefined && r.targets < 1) err('turrets', r, 'targets', 'targets must be 1 or more');
     if ((r.corrodeMult === undefined) !== (r.corrodeLinger === undefined)) err('turrets', r, 'corrodeMult', 'corrodeMult and corrodeLinger go together');
     if (r.corrodeMult !== undefined && r.attack !== 'cloud') err('turrets', r, 'corrodeMult', 'only a cloud turret can corrode');

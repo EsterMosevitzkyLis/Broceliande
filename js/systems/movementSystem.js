@@ -32,6 +32,7 @@ export function updateEnemyMovement(game, dt) {
       moveFlyer(game, enemy, dt); // M2h §3: its own rules, over the ground enemies
       continue;
     }
+    if (enemy.throwing) continue; // M6b §4.2: a hunter stands still while it throws (rangedSystem.js)
     const before = { x: enemy.x, y: enemy.y };
     switch (enemy.state) {
       case EnemyState.WALKING: walk(game, enemy, dt); break;
@@ -206,11 +207,13 @@ function updateStuck(enemy, blocker, dt, limit) {
   const slower = blocker
     && blocker.state === EnemyState.WALKING
     && blocker.blockedBy === null
-    // actually moving (not queued behind enemies waiting for melee slots), or held up by this
-    // enemy in turn (two enemies blocking each other on a bend)
-    && (blocker.advancing || blocker.blockerId === enemy.id)
-    // current speeds, so a faster enemy can pass a slowed one (M2k §3.4)
-    && enemySpeed(blocker) < enemySpeed(enemy);
+    // M6b §4.2: a hunter standing to throw counts as a slower walking enemy (it can be passed)
+    && (blocker.throwing || (
+      // actually moving (not queued behind enemies waiting for melee slots), or held up by this
+      // enemy in turn (two enemies blocking each other on a bend)
+      (blocker.advancing || blocker.blockerId === enemy.id)
+      // current speeds, so a faster enemy can pass a slowed one (M2k §3.4)
+      && enemySpeed(blocker) < enemySpeed(enemy)));
   if (!slower) {
     // A free step lets the timer run down rather than reset it, so an enemy that creeps behind
     // its blocker (blocked on most steps, now and then a free one) still counts as held up.

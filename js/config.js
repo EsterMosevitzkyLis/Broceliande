@@ -72,6 +72,17 @@ export const GRIM_SMOKE_RISE = 1.6;         // × radius a puff rises before it 
 export const GRIM_SPARKS = 3;               // tiny ember sparks rising through the smoke
 export const GRIM_SPARK_RATE = 0.9;         // rises per s
 export const ARMOR_SPARK_TIME = 0.18;       // s the grey spark shows where armor reduced a hit
+// M6b §3: shields (the shielded status) and the Lizard Shamans' casts; turret HP, wrecks and spears.
+export const LIZARDFOLK = new Set(['lizardman', 'hunter', 'giantLizard', 'shaman']); // M6b §1: base types a shaman shields (never spiders)
+export const SPEAR_SPEED = 520;              // TUNING — px/s, a hunter's spear (fast but not instant, M6b §4.2)
+export const SPEAR_HIT_RADIUS = 10;          // px from its target's centre at which a spear lands
+export const SHIELD_COLOR = 'rgba(120, 235, 200, 0.85)'; // its bubble's scale edges and HP bar segment
+export const SHIELD_BAR_COLOR = '#7fe8c8';
+export const SHIELD_SHATTER_TIME = 0.45;     // s the scale fragments fly when a shield breaks
+export const SHAMAN_CAST_TIME = 0.6;         // s the staff stays raised and the threads show after a cast
+export const TURRET_HIT_FLASH_TIME = 0.12;   // s a turret flashes when a spear hits it
+export const TURRET_HP_BAR = { width: 40, below: 30 }; // px: a damaged turret's bar, its top this far below the slot centre
+export const WRECK_DEBRIS_TIME = 0.6;        // s the debris flies when a turret collapses
 export const HEAL_SPARKLE_TIME = 0.4;       // s the red sparkle shows on a biter that healed
 export const DOGGED_SPIRAL_SPEED = 3;       // × the slow spiral's turn rate on a slow-resistant enemy
 export const DOGGED_SPIRAL_ALPHA = 0.5;     // its opacity
@@ -396,6 +407,9 @@ export const PLACEHOLDER_LEVELS = {
   shamansPerch: 'heartwood',
 };
 
+// M6b: what a placeholder's borrowed Stirge entries become, in turn (see placeholderSpawn).
+export const PLACEHOLDER_FLYER_SWAP = ['lizardman', 'hunter', 'lizardman', 'shaman'];
+
 // A levels row that is a village (M6a §2.2), not a battle level.
 export const isVillageRow = (r) => r.nodeType === 'village';
 
@@ -564,6 +578,9 @@ export let TRADE_TAG_CHEAP, TRADE_TAG_PRICEY, GOLD_PER_VALUE, RESOURCE_SELL_FRAC
 export let ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3;
 export let ITEM_PRICE, PATTERN_PRICE; // M3e §4: rarity → default price (from the globals above)
 export let DIALOGUE_TYPE_SPEED, DIALOGUE_HOP_HEIGHT, DIALOGUE_HOP_TIME, DIALOGUE_DIM_BRIGHTNESS; // M5a §3.6
+export let REPAIR_COST, REPAIR_TIME; // M6b §2.3: REPAIR_COST as a cost ({ pits: n }), on top of the Double's Bough
+export let SHAMAN_SHIELD_INTERVAL, SHAMAN_SHIELD_TARGETS, SHAMAN_SHIELD_RANGE, SHAMAN_SHIELD_AMOUNT, SHAMAN_SHIELD_DURATION,
+  GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT; // M6b §4.3
 
 // druid tab
 export let DRUID_HP, DRUID_RADIUS, DRUID_MELEE_RADIUS, DRUID_MELEE_SLOTS, DRUID_MELEE_DAMAGE, DRUID_MELEE_INTERVAL,
@@ -655,7 +672,10 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     TRADE_TAG_CHEAP, TRADE_TAG_PRICEY, GOLD_PER_VALUE, RESOURCE_SELL_FRACTION, ITEM_SELL_FRACTION, SHOP_PRICE_JITTER,
     ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3,
     DIALOGUE_TYPE_SPEED, DIALOGUE_HOP_HEIGHT, DIALOGUE_HOP_TIME, DIALOGUE_DIM_BRIGHTNESS,
+    REPAIR_COST, REPAIR_TIME, SHAMAN_SHIELD_INTERVAL, SHAMAN_SHIELD_TARGETS, SHAMAN_SHIELD_RANGE, SHAMAN_SHIELD_AMOUNT,
+    SHAMAN_SHIELD_DURATION, GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT,
   } = keyed(t.globals));
+  REPAIR_COST = { pits: REPAIR_COST };
   ITEM_PRICE = [ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3];
   PATTERN_PRICE = [PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3];
   SPOT_SCALE = LOCATION_RADIUS / SPOT_ART_RADIUS;
@@ -691,6 +711,10 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     opt(e, 'banner', r.banner);
     // Traits (M2l §1.3) and look; absent = none / ×1.
     for (const k of ['slowResist', 'armor', 'splashRatio', 'splashRadius', 'lifesteal', 'drawScale', 'soundPitch']) opt(e, k, r[k]);
+    // M6b §2.1, §4.2: whether it can damage turrets, a ranged enemy's range, camouflage (M6c).
+    e.attacksTurrets = r.attacksTurrets ?? false;
+    opt(e, 'attackRange', r.attackRange);
+    e.camouflage = r.camouflage ?? false;
     e.drops = t.drops.filter((d) => d.enemy === r.id).map((d) => ({ resource: d.resource, chance: d.chance, min: d.min, max: d.max }));
     return e;
   });
@@ -701,7 +725,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
   for (const row of t.turrets) {
     const r = row.baseType ? { ...turretRow(row.baseType, row.level), ...row } : row;
     const type = (TURRET_TYPES[r.turret] ??= { name: r.name, attack: r.attack, range: r.range, projectileSpeed: r.projectileSpeed, muzzleHeight: r.muzzleHeight, baseType: row.baseType ?? r.turret, region: row.region ?? null, levels: [] });
-    const level = { damage: r.damage, fireInterval: r.fireInterval, range: r.range, cost: cost(r), time: r.time, name: r.levelName ?? null, targets: r.targets ?? 1 };
+    const level = { damage: r.damage, fireInterval: r.fireInterval, range: r.range, cost: cost(r), time: r.time, name: r.levelName ?? null, targets: r.targets ?? 1, hp: r.hp };
     if (r.attack === 'cloud') level.cloud = { radius: r.cloudRadius, duration: r.cloudDuration, tickInterval: r.cloudTick, tickDamage: r.cloudTickDamage };
     if (r.corrodeMult !== undefined) level.cloud.corrode = { mult: r.corrodeMult, linger: r.corrodeLinger }; // M2m §2.4: Corrosion
     // M2o §3.1: the Cinderjaw's cone (total angle, degrees) and the burn it sets; spreadRadius: Wildfire.
@@ -754,9 +778,11 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     level.featureMix = Object.fromEntries(featureIds.map((f) => [f, r[`mix_${f}`] ?? 0]));
     level.zoneQuotas = { near: { turret: ZONE_NEAR_TURRET, feature: ZONE_NEAR_FEATURE }, far: { turret: ZONE_FAR_TURRET, feature: ZONE_FAR_FEATURE } };
     const wavesOf = PLACEHOLDER_LEVELS[r.id] ?? r.id; // M6a §2.1: a placeholder's borrowed waves
+    const flyerSwaps = { n: 0 };
     level.waves = t.waves.filter((w) => w.level === wavesOf).map((w) => {
       // M3b §1: each spawn is its region's enemy for the role (a wolf in Hag's Causeway is a Drowned Thrall).
       const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === wavesOf && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
+      if (PLACEHOLDER_LEVELS[r.id]) wave.spawns = wave.spawns.map((sp) => placeholderSpawn(sp, flyerSwaps)); // M6b: no Stirges in the Vale
       return opt(wave, 'tolls', w.tolls);
     });
     return level;
@@ -796,6 +822,17 @@ export function regionalEnemy(type, regionId) {
     const o = ENEMY_TYPES[id];
     return o.region === regionId && o.role === t.role && o.variant === t.variant;
   }) ?? type;
+}
+
+// M6b: a placeholder Vale level's borrowed Stirge entry (no Stirges in the Vale) becomes, in turn,
+// PLACEHOLDER_FLYER_SWAP's next enemy (the Grim one for a Grim Stirge), half as many. Goes with
+// PLACEHOLDER_LEVELS in M6e.
+function placeholderSpawn(sp, swaps) {
+  const t = ENEMY_TYPES[sp.type];
+  if (t.role !== 'flyer') return sp;
+  const base = PLACEHOLDER_FLYER_SWAP[swaps.n++ % PLACEHOLDER_FLYER_SWAP.length];
+  const type = t.variant ? Object.keys(ENEMY_TYPES).find((id) => ENEMY_TYPES[id].baseType === base && ENEMY_TYPES[id].variant === t.variant) ?? base : base;
+  return { ...sp, type, count: Math.max(1, Math.round(sp.count / 2)) };
 }
 
 // A palette row's flattened columns ("treeDark_canopy_0") back into nested objects and arrays.

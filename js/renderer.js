@@ -11,9 +11,9 @@ import {
   drawSquirrel, drawSquirrelStatus, drawSquirrelGhost, drawSwipe, drawSpark, drawNextRange, DRUID_REST_POSE,
   drawDoubleWisp, drawDoublePuff, drawChip, drawDoubleFade, drawDoubleTargeting, drawFloater, drawSweepItem,
 } from './render/entities.js';
-import { turretRange, levelRange, maxLevel } from './entities/turret.js';
+import { turretRange, levelRange, maxLevel, turretMaxHp } from './entities/turret.js';
 import { druidDisplayPos, actionTargetPos, isTimedAction } from './systems/actionSystem.js';
-import { isBeingUpgraded, isDoubleTargeting, isDoubleTarget, doubleTargets, doubleStandPos } from './systems/doubleSystem.js';
+import { isBeingUpgraded, isDoubleTargeting, isDoubleTarget, doubleTargets, doubleStandPos, doubleJob } from './systems/doubleSystem.js';
 import { DoubleState } from './entities/boughDouble.js';
 import { isStepMode, routePreview } from './systems/stepSystem.js';
 import { drawFootsteps, drawTrail } from './render/footsteps.js';
@@ -26,7 +26,8 @@ import { drawCinderjaw, drawConeBurst, drawBurning, drawEmberJump } from './rend
 import { drawSlotFloater } from './render/items.js';
 import { drawWisp, drawWispTarget, drawWispGhost, drawWispBurst, drawSlowSpiral } from './render/wisp.js';
 import { isSlowed, isCorroded, isBurning } from './systems/statusSystem.js';
-import { drawEnemyLook } from './render/enemyLook.js'; // an enemy's look, Grims included (M2l §2.1)
+import { drawEnemyLook } from './render/enemyLook.js';
+import { drawSpear, drawShieldBubble, drawShieldShatter, drawShamanThreads, drawTurretHpBar, drawWreck, drawDebris } from './render/vale.js'; // M6b // an enemy's look, Grims included (M2l §2.1)
 import { drawBody, drawAsh, drawBossEntrance, drawSunkRing } from './render/undead.js'; // M3b §3.3, §5.3: the rising dead, the Bog King
 import { drawShowcase } from './debug/showcase.js';
 
@@ -113,6 +114,7 @@ export function createRenderer(canvas) {
     game.slots.forEach((slot, i) => {
       drawTurretSlot(ctx, slot, !isPrep, isPrep && hover?.kind === 'slot' && hover.index === i);
     });
+    for (const w of game.wrecks) drawWreck(ctx, w); // M6b §2.2: collapsed turrets, on their slots
     // Enemy drops lie on the ground: above floor, corridors and pads, below anything upright (M1d §1.3).
     const now = performance.now() / 1000;
     for (const drop of game.drops) drawDrop(ctx, drop, now);
@@ -156,7 +158,7 @@ export function createRenderer(canvas) {
         y: featureBase(f).y,
         draw: () => drawFeature(ctx, f, isPrep && hover?.kind === 'feature' && hover.index === f.index),
       })),
-      ...game.turrets.map((t) => ({ y: slotBase(t).y, draw: () => drawTurretOfType(ctx, t, isBeingUpgraded(game, t.slotIndex), anim) })),
+      ...game.turrets.map((t) => ({ y: slotBase(t).y, draw: () => drawTurretHit(ctx, recent(t.lastHitTime), () => drawTurretOfType(ctx, t, isBeingUpgraded(game, t.slotIndex), anim)) })),
       ...doubleDrawables(ctx, game, anim),
       { y: druidPos.y + C.DRUID_RADIUS * 0.6, draw: () => drawDruid(ctx, druidPos.x, druidPos.y, hurt, defeatProgress(game), druidPose(game)) },
       ...game.enemies.filter((e) => !e.flying).map((e) => ({ // flyers: drawn after, above them
@@ -177,11 +179,21 @@ export function createRenderer(canvas) {
     for (const e of game.enemies) {
       if (e.flying) drawEnemy(e);
     }
+    // M6b §3–§4.3: shield bubbles, a casting shaman's threads (the debug overlay: every shield link).
+    for (const e of game.enemies) if (e.statuses.shielded) drawShieldBubble(ctx, e, e.statuses.shielded, anim, enemyBarY(e));
+    for (const e of game.enemies) {
+      if (!e.castTargets) continue;
+      const targets = e.castTargets.map((id) => game.enemies.find((x) => x.id === id)).filter((x) => x && (!view.debug || x.statuses.shielded));
+      drawShamanThreads(ctx, e, targets, anim, view.debug);
+    }
     drawAshFlecks(ctx, scene, performance.now() / 1000); // M2f §4.7: ambient, over the ground and entities
     // Slow Wisp bursts and Wisps in flight (M2k §3.5): over the field and the flyers.
     for (const b of game.wispBursts) drawWispBurst(ctx, b);
     for (const w of game.wisps) drawWisp(ctx, w);
     for (const p of game.projectiles) (p.kind === 'pellet' ? drawPellet : drawPebble)(ctx, p);
+    for (const s of game.spears) drawSpear(ctx, s); // M6b §4.2
+    for (const s of game.shieldShatters) drawShieldShatter(ctx, s, s.age / C.SHIELD_SHATTER_TIME);
+    for (const d of game.debris) drawDebris(ctx, d, d.age / C.WRECK_DEBRIS_TIME);
     for (const s of game.swipes) drawSwipe(ctx, s, s.age / C.DRUID_SWIPE_TIME);
     for (const s of game.sparks) drawSpark(ctx, s, s.age / C.STRIKE_SPARK_TIME);
     // Grim trait feedback (M2l §2.2): armor sparks; lifesteal sparkles on the biter, wherever it is now.
@@ -218,6 +230,7 @@ export function createRenderer(canvas) {
 
     // Bars and text on top of everything so they stay readable.
     for (const e of game.enemies) drawEnemyHpBar(ctx, e);
+    for (const t of game.turrets) drawTurretHpBar(ctx, t, t.hp, turretMaxHp(t)); // M6b §2.1: damaged turrets only
     // Slowed (M2k §3.5): a small turning spiral above the head, clear of the HP bar.
     // Dogged (M2l §2.2): on a slow-resistant enemy it spins faster and fainter (only partly slowed).
     for (const e of game.enemies) if (isSlowed(e)) drawSlowSpiral(ctx, e.x, enemyBarY(e) - C.SLOW_SPIRAL_SIZE - 6, anim, !!C.ENEMY_TYPES[e.type].slowResist);
@@ -329,7 +342,7 @@ function drawRanges(ctx, game, view) {
     }
     // M1e §4.3, M1i §2.4: the next level's range as a faint dashed circle while an upgrade is on
     // offer, i.e. while hovering the turret as a Bough Double target.
-    if (hovered && isDoubleTargeting(game) && isDoubleTarget(game, t.slotIndex)) drawNextRange(ctx, t.x, t.y, levelRange(t.type, t.level + 1));
+    if (hovered && isDoubleTargeting(game) && isDoubleTarget(game, t.slotIndex) && doubleJob(game, t.slotIndex)?.job === 'upgrade') drawNextRange(ctx, t.x, t.y, levelRange(t.type, t.level + 1));
   }
 }
 
@@ -468,6 +481,18 @@ function druidPose(game) {
 
 // Where an enemy is drawn: pushed back a few px just after a Druid strike, settling over
 // STRIKE_KNOCKBACK_TIME. Its simulation position is untouched (M1f §4).
+// M6b §2.1: a turret just hit by a spear flashes pale.
+function drawTurretHit(ctx, hit, draw) {
+  if (!hit) {
+    draw();
+    return;
+  }
+  ctx.save();
+  ctx.filter = 'brightness(1.8) saturate(0.4)';
+  draw();
+  ctx.restore();
+}
+
 function knockedBack(e, anim) {
   const age = anim - e.lastKnockTime;
   if (!e.knockDir || age >= C.STRIKE_KNOCKBACK_TIME) return e;

@@ -19,7 +19,7 @@ import { isDoubleTargeting, isDoubleTarget, doubleOnSlot, doubleJob } from './sy
 import { DoubleState } from './entities/boughDouble.js';
 import { AttackState } from './entities/enemy.js';
 import { turretOnSlot } from './systems/buildSystem.js';
-import { buildCost, levelStats, levelRange, levelName, nextLevelStats, maxLevel, turretType, TURRET_TYPE_KEYS, buildableTypes } from './entities/turret.js';
+import { buildCost, levelStats, levelRange, levelName, nextLevelStats, maxLevel, turretType, TURRET_TYPE_KEYS, buildableTypes, turretMaxHp, isDamaged } from './entities/turret.js';
 import { isStepMode, stepCost, stepParts, canVisit, anyVisitable, routePreview, calibrationFigures, affordableTurretTypes } from './systems/stepSystem.js';
 import { enemyTotals, waveCounts } from './game.js';
 import { isMuted, soundStats, audioStatus } from './audio.js';
@@ -82,7 +82,18 @@ function traitDebugLine(game) {
   const n = (v) => (Number.isInteger(v) ? v : v.toFixed(2));
   return `Grim traits: armor blocked ${n(s.armorBlocked)}  splash ${n(s.splashDamage)}  lifesteal healed ${n(s.lifestealHealed)}\n`
     + `Level 5:     Twin shot 2nd pebbles ${n(s.twinShotDamage)}  Corrosion extra ${n(s.corrosionExtra)}\n` // M2m §3
-    + `Rising dead: ${regionTwist(game.scene.level, 'risingDead') ? 'on' : 'off'}  rises ${s.rises}  burned to ash ${s.burnedToAsh}  bodies waiting ${game.bodies.length}`; // M3b §6
+    + `Rising dead: ${regionTwist(game.scene.level, 'risingDead') ? 'on' : 'off'}  rises ${s.rises}  burned to ash ${s.burnedToAsh}  bodies waiting ${game.bodies.length}
+` // M3b §6
+    + valeDebugLine(game);
+}
+
+// M6b: shields, hunters and turret HP this battle.
+function valeDebugLine(game) {
+  const shielded = game.enemies.filter((e) => e.statuses.shielded).length;
+  const throwing = game.enemies.filter((e) => e.throwing).length;
+  const damaged = game.turrets.filter((t) => isDamaged(t)).map((t) => `${t.type} ${Math.ceil(t.hp)}/${turretMaxHp(t)}`).join(', ');
+  return `Vale:        shield absorbed ${Math.round(game.traitStats.shieldAbsorbed)}  shielded ${shielded}  hunters throwing ${throwing}  spears ${game.spears.length}  `
+    + `wrecked ${game.turretsWrecked}  repairs ${game.doubleStats.repairs ?? 0}  damaged: ${damaged || 'none'}`;
 }
 
 // Waves (M2i §7): the wave and its sub-state, this wave's spawned / alive / left, and the countdown.
@@ -563,7 +574,7 @@ function livingBoss(game) {
 // Wave preview (M2i §4.2): during the countdown and gaps, the next wave's number, countdown and
 // enemies (icons with counts, an Ogre outlined in red), with Call next wave.
 // Enemy types in display order: by base type, each followed by its variants (a Grim, M2l §2.1).
-const PREVIEW_ORDER = ['wolf', 'thrall', 'stirge', 'bear', 'brute', 'ogre', 'knight', 'bogKing'];
+const PREVIEW_ORDER = ['wolf', 'thrall', 'spider', 'stirge', 'lizardman', 'hunter', 'shaman', 'bear', 'brute', 'giantLizard', 'ogre', 'knight', 'bogKing'];
 function enemyDisplayOrder() {
   const rank = (type) => {
     const base = C.ENEMY_TYPES[type].baseType;
@@ -851,6 +862,12 @@ function combatTooltip(game, hover) {
       return { title: 'Build', cost: C.BOUGH_DOUBLE_COST, lines: [['tip-muted', 'Choose turret on click']], anchor };
     }
     const job = doubleJob(game, hover.index);
+    if (job.job === 'repair') { // M6b §2.3
+      const turret = turretOnSlot(game, hover.index);
+      const lines = [['', `HP ${Math.ceil(turret.hp)} / ${turretMaxHp(turret)} · restores full HP`], ['', `${job.time.toFixed(1)} s · it doesn't fire meanwhile`]];
+      if (!canAfford(game.resources, job.cost)) lines.push(['tip-warn', 'Not enough resources']);
+      return { title: 'Repair', cost: job.cost, lines, anchor };
+    }
     const lines = upgradeDetail(job.turretType, job.toLevel).split('\n').map((text) => ['', text]); // gains and time
     if (!canAfford(game.resources, job.cost)) lines.push(['tip-warn', 'Not enough resources']);
     return { title: `Upgrade to ${levelLabel(job.turretType, job.toLevel)}`, cost: job.cost, lines, anchor };
@@ -1113,7 +1130,7 @@ function turretMenuOptions(game, menu) {
   const options = [];
   const d = doubleOnSlot(game, menu.index);
   if (d) {
-    const what = d.job === 'build' ? `building ${turretType(d.turretType).name}` : `upgrading to ${levelLabel(d.turretType, d.toLevel, 'level')}`;
+    const what = d.job === 'build' ? `building ${turretType(d.turretType).name}` : d.job === 'repair' ? 'repairing' : `upgrading to ${levelLabel(d.turretType, d.toLevel, 'level')}`;
     const left = d.state === DoubleState.WISP ? 'arriving' : `${Math.max(0, d.duration - d.elapsed).toFixed(1)} s left`;
     options.push({
       title: `Bough Double: ${what}`, portrait: 'double', cost: null, costText: `Refund: ${formatCost(d.paid)}`,
@@ -1127,7 +1144,8 @@ function turretMenuOptions(game, menu) {
       // "No upgrades available" stays for future single-level types (M1h §2.3).
       costText: maxLevel(turret.type) === 1 ? 'No upgrades available'
         : turret.level >= maxLevel(turret.type) ? 'Max level' : `Upgrade with a Bough Double (level ${turret.level + 1})`,
-      detail: turretStats(turret), action: null, disabled: true, info: true, reason: '',
+      detail: (isDamaged(turret) ? `HP ${Math.ceil(turret.hp)} / ${turretMaxHp(turret)} · repair with a Bough Double
+` : '') + turretStats(turret), action: null, disabled: true, info: true, reason: '', // M6b §2.3
     });
   }
   return options;

@@ -4,6 +4,7 @@
 //   corroded: { until, mult } — it takes mult × damage from every source, before armor (M2m §2.4)
 //   burning:  { until, nextTick, tickDamage, tickInterval, spreadRadius, level, sourceTurretId } —
 //             tickDamage every tickInterval s (burnSystem.js), M2o §2.2; spreadRadius > 0: Wildfire
+//   shielded: { until, amount, max } — absorbs damage before HP (M6b §3, damageEnemy in combatSystem.js)
 
 import * as C from '../config.js';
 import { enemyType } from '../entities/enemy.js';
@@ -70,4 +71,17 @@ export function updateStatuses(game) {
       if (game.combatTime >= status.until) delete enemy.statuses[name];
     }
   }
+}
+
+// M6b §3: shields `enemy` with `amount` (× the level's enemy HP multiplier) for `duration` s. A
+// shielded enemy's shield is reset to the larger of the two amounts, with the new duration (no stacking).
+export function applyShield(game, enemy, amount, duration) {
+  const scaled = Math.round(amount * game.stats['enemy.hpMult']);
+  const old = enemy.statuses.shielded;
+  const kept = Math.max(scaled, old?.amount ?? 0);
+  enemy.statuses.shielded = { until: game.combatTime + duration, amount: kept, max: Math.max(kept, old?.max ?? 0) };
+}
+
+export function shieldOf(enemy) {
+  return enemy.statuses.shielded?.amount ?? 0;
 }
