@@ -30,8 +30,9 @@ export function enemyType(enemy) {
 
 // Movement speed multiplier from its statuses (M2k §3.4): slowed moves at its mult (movement only;
 // attack timing is unchanged).
+// M6b §5.3: the High-Shaman's aura speeds up the lizardfolk near him (enemy.auraMult, shamanSystem.js).
 export function moveMult(enemy) {
-  return enemy.statuses.slowed?.mult ?? 1;
+  return (enemy.statuses.slowed?.mult ?? 1) * (enemy.auraMult ?? 1);
 }
 
 // Its current movement speed, px/s: the type's speed times its statuses' multiplier.
@@ -73,6 +74,7 @@ export function createEnemy(id, type, lane, offset, rng, hpMult = 1) {
     radius: t.radius,      // drawn size: drawing, HP bar, hover, Druid melee positioning
     collisionRadius: collisionRadiusOf(type), // collisions with other enemies, corridor clamping (M2d §3.2)
     flying: !!t.flying,    // M2h §3: flies over the ground enemies (no collision with them, no melee slots)
+    stationary: !!t.stationary, // M6b §5.1: an egg sac: never moves, blocks nothing, attacks nothing
     lane,
     state: EnemyState.WALKING,
     s: 0,                  // distance along the lane

@@ -32,7 +32,7 @@ export function updateEnemyMovement(game, dt) {
       moveFlyer(game, enemy, dt); // M2h §3: its own rules, over the ground enemies
       continue;
     }
-    if (enemy.throwing) continue; // M6b §4.2: a hunter stands still while it throws (rangedSystem.js)
+    if (enemy.throwing || enemy.stationary) continue; // M6b §5.1: an egg sac stays where it was laid // M6b §4.2: a hunter stands still while it throws (rangedSystem.js)
     const before = { x: enemy.x, y: enemy.y };
     switch (enemy.state) {
       case EnemyState.WALKING: walk(game, enemy, dt); break;

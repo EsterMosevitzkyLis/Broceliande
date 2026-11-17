@@ -114,3 +114,14 @@ SHAMAN_SHIELD_AMOUNT,12,TUNING - shield per target (x the level enemyHpMult)
 SHAMAN_SHIELD_DURATION,8,TUNING - s a shield lasts unless used up first
 GRIM_SHAMAN_SHIELD_INTERVAL,5,TUNING - the Grim Lizard Shaman cast interval (s)
 GRIM_SHAMAN_SHIELD_AMOUNT,18,TUNING - the Grim Lizard Shaman shield per target
+BROOD_EGG_INTERVAL,6,TUNING - s between the Broodmother egg sacs (M6b sec. 5.1)
+BROOD_HATCH_TIME,5,TUNING - s an egg sac takes to hatch unless destroyed first
+BROOD_HATCH_COUNT,4,TUNING - spiders from one egg sac
+GRIM_BROOD_EGG_INTERVAL,5,"TUNING - the Grim Broodmother egg interval (s), her sacs are grimBroodEgg (M6b sec. 5.2)"
+GRIM_BROOD_HATCH_COUNT,5,TUNING - spiders from one of her egg sacs
+HIGH_SHAMAN_PULSE_INTERVAL,8,TUNING - s between the High-Shaman relic pulses (M6b sec. 5.3)
+HIGH_SHAMAN_RANGE,260,TUNING - px reach of his pulse and of his speed aura
+HIGH_SHAMAN_PULSE_SHIELD,20,TUNING - shield on every lizardfolk in range (x the level enemyHpMult)
+HIGH_SHAMAN_SELF_SHIELD,60,TUNING - his own shield from a pulse
+HIGH_SHAMAN_SHIELD_DURATION,8,TUNING - s those shields last
+HIGH_SHAMAN_AURA_SPEED,1.15,TUNING - speed multiplier of lizardfolk within his range (not himself)

@@ -84,17 +84,19 @@ const TURRET_FIRE_SOUND = { sprinkler: 'sprinklerFire', toader: 'toaderFire', ci
 const ENEMY_ATTACK_SOUND = {
   wolf: 'wolfBite', bear: 'bearAttack', ogre: 'ogreBlow', stirge: 'stirgeBite', thrall: 'thrallAttack', brute: 'bruteAttack', knight: 'knightBlow', bogKing: 'bogKingBlow',
   spider: 'spiderBite', lizardman: 'lizardmanAttack', hunter: 'lizardmanAttack', giantLizard: 'giantLizardAttack', shaman: 'shamanAttack',
+  broodmother: 'broodmotherBlow', highShaman: 'highShamanBlow', // M6b §5
 };
 const ENEMY_DEATH_SOUND = {
   wolf: 'wolfDie', bear: 'bearDie', ogre: 'ogreDies', stirge: 'stirgeDies', thrall: 'thrallDie', brute: 'bruteDie', knight: 'knightDies', bogKing: 'bogKingDies',
   spider: 'spiderDie', lizardman: 'lizardmanDie', hunter: 'hunterDie', giantLizard: 'giantLizardDie', shaman: 'shamanDie',
+  broodmother: 'broodmotherDies', highShaman: 'highShamanDies', broodEgg: 'eggBurst',
 };
 const SPEAR_THROW_SOUND = { hunter: 'hunterThrow' }; // M6b §4.2
 const SHAMAN_CAST_SOUND = { shaman: 'shamanCast' };  // M6b §4.3
 // M2c §2.9: a mini-boss's arrival, footsteps and wind-up (none for wolves and Bears).
-const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns', knight: 'knightSpawns', bogKing: 'bogKingRoar' }; // M2h: once per flock (its first Stirge)
-const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep', bogKing: 'bogKingStep' };
-const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup', bogKing: 'bogKingWindup' };
+const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns', knight: 'knightSpawns', bogKing: 'bogKingRoar', broodmother: 'broodmotherSpawns', highShaman: 'highShamanSpawns' }; // M2h: once per flock (its first Stirge)
+const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep', bogKing: 'bogKingStep', broodmother: 'broodmotherStep', highShaman: 'highShamanStep' };
+const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup', bogKing: 'bogKingWindup', broodmother: 'broodmotherWindup', highShaman: 'highShamanWindup' };
 
 function subscribe() {
   events.on('turretFired', (e) => play(TURRET_FIRE_SOUND[C.TURRET_TYPES[e.type].baseType], e)); // a variant fires as its base (M3c §4)
@@ -122,6 +124,8 @@ function subscribe() {
   events.on('spearThrown', (e) => playEnemy(SPEAR_THROW_SOUND, e));
   events.on('shamanCast', (e) => playEnemy(SHAMAN_CAST_SOUND, e));
   for (const name of ['spearHit', 'shieldBroken', 'turretHit', 'turretWrecked', 'turretRepaired']) events.on(name, (e) => play(name, e));
+  for (const name of ['eggLaid', 'relicPulse']) events.on(name, (e) => play(name, e)); // M6b §5
+  events.on('eggHatched', (e) => play('eggHatch', e));
   events.on('resourcesGained', (e) => { // M2k §2.1: Shells have their own chime (and sounds row)
     const resources = e.resources ?? [];
     const others = resources.filter((r) => !OWN_CHIME[r]);
@@ -710,6 +714,109 @@ const RECIPES = {
     tone(t, out, { type: 'triangle', freq: 620 * p, dur: 0.05, gain: 0.5, delay: 0.1 });
     bell(t, out, 880 * p, 0.2, 0.3, 0.15);
     return 0.5;
+  },
+
+  // M6b §5.1: the Broodmother: a wet, many-voiced chittering arrival.
+  broodmotherSpawns(t, out, p) {
+    for (let i = 0; i < 10; i++) noise(t, out, { freq: (1800 + (i % 4) * 500) * p, q: 5, dur: 0.05, gain: 0.5, delay: i * 0.09 });
+    growl(t, out, { freq: 70 * p, to: 50 * p, dur: 1.3, attack: 0.3, cutoff: 500, trem: 22, gain: 0.7 });
+    return 1.4;
+  },
+
+  // Her many legs: a soft, quick patter.
+  broodmotherStep(t, out, p) {
+    for (let i = 0; i < 3; i++) noise(t, out, { filter: 'lowpass', freq: 900 * p, dur: 0.04, gain: 0.6, delay: i * 0.05 });
+    return 0.18;
+  },
+
+  // Rearing up: a rising hiss.
+  broodmotherWindup(t, out, p) {
+    noise(t, out, { freq: 1200 * p, to: 3200 * p, q: 1.5, dur: 0.5, attack: 0.1, gain: 0.6 });
+    return 0.5;
+  },
+
+  // Her fangs come down: a heavy snap and a crunch.
+  broodmotherBlow(t, out, p) {
+    tone(t, out, { freq: 90 * p, to: 30 * p, dur: 0.35, gain: 1.2 });
+    noise(t, out, { filter: 'highpass', freq: 2400 * p, dur: 0.1, gain: 0.8 });
+    noise(t, out, { filter: 'lowpass', freq: 700 * p, dur: 0.18, gain: 0.8, delay: 0.04 });
+    return 0.4;
+  },
+
+  // She dies: a long shrill keening curling down, then a soft collapse.
+  broodmotherDies(t, out, p) {
+    tone(t, out, { type: 'triangle', freq: 1600 * p, to: 300 * p, dur: 1.2, attack: 0.05, gain: 0.5 });
+    noise(t, out, { freq: 2600 * p, to: 800 * p, q: 3, dur: 1.1, gain: 0.35 });
+    noise(t, out, { filter: 'lowpass', freq: 500 * p, dur: 0.4, gain: 0.9, delay: 1.1 });
+    return 1.55;
+  },
+
+  // An egg sac laid: a soft wet plop.
+  eggLaid(t, out, p) {
+    tone(t, out, { freq: 260 * p, to: 120 * p, dur: 0.12, gain: 0.7 });
+    noise(t, out, { filter: 'lowpass', freq: 600 * p, dur: 0.08, gain: 0.5 });
+    return 0.14;
+  },
+
+  // A sac hatches: a tearing squelch and a burst of chittering.
+  eggHatch(t, out, p) {
+    noise(t, out, { freq: 900 * p, to: 400 * p, q: 2, dur: 0.15, gain: 0.7 });
+    for (let i = 0; i < 4; i++) noise(t, out, { freq: (2400 + i * 300) * p, q: 6, dur: 0.03, gain: 0.5, delay: 0.12 + i * 0.04 });
+    return 0.32;
+  },
+
+  // A sac destroyed: a wet pop.
+  eggBurst(t, out, p) {
+    noise(t, out, { filter: 'lowpass', freq: 1100 * p, to: 300 * p, dur: 0.12, gain: 0.8 });
+    tone(t, out, { freq: 340 * p, to: 140 * p, dur: 0.08, gain: 0.5 });
+    return 0.14;
+  },
+
+  // M6b §5.3: the High-Shaman: a deep hissing chant with a ringing relic.
+  highShamanSpawns(t, out, p) {
+    growl(t, out, { freq: 95 * p, to: 75 * p, dur: 1.4, attack: 0.3, cutoff: 650, trem: 9, gain: 0.8 });
+    noise(t, out, { filter: 'highpass', freq: 2600 * p, dur: 1.2, attack: 0.2, gain: 0.25 });
+    [440, 554, 659].forEach((f, i) => bell(t, out, f * p, 0.3 + i * 0.2, 1, 0.2));
+    return 1.6;
+  },
+
+  // His heavy, clawed step with a rattle of bone charms.
+  highShamanStep(t, out, p) {
+    tone(t, out, { freq: 72 * p, to: 40 * p, dur: 0.14, gain: 0.8 });
+    noise(t, out, { freq: 2200 * p, q: 4, dur: 0.06, gain: 0.25, delay: 0.03 });
+    return 0.16;
+  },
+
+  // Raising the relic pole: a hiss and a hum rising.
+  highShamanWindup(t, out, p) {
+    noise(t, out, { filter: 'highpass', freq: 2400 * p, dur: 0.4, attack: 0.08, gain: 0.4 });
+    tone(t, out, { freq: 160 * p, to: 260 * p, dur: 0.45, attack: 0.1, gain: 0.35 });
+    return 0.47;
+  },
+
+  // The pole comes down: a heavy thump and a ring.
+  highShamanBlow(t, out, p) {
+    tone(t, out, { freq: 85 * p, to: 30 * p, dur: 0.4, gain: 1.2 });
+    noise(t, out, { filter: 'lowpass', freq: 650 * p, dur: 0.2, gain: 0.9 });
+    bell(t, out, 520 * p, 0.02, 0.5, 0.25);
+    return 0.52;
+  },
+
+  // He falls: a long hiss fading, the relic ringing out.
+  highShamanDies(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 2000 * p, to: 600 * p, q: 1.5, dur: 1.2, attack: 0.05, gain: 0.5 });
+    bell(t, out, 660 * p, 0.2, 1.4, 0.3);
+    bell(t, out, 495 * p, 0.5, 1.4, 0.25);
+    tone(t, out, { freq: 70 * p, to: 28 * p, dur: 0.4, gain: 1.1, delay: 1 });
+    return 1.9;
+  },
+
+  // A relic pulse: a deep swell and a shimmering ring spreading out.
+  relicPulse(t, out, p) {
+    tone(t, out, { freq: 110 * p, to: 165 * p, dur: 0.8, attack: 0.15, gain: 0.6 });
+    [523, 659, 784, 1046].forEach((f, i) => bell(t, out, f * p, 0.1 + i * 0.06, 0.8, 0.15));
+    noise(t, out, { freq: 3000 * p, to: 6000 * p, q: 3, dur: 0.7, attack: 0.15, gain: 0.15 });
+    return 0.9;
   },
 
   // M3b §2.2: the Drowned Thrall's bite: a short wet groan over a soft slap.

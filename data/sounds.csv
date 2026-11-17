@@ -93,3 +93,17 @@ shieldBreak,0.45,1,0.06,3,TRUE
 turretHit,0.45,1,0.06,3,TRUE
 turretWrecked,0.8,1,0.1,2,TRUE
 turretRepaired,0.6,1,0.1,2,TRUE
+broodmotherSpawns,0.9,1,1,1,TRUE
+broodmotherStep,0.5,1,0.1,2,TRUE
+broodmotherWindup,0.7,1,0.3,2,TRUE
+broodmotherBlow,1,1,0.3,2,TRUE
+broodmotherDies,1,1,1,1,TRUE
+eggLaid,0.5,1,0.2,2,TRUE
+eggHatch,0.6,1,0.15,3,TRUE
+eggBurst,0.5,1,0.06,3,TRUE
+highShamanSpawns,0.9,1,1,1,TRUE
+highShamanStep,0.5,1,0.1,2,TRUE
+highShamanWindup,0.7,1,0.3,2,TRUE
+highShamanBlow,1,1,0.3,2,TRUE
+highShamanDies,1,1,1,1,TRUE
+relicPulse,0.8,1,0.5,2,TRUE

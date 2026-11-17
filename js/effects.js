@@ -64,6 +64,10 @@ export function updateEffects(game, dt) {
   game.debris = game.debris.filter((d) => d.age < C.WRECK_DEBRIS_TIME);
   for (const s of game.shieldShatters) s.age += dt;
   game.shieldShatters = game.shieldShatters.filter((s) => s.age < C.SHIELD_SHATTER_TIME);
+  for (const h of game.eggHatches) h.age += dt; // M6b §5
+  game.eggHatches = game.eggHatches.filter((h) => h.age < C.EGG_HATCH_TIME);
+  for (const p of game.relicPulses) p.age += dt;
+  game.relicPulses = game.relicPulses.filter((p) => p.age < C.RELIC_PULSE_TIME);
   if (game.shake) {
     game.shake.age += dt;
     if (game.shake.age >= (game.shake.time ?? C.OGRE_SHAKE_TIME)) game.shake = null;

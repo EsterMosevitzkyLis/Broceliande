@@ -824,6 +824,7 @@ const HP_BAR = {
   wolf: { lift: 2.9, width: 30 }, bear: { lift: 1.75, width: 48 }, ogre: { lift: 2.15, width: 90 }, stirge: { lift: 3.1, width: 22 }, // stirge: above its flying body
   thrall: { lift: 3.3, width: 30 }, brute: { lift: 2.2, width: 48 }, knight: { lift: 2.35, width: 90 }, bogKing: { lift: 2.65, width: 120 }, // M3b §2, §5
   spider: { lift: 2.2, width: 26 }, lizardman: { lift: 3, width: 30 }, hunter: { lift: 3.2, width: 28 }, giantLizard: { lift: 1.25, width: 52 }, shaman: { lift: 3.2, width: 30 }, // M6b §4
+  broodmother: { lift: 1.55, width: 90 }, highShaman: { lift: 2.45, width: 90 }, broodEgg: { lift: 2.1, width: 24 }, // M6b §5
 };
 
 // Mini-bosses (M2c §2.7) keep theirs visible all the time. M6b §3: a shield shows (and shows the

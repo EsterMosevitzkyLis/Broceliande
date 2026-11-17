@@ -13,10 +13,12 @@ import * as C from '../config.js';
 import { drawWolf, drawBear, drawOgre, drawStirge, drawGrimSmoke } from './entities.js';
 import { drawThrall, drawBrute, drawKnight, drawBogKing } from './undead.js';
 import { drawSpider, drawLizardman, drawHunter, drawGiantLizard, drawShaman } from './vale.js';
+import { drawBroodmother, drawEggSac, drawHighShaman } from './valeBosses.js';
 
 const ENEMY_DRAW = {
   wolf: drawWolf, bear: drawBear, ogre: drawOgre, stirge: drawStirge, thrall: drawThrall, brute: drawBrute, knight: drawKnight, bogKing: drawBogKing,
   spider: drawSpider, lizardman: drawLizardman, hunter: drawHunter, giantLizard: drawGiantLizard, shaman: drawShaman, // M6b §4
+  broodmother: drawBroodmother, broodEgg: drawEggSac, highShaman: drawHighShaman, // M6b §5
 };
 const UNDEAD = new Set(['thrall', 'brute', 'knight', 'bogKing']); // M3b §2: cold green outline and mist
 
@@ -36,6 +38,9 @@ const SMOKE = {
   hunter: { top: 2.8, width: 1, puff: 0.8 },
   giantLizard: { top: 0.9, width: 1.8, puff: 0.8 },
   shaman: { top: 2.7, width: 1, puff: 0.8 },
+  broodmother: { top: 1.2, width: 1.4, puff: 0.6 },
+  broodEgg: { top: 1.6, width: 0.8, puff: 0.6 },
+  highShaman: { top: 2.5, width: 0.8, puff: 0.6 },
 };
 
 const SCRATCH_SIZE = 7;     // × radius: side of the square scratch canvas round one enemy

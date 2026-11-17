@@ -11,9 +11,9 @@ import * as C from '../config.js';
 import { drawShadow } from './environment.js';
 import { isGrim, drawCracks, fillPoly } from './entities.js';
 
-const STRIKE_FLASH = '#f4f0ff';
+export const STRIKE_FLASH = '#f4f0ff';
 
-const LIZARD = {
+export const LIZARD = {
   scale: '#6f8a3e', scaleGrim: '#46582a', belly: '#c4b27a', bellyGrim: '#8a7c52', dark: '#3f5224', darkGrim: '#283318',
   bronze: '#a47a3a', crest: '#b5552c', crestGrim: '#7a2f1c', hit: '#d8e4b8',
   bone: '#e2d6b6', boneEdge: '#8a7a5a', feather: '#c8a04a', featherDark: '#7a3a24', wood: '#7a5a34', woodDark: '#4e3820',
@@ -38,7 +38,7 @@ export function drawSlitEye(ctx, x, y, size, grim) {
   ctx.fill();
 }
 
-function lizardColors(e, hit) {
+export function lizardColors(e, hit) {
   const grim = isGrim(e);
   const L = LIZARD;
   return {
@@ -50,7 +50,7 @@ function lizardColors(e, hit) {
   };
 }
 
-function begin(ctx, e, base, lunging, lunge = 4) {
+export function begin(ctx, e, base, lunging, lunge = 4) {
   ctx.save();
   ctx.translate(e.x, e.y + e.radius * 0.5);
   ctx.scale(e.facing * (e.radius / base), e.radius / base);
@@ -162,7 +162,7 @@ function lizardLegs(ctx, k, dark, stride, spread = 1) {
   return k;
 }
 
-function lizardTail(ctx, color, anim, seed, len = 1) {
+export function lizardTail(ctx, color, anim, seed, len = 1) {
   const sway = Math.sin(anim * 3 + seed) * 2;
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -174,7 +174,7 @@ function lizardTail(ctx, color, anim, seed, len = 1) {
 }
 
 // Head at (hx, hy): a long snout, a frill and crest behind it, an amber slit eye.
-function lizardHead(ctx, c, hx, hy, { crest = 3, grim = false } = {}) {
+export function lizardHead(ctx, c, hx, hy, { crest = 3, grim = false } = {}) {
   // Crest: a row of spines from the back of the head.
   const spines = [];
   for (let i = 0; i < crest; i++) spines.push([hx - 3 - i * 2.2, hy - 4 + i * 1.6]);

@@ -6,7 +6,7 @@
 import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES, PLACEHOLDER_LEVELS, isVillageRow } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 
-const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss', 'warrior', 'ranged', 'support']; // M3b §1, M6b §4.1
+const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss', 'warrior', 'ranged', 'support', 'egg']; // M3b §1, M6b §4.1, §5.1
 import { STAT_KEYS } from '../stats.js';
 
 // maps: each level's map file (M4a §1.3; a missing one is already an error from loadMaps).

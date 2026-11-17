@@ -38,6 +38,9 @@ export const GLOBAL_TYPES = {
   REPAIR_COST: 'int', REPAIR_TIME: 'number', // M6b §2.3
   SHAMAN_SHIELD_INTERVAL: 'number', SHAMAN_SHIELD_TARGETS: 'int', SHAMAN_SHIELD_RANGE: 'number', SHAMAN_SHIELD_AMOUNT: 'number', SHAMAN_SHIELD_DURATION: 'number', // M6b §4.3
   GRIM_SHAMAN_SHIELD_INTERVAL: 'number', GRIM_SHAMAN_SHIELD_AMOUNT: 'number',
+  BROOD_EGG_INTERVAL: 'number', BROOD_HATCH_TIME: 'number', BROOD_HATCH_COUNT: 'int', GRIM_BROOD_EGG_INTERVAL: 'number', GRIM_BROOD_HATCH_COUNT: 'int', // M6b §5.1–§5.2
+  HIGH_SHAMAN_PULSE_INTERVAL: 'number', HIGH_SHAMAN_RANGE: 'number', HIGH_SHAMAN_PULSE_SHIELD: 'number', HIGH_SHAMAN_SELF_SHIELD: 'number',
+  HIGH_SHAMAN_SHIELD_DURATION: 'number', HIGH_SHAMAN_AURA_SPEED: 'number', // M6b §5.3
 };
 
 // Druid stats: key → type. Every key must have a row.
@@ -78,6 +81,7 @@ export const TABS = {
       role: { type: 'id' }, rises: { type: 'bool' }, region: { type: 'id' }, banner: { type: 'text' },
       // M6b §2.1, §4.2: it can damage turrets; a ranged enemy's range; camouflage (M6c, not used yet).
       attacksTurrets: { type: 'bool' }, attackRange: { type: 'number' }, camouflage: { type: 'bool' },
+      stationary: { type: 'bool' }, // M6b §5.1: a stationary target (an egg sac): never moves, blocks or attacks
     },
   },
   drops: { columns: { enemy: { type: 'id', required: true }, resource: { type: 'id', required: true }, chance: { type: 'number', required: true }, min: { type: 'int', required: true }, max: { type: 'int', required: true } } },

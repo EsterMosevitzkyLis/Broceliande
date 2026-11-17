@@ -121,6 +121,9 @@ function bossDebugLines(game) {
       : `ready to wind up in ${Math.max(0, t.attackInterval - t.windupTime - e.sinceBlow).toFixed(1)} s`;
     lines.push(`  ${t.name} #${e.id}: HP ${Math.ceil(e.hp)} / ${e.maxHp}  ${attack}`);
     // M3b §5.2: the Bog King's raising and sinking.
+    // M6b §5: egg sacs and relic pulses.
+    if (t.baseType === 'broodmother') lines.push(`    lays an egg sac in ${Math.max(0, (t.variant === 'grim' ? C.GRIM_BROOD_EGG_INTERVAL : C.BROOD_EGG_INTERVAL) - (e.layTimer ?? 0)).toFixed(1)} s  (sacs about ${game.enemies.filter((x) => x.laidBy === e.id).length})`);
+    if (t.baseType === 'highShaman') lines.push(`    relic pulse in ${Math.max(0, C.HIGH_SHAMAN_PULSE_INTERVAL - (e.pulseTimer ?? 0)).toFixed(1)} s  shield ${Math.round(e.statuses.shielded?.amount ?? 0)}  speeding ${game.enemies.filter((x) => x.auraMult > 1).length}`);
     if (t.role === 'boss') lines.push(`    raises Thralls in ${Math.max(0, C.BOG_KING_SUMMON_INTERVAL - (e.summonTimer ?? 0)).toFixed(1)} s  (${raisedCount(game, e)} / ${C.BOG_KING_SUMMON_MAX} of his about)  ${e.hasSunk ? 'has sunk' : 'sinks at half HP'}`);
   }
   for (const en of game.bossEntrances) lines.push(`  ${C.ENEMY_TYPES[en.type].name} rises from ${en.lane.id} in ${Math.max(0, en.timer).toFixed(1)} s`);
@@ -574,7 +577,7 @@ function livingBoss(game) {
 // Wave preview (M2i §4.2): during the countdown and gaps, the next wave's number, countdown and
 // enemies (icons with counts, an Ogre outlined in red), with Call next wave.
 // Enemy types in display order: by base type, each followed by its variants (a Grim, M2l §2.1).
-const PREVIEW_ORDER = ['wolf', 'thrall', 'spider', 'stirge', 'lizardman', 'hunter', 'shaman', 'bear', 'brute', 'giantLizard', 'ogre', 'knight', 'bogKing'];
+const PREVIEW_ORDER = ['wolf', 'thrall', 'spider', 'stirge', 'lizardman', 'hunter', 'shaman', 'bear', 'brute', 'giantLizard', 'ogre', 'knight', 'broodmother', 'highShaman', 'broodEgg', 'bogKing'];
 function enemyDisplayOrder() {
   const rank = (type) => {
     const base = C.ENEMY_TYPES[type].baseType;

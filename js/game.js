@@ -2,6 +2,7 @@
 
 import { updateRanged, updateSpears } from './systems/rangedSystem.js';
 import { updateShamans } from './systems/shamanSystem.js';
+import { updateValeBosses } from './systems/valeBossSystem.js';
 import * as C from './config.js';
 import { createRng, makeRandomSeed } from './rng.js';
 import { buildWavePlans, updateSpawning, queueDebugEnemy } from './systems/spawnSystem.js';
@@ -239,6 +240,8 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.debris = [];        // M6b §2.2: { x, y, seed, age } a collapse's flying pieces (visual only)
   game.shieldShatters = []; // M6b §3: { x, y, r, seed, age } a shield breaking (visual only)
   game.turretsWrecked = 0;  // M6b: this battle's figure (debug panel)
+  game.eggHatches = [];     // M6b §5.1: { x, y, seed, grim, age } a sac splitting open (visual only)
+  game.relicPulses = [];    // M6b §5.3: { x, y, age } the High-Shaman's expanding ring (visual only)
   game.meleeSlots = createMeleeSlots(level.druidPos);
   game.wavePlans = buildWavePlans(level, game.lanes, game.rng);
   game.spawnQueues = [];
@@ -652,6 +655,7 @@ export function updateGame(game, dt) {
       updateBodies(game, dt);        // M3b §3: bodies waiting to rise stand up
       updateBogKing(game, dt);       // M3b §5: his entrance, raising Thralls, resurfacing
       updateShamans(game, dt);       // M6b §4.3: shield casts
+      updateValeBosses(game, dt);    // M6b §5: egg sacs laid and hatching, relic pulses and the aura
       updateStatuses(game);          // M2k §3.4: timed statuses (slowed) run out
       updateDoubles(game, dt);       // Bough Double jobs (M1i §2)
       updateMelee(game, dt);

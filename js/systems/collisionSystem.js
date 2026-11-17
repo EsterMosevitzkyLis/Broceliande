@@ -13,7 +13,7 @@ export function passing(a, b) {
 // when testing a spawn point.
 export function findBlocker(enemies, self, x, y, radius) {
   for (const other of enemies) {
-    if (other === self || other.flying || (self && passing(self, other))) continue; // flyers pass over (M2h §3.1)
+    if (other === self || other.flying || other.stationary || (self && passing(self, other))) continue; // flyers pass over (M2h §3.1); egg sacs block nothing (M6b §5.1)
     if (Math.hypot(other.x - x, other.y - y) < radius + other.collisionRadius) return other;
   }
   return null;

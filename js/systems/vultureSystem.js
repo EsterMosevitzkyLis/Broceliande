@@ -84,6 +84,7 @@ export function updateBlocking(game, dt) {
     ...blockingSquirrels(game).map((unit) => ({ unit, radius: C.SQUIRREL_BLOCK_RADIUS, squirrel: true })),
   ];
   for (const enemy of game.enemies) {
+    if (enemy.stationary) continue; // M6b §5.1: an egg sac attacks nothing
     let blocker = null;
     let bestDist = Infinity;
     for (const { unit, radius, squirrel } of blockers) {

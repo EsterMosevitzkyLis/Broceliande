@@ -73,7 +73,7 @@ export const GRIM_SPARKS = 3;               // tiny ember sparks rising through 
 export const GRIM_SPARK_RATE = 0.9;         // rises per s
 export const ARMOR_SPARK_TIME = 0.18;       // s the grey spark shows where armor reduced a hit
 // M6b §3: shields (the shielded status) and the Lizard Shamans' casts; turret HP, wrecks and spears.
-export const LIZARDFOLK = new Set(['lizardman', 'hunter', 'giantLizard', 'shaman']); // M6b §1: base types a shaman shields (never spiders)
+export const LIZARDFOLK = new Set(['lizardman', 'hunter', 'giantLizard', 'shaman', 'highShaman']); // M6b §1: base types a shaman shields (never spiders)
 export const SPEAR_SPEED = 520;              // TUNING — px/s, a hunter's spear (fast but not instant, M6b §4.2)
 export const SPEAR_HIT_RADIUS = 10;          // px from its target's centre at which a spear lands
 export const SHIELD_COLOR = 'rgba(120, 235, 200, 0.85)'; // its bubble's scale edges and HP bar segment
@@ -83,6 +83,14 @@ export const SHAMAN_CAST_TIME = 0.6;         // s the staff stays raised and the
 export const TURRET_HIT_FLASH_TIME = 0.12;   // s a turret flashes when a spear hits it
 export const TURRET_HP_BAR = { width: 40, below: 30 }; // px: a damaged turret's bar, its top this far below the slot centre
 export const WRECK_DEBRIS_TIME = 0.6;        // s the debris flies when a turret collapses
+// M6b §5: the mini-bosses. Which egg sac a Broodmother lays (her variant's), and what hatches.
+export const BROOD_EGG_TYPE = { broodmother: 'broodEgg', grimBroodmother: 'grimBroodEgg' };
+export const BROOD_HATCH_TYPE = 'spider';
+export const EGG_LAY_GAP = 14;               // px between her back end and the sac she lays
+export const EGG_HATCH_SPREAD = 14;          // px the hatchlings spread round the sac
+export const LAY_POSE_TIME = 0.5;            // s her abdomen dips as she lays (drawing)
+export const EGG_HATCH_TIME = 0.5;           // s a hatching sac's shreds and goo show
+export const RELIC_PULSE_TIME = 0.9;         // s the High-Shaman's expanding ring shows
 export const HEAL_SPARKLE_TIME = 0.4;       // s the red sparkle shows on a biter that healed
 export const DOGGED_SPIRAL_SPEED = 3;       // × the slow spiral's turn rate on a slow-resistant enemy
 export const DOGGED_SPIRAL_ALPHA = 0.5;     // its opacity
@@ -409,6 +417,8 @@ export const PLACEHOLDER_LEVELS = {
 
 // M6b: what a placeholder's borrowed Stirge entries become, in turn (see placeholderSpawn).
 export const PLACEHOLDER_FLYER_SWAP = ['lizardman', 'hunter', 'lizardman', 'shaman'];
+// M6b §5: the mini-boss a placeholder Fell level's borrowed Ogre becomes (others: the region's first).
+export const PLACEHOLDER_MINIBOSS = { broodmothersHollow: 'broodmother', scaleShrine: 'highShaman', broodmothersDen: 'grimBroodmother' };
 
 // A levels row that is a village (M6a §2.2), not a battle level.
 export const isVillageRow = (r) => r.nodeType === 'village';
@@ -579,6 +589,8 @@ export let ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_P
 export let ITEM_PRICE, PATTERN_PRICE; // M3e §4: rarity → default price (from the globals above)
 export let DIALOGUE_TYPE_SPEED, DIALOGUE_HOP_HEIGHT, DIALOGUE_HOP_TIME, DIALOGUE_DIM_BRIGHTNESS; // M5a §3.6
 export let REPAIR_COST, REPAIR_TIME; // M6b §2.3: REPAIR_COST as a cost ({ pits: n }), on top of the Double's Bough
+export let BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_EGG_INTERVAL, GRIM_BROOD_HATCH_COUNT; // M6b §5.1–§5.2
+export let HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED; // M6b §5.3
 export let SHAMAN_SHIELD_INTERVAL, SHAMAN_SHIELD_TARGETS, SHAMAN_SHIELD_RANGE, SHAMAN_SHIELD_AMOUNT, SHAMAN_SHIELD_DURATION,
   GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT; // M6b §4.3
 
@@ -674,6 +686,8 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     DIALOGUE_TYPE_SPEED, DIALOGUE_HOP_HEIGHT, DIALOGUE_HOP_TIME, DIALOGUE_DIM_BRIGHTNESS,
     REPAIR_COST, REPAIR_TIME, SHAMAN_SHIELD_INTERVAL, SHAMAN_SHIELD_TARGETS, SHAMAN_SHIELD_RANGE, SHAMAN_SHIELD_AMOUNT,
     SHAMAN_SHIELD_DURATION, GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT,
+    BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_EGG_INTERVAL, GRIM_BROOD_HATCH_COUNT,
+    HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED,
   } = keyed(t.globals));
   REPAIR_COST = { pits: REPAIR_COST };
   ITEM_PRICE = [ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3];
@@ -715,6 +729,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     e.attacksTurrets = r.attacksTurrets ?? false;
     opt(e, 'attackRange', r.attackRange);
     e.camouflage = r.camouflage ?? false;
+    e.stationary = r.stationary ?? false; // M6b §5.1
     e.drops = t.drops.filter((d) => d.enemy === r.id).map((d) => ({ resource: d.resource, chance: d.chance, min: d.min, max: d.max }));
     return e;
   });
@@ -782,7 +797,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     level.waves = t.waves.filter((w) => w.level === wavesOf).map((w) => {
       // M3b §1: each spawn is its region's enemy for the role (a wolf in Hag's Causeway is a Drowned Thrall).
       const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === wavesOf && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
-      if (PLACEHOLDER_LEVELS[r.id]) wave.spawns = wave.spawns.map((sp) => placeholderSpawn(sp, flyerSwaps)); // M6b: no Stirges in the Vale
+      if (PLACEHOLDER_LEVELS[r.id]) wave.spawns = wave.spawns.map((sp) => placeholderSpawn(sp, flyerSwaps, r.id)); // M6b: no Stirges in the Vale
       return opt(wave, 'tolls', w.tolls);
     });
     return level;
@@ -827,8 +842,9 @@ export function regionalEnemy(type, regionId) {
 // M6b: a placeholder Vale level's borrowed Stirge entry (no Stirges in the Vale) becomes, in turn,
 // PLACEHOLDER_FLYER_SWAP's next enemy (the Grim one for a Grim Stirge), half as many. Goes with
 // PLACEHOLDER_LEVELS in M6e.
-function placeholderSpawn(sp, swaps) {
+function placeholderSpawn(sp, swaps, levelId) {
   const t = ENEMY_TYPES[sp.type];
+  if (t.role === 'miniboss' && PLACEHOLDER_MINIBOSS[levelId]) return { ...sp, type: PLACEHOLDER_MINIBOSS[levelId] };
   if (t.role !== 'flyer') return sp;
   const base = PLACEHOLDER_FLYER_SWAP[swaps.n++ % PLACEHOLDER_FLYER_SWAP.length];
   const type = t.variant ? Object.keys(ENEMY_TYPES).find((id) => ENEMY_TYPES[id].baseType === base && ENEMY_TYPES[id].variant === t.variant) ?? base : base;

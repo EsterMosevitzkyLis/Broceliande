@@ -185,7 +185,8 @@ function waveChecks(scene, add) {
 // (M2i §2). Logged once, the first time the debug view is on.
 export const TOTAL_LETTERS = [['wolf', 'W'], ['grimWolf', 'GW'], ['thrall', 'T'], ['grimThrall', 'GT'], ['stirge', 'S'], ['grimStirge', 'GS'], ['bear', 'B'], ['grimBear', 'GB'], ['brute', 'MB'], ['grimBrute', 'GMB'], ['ogre', 'O'], ['grimOgre', 'GO'], ['knight', 'K'], ['grimKnight', 'GK'],
   ['spider', 'Sp'], ['grimSpider', 'GSp'], ['lizardman', 'L'], ['grimLizardman', 'GL'], ['hunter', 'H'], ['grimHunter', 'GH'],
-  ['giantLizard', 'GiL'], ['grimGiantLizard', 'GGiL'], ['shaman', 'Sh'], ['grimShaman', 'GSh']]; // M6b
+  ['giantLizard', 'GiL'], ['grimGiantLizard', 'GGiL'], ['shaman', 'Sh'], ['grimShaman', 'GSh'],
+  ['broodmother', 'BM'], ['grimBroodmother', 'GBM'], ['highShaman', 'HS'], ['broodEgg', 'E'], ['grimBroodEgg', 'GE']]; // M6b
 export function logWaveTotals() {
   for (const id of LEVEL_IDS) {
     const level = C.LEVELS[id];

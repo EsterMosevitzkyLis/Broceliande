@@ -27,7 +27,8 @@ import { drawSlotFloater } from './render/items.js';
 import { drawWisp, drawWispTarget, drawWispGhost, drawWispBurst, drawSlowSpiral } from './render/wisp.js';
 import { isSlowed, isCorroded, isBurning } from './systems/statusSystem.js';
 import { drawEnemyLook } from './render/enemyLook.js';
-import { drawSpear, drawShieldBubble, drawShieldShatter, drawShamanThreads, drawTurretHpBar, drawWreck, drawDebris } from './render/vale.js'; // M6b // an enemy's look, Grims included (M2l §2.1)
+import { drawSpear, drawShieldBubble, drawShieldShatter, drawShamanThreads, drawTurretHpBar, drawWreck, drawDebris } from './render/vale.js'; // M6b
+import { drawEggHatch, drawRelicPulse } from './render/valeBosses.js'; // M6b §5 // an enemy's look, Grims included (M2l §2.1)
 import { drawBody, drawAsh, drawBossEntrance, drawSunkRing } from './render/undead.js'; // M3b §3.3, §5.3: the rising dead, the Bog King
 import { drawShowcase } from './debug/showcase.js';
 
@@ -115,6 +116,7 @@ export function createRenderer(canvas) {
       drawTurretSlot(ctx, slot, !isPrep, isPrep && hover?.kind === 'slot' && hover.index === i);
     });
     for (const w of game.wrecks) drawWreck(ctx, w); // M6b §2.2: collapsed turrets, on their slots
+    for (const p of game.relicPulses) drawRelicPulse(ctx, p, p.age / C.RELIC_PULSE_TIME); // M6b §5.3, on the ground
     // Enemy drops lie on the ground: above floor, corridors and pads, below anything upright (M1d §1.3).
     const now = performance.now() / 1000;
     for (const drop of game.drops) drawDrop(ctx, drop, now);
@@ -194,6 +196,7 @@ export function createRenderer(canvas) {
     for (const s of game.spears) drawSpear(ctx, s); // M6b §4.2
     for (const s of game.shieldShatters) drawShieldShatter(ctx, s, s.age / C.SHIELD_SHATTER_TIME);
     for (const d of game.debris) drawDebris(ctx, d, d.age / C.WRECK_DEBRIS_TIME);
+    for (const h of game.eggHatches) drawEggHatch(ctx, h, h.age / C.EGG_HATCH_TIME); // M6b §5.1
     for (const s of game.swipes) drawSwipe(ctx, s, s.age / C.DRUID_SWIPE_TIME);
     for (const s of game.sparks) drawSpark(ctx, s, s.age / C.STRIKE_SPARK_TIME);
     // Grim trait feedback (M2l §2.2): armor sparks; lifesteal sparkles on the biter, wherever it is now.
