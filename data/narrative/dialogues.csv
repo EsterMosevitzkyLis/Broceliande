@@ -1,14 +1,14 @@
 dialogue,line,speaker,text
 introAwakening,1,diaena,Are you awake?
 introAwakening,2,druid,Huh? I don't know... My head hurts...
-introAwakening,3,druid,Everything is spinning
-introAwakening,4,diaena,Be careful... Don't try to stand up so fast
-introAwakening,5,diaena,"Here, let me help you"
+introAwakening,3,druid,Everything is spinning...
+introAwakening,4,diaena,Be careful... Don't try to stand up so fast.
+introAwakening,5,diaena,"Here, let me help you."
 introAwakening,6,druid,Where am I? Who are you?...
-introAwakening,7,diaena,You're in Tornville Haunt
-introAwakening,8,diaena,Are you okay to move? I think we should get out of here
+introAwakening,7,diaena,You're in Tornville Haunt.
+introAwakening,8,diaena,Are you okay to move? I think we should get out of here.
 introAwakening,9,druid,Why move?
-introAwakening,10,diaena,The Tornville dires. They probably already smelled your presence
-introAwakening,11,diaena,You smell different
-introAwakening,12,druid,I don't think I can move much. maybe a few steps
-introAwakening,13,druid,But I can defend us. I can probably find some materials around here to defend this glade
+introAwakening,10,diaena,The Tornville dires. They probably already smelled your presence.
+introAwakening,11,diaena,You smell different.
+introAwakening,12,druid,I don't believe I can move much. maybe a few steps.
+introAwakening,13,druid,But I think I can defend us. I can probably find some materials around here to defend this glade.
