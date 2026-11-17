@@ -63,7 +63,7 @@ export function enterRegion(run, regionId) {
 // The region's first node (§1.2): its node in its lowest row (row 1).
 export function regionStartNode(regionId) {
   const nodes = C.MAP_NODES.filter((n) => n.region === regionId);
-  return nodes.reduce((a, b) => (C.LEVELS[b.levelId].row < C.LEVELS[a.levelId].row ? b : a)).id;
+  return nodes.reduce((a, b) => (b.row < a.row ? b : a)).id;
 }
 
 // The region after the run's current one, or null in the last.
@@ -73,14 +73,15 @@ export function nextRegionId(run) {
 
 // M2n §5, M3e §3.1: a trader for every Trader node on the run's map, seeded: a profile allowed in
 // the region and not met yet this run, then its stock, prices and goods (none the run owns or knows).
+// M6a §2.4: a village's trader too, first, with its own profile (its levels row's trader).
 // keep: traders already rolled (by node id), kept as they are (debug L, regenerateMap).
 function rollRunTraders(run, seed, keep = {}) {
   const rng = createRng((seed ^ 0x7a3d1) >>> 0);
-  const nodes = run.map.nodes.filter((n) => n.type === 'trader');
+  const nodes = [...run.map.nodes.filter((n) => n.type === 'village'), ...run.map.nodes.filter((n) => n.type === 'trader')];
   const traders = Object.fromEntries(nodes.filter((n) => keep[n.id]).map((n) => [n.id, keep[n.id]]));
   for (const node of nodes) {
     if (traders[node.id]) continue;
-    const profileId = pickProfile(rng, run.map.regionId, run.traderProfilesUsed);
+    const profileId = node.type === 'village' ? C.VILLAGES[node.id].trader : pickProfile(rng, run.map.regionId, run.traderProfilesUsed);
     run.traderProfilesUsed.push(profileId);
     traders[node.id] = rollTrader(rng, { profileId, regionId: run.map.regionId, ownedItems: run.items });
   }
@@ -220,12 +221,12 @@ export function validateMap() {
   const ids = C.MAP_NODES.map((n) => n.id);
   if (new Set(ids).size !== ids.length) console.error(`MAP_NODES has duplicate IDs: ${ids.join(', ')}`);
   for (const n of C.MAP_NODES) {
-    if (!C.LEVELS[n.levelId]) console.error(`Map node ${n.id}: unknown level "${n.levelId}"`);
-    else if (!Number.isInteger(C.LEVELS[n.levelId].row)) console.error(`Map node ${n.id}: its level "${n.levelId}" has no row (levels tab)`);
+    if (n.levelId !== null && !C.LEVELS[n.levelId]) console.error(`Map node ${n.id}: unknown level "${n.levelId}"`);
+    else if (!Number.isInteger(n.row)) console.error(`Map node ${n.id}: no row (levels tab)`);
     if (!C.NODE_TYPES[n.type]) console.error(`Map node ${n.id}: unknown type "${n.type}" (NODE_TYPES)`);
   }
   for (const regionId of C.REGION_ORDER) {
-    const rows = C.MAP_NODES.filter((n) => n.region === regionId).map((n) => C.LEVELS[n.levelId]?.row).filter(Number.isInteger);
+    const rows = C.MAP_NODES.filter((n) => n.region === regionId).map((n) => n.row).filter(Number.isInteger);
     if (!rows.length) continue;
     const lowest = Math.min(...rows);
     if (rows.filter((r) => r === lowest).length !== 1) console.error(`Map (${regionId}): the region's start must be alone in its lowest row`);

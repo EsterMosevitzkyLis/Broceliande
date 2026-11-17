@@ -7,7 +7,7 @@
 import * as C from '../js/config.js';
 import { loadTables } from '../js/data/loader.js';
 import { validateTables } from '../js/data/validate.js';
-import { loadMaps, blankMap, lanesFromTab } from '../js/mapFile.js';
+import { loadLevelMaps, blankMap, lanesFromTab } from '../js/mapFile.js';
 import { parseCsv } from '../js/data/csv.js';
 
 const NEW_LEVEL_NEAR_RADIUS = 440; // px, a new level's near radius to start from (today's levels: 400–480)
@@ -34,11 +34,13 @@ function fail(message) {
 
 try {
   const { tables, problems } = await loadTables((tab) => `data/${tab}.csv`);
-  const levelIds = (tables.levels ?? []).map((r) => r.id).filter(Boolean);
-  const { maps, backgrounds } = await loadMaps(levelIds, problems);
+  // M6a §2.2: village rows have no map; placeholder levels open with the map they borrow.
+  const battleRows = (tables.levels ?? []).filter((r) => r.id && !C.isVillageRow(r));
+  const levelIds = battleRows.map((r) => r.id);
+  const { maps, backgrounds } = await loadLevelMaps(battleRows, problems);
   // A missing map file is the one problem the editor expects; anything else is shown at the top.
   const missing = levelIds.filter((id) => !maps[id]);
-  const withMaps = { ...tables, levels: tables.levels.filter((r) => maps[r.id]) };
+  const withMaps = { ...tables, levels: tables.levels.filter((r) => maps[r.id] || C.isVillageRow(r)) };
   if (problems.errors.length === missing.length) validateTables(withMaps, problems, maps);
   const dataProblems = problems.errors.filter((p) => !(p.tab === 'maps' && missing.some((id) => p.column === `${id}.json`)));
   C.applyData(withMaps, maps, backgrounds);
@@ -56,7 +58,7 @@ try {
   }
   if (missing.length) C.applyData(tables, { ...maps, ...blanks }, backgrounds);
   const { startEditor } = await import('./app.js');
-  await startEditor({ levelRows: tables.levels, laneRows: lanes, maps: { ...maps, ...blanks }, backgrounds, missing, dataProblems });
+  await startEditor({ levelRows: battleRows, laneRows: lanes, maps: { ...maps, ...blanks }, backgrounds, missing, dataProblems });
   loading.hidden = true;
 } catch (err) {
   console.error(err);

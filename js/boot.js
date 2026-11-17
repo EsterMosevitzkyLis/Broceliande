@@ -8,7 +8,7 @@
 import * as C from './config.js';
 import { loadTables } from './data/loader.js';
 import { validateTables } from './data/validate.js';
-import { loadMaps } from './mapFile.js';
+import { loadLevelMaps } from './mapFile.js';
 import { NARRATIVE_TABS } from './data/schema.js';
 import { validateNarrative } from './data/validateNarrative.js';
 import { applyNarrative, loadPortraits } from './narrative.js';
@@ -102,8 +102,8 @@ const { tables, problems, narrative } = await load();
 for (const kind of ['errors', 'warnings']) {
   for (const p of narrative.problems[kind]) problems[kind].push(p.tab in NARRATIVE_TABS ? { ...p, tab: `narrative/${p.tab}` } : p);
 }
-// M4a §1.3: every level's map file, always from the project (in ?live mode too).
-const { maps, backgrounds } = await loadMaps((tables.levels ?? []).map((r) => r.id).filter(Boolean), problems);
+// M4a §1.3: every battle level's map file, always from the project (in ?live mode too).
+const { maps, backgrounds } = await loadLevelMaps(tables.levels ?? [], problems);
 if (problems.errors.length === 0) validateTables(tables, problems, maps);
 if (problems.errors.length === 0) validateNarrative(narrative.tables, problems, tables);
 // M5a §1.2: portrait images, always from the project (in ?live mode too).

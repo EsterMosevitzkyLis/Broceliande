@@ -16,7 +16,7 @@ const SHOW = {
   prepStart: { in: [GameState.PREP], waits: [] },
   battleWon: { in: [GameState.VICTORY], waits: [GameState.ENDING] },
   death: { in: [GameState.DEFEAT], waits: [GameState.ENDING] },
-  itemAcquired: { in: [GameState.MAP, GameState.TRADER, GameState.TINKER], waits: [GameState.VICTORY, GameState.CROSSING] },
+  itemAcquired: { in: [GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.VILLAGE], waits: [GameState.VICTORY, GameState.CROSSING] },
   regionEntered: { in: [GameState.MAP], waits: [GameState.CROSSING] },
 };
 

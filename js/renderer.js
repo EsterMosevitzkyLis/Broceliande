@@ -21,6 +21,7 @@ import { animationTime } from './game.js';
 import { drawMap } from './render/map.js';
 import { drawTraderScene } from './render/trader.js';
 import { drawTinkerScene } from './render/tinker.js';
+import { drawVillageScene } from './render/village.js';
 import { drawCinderjaw, drawConeBurst, drawBurning, drawEmberJump } from './render/cinderjaw.js';
 import { drawSlotFloater } from './render/items.js';
 import { drawWisp, drawWispTarget, drawWispGhost, drawWispBurst, drawSlowSpiral } from './render/wisp.js';
@@ -70,6 +71,13 @@ export function createRenderer(canvas) {
     if (game.state === GameState.TINKER) {
       // M2p §4.2: the Tinker's Rest; the book's text and controls are HTML (tinkerScreen.js).
       drawTinkerScene(ctx, game.tinker, game.tinker.time, game.run?.regionId);
+      ctx.fillStyle = COLORS.hudBackdrop;
+      ctx.fillRect(0, 0, C.STAGE_WIDTH, C.HUD_STRIP_HEIGHT);
+      return;
+    }
+    if (game.state === GameState.VILLAGE) {
+      // M6a §2.3: a village; its tabs' text and controls are HTML (villageScreen.js and the two above).
+      drawVillageScene(ctx, game.village, game.visit, game.tinker, game.village.time, game.run?.inventory.gold ?? 0);
       ctx.fillStyle = COLORS.hudBackdrop;
       ctx.fillRect(0, 0, C.STAGE_WIDTH, C.HUD_STRIP_HEIGHT);
       return;

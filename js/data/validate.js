@@ -3,7 +3,7 @@
 // per-level start-up checks (candidates, corridors, zones, Ogre widths…) run later, on the applied
 // data, as before.
 
-import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES } from '../config.js';
+import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES, PLACEHOLDER_LEVELS, isVillageRow } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 
 const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss']; // M3b §1
@@ -163,7 +163,8 @@ export function validateTables(t, problems, maps = {}) {
   if (!t.regions.length) err('regions', '', 'id', 'no regions');
   for (const r of t.enemies) known('enemies', r, 'region', regions, 'region'); // M3b §1: blank = every region
 
-  // levels: each has its map file (M4a §1.1, checked by loadMaps), waves.
+  // levels: each battle level has its map file (M4a §1.1, checked by loadMaps), waves and a
+  // stepBudget; a village row (M6a §2.2) has none of them, only a row and a trader (checked below).
   const levels = ids('levels');
   for (const r of t.levels) {
     known('levels', r, 'region', regions, 'region');
@@ -239,8 +240,9 @@ export function validateTables(t, problems, maps = {}) {
     for (const reg of profileRegions(r)) if (!regions.has(reg)) err('traderProfiles', r, 'regions', `unknown region "${reg}"`);
     for (const c of ['itemPriceMult', 'patternPriceMult', 'itemBuyMult']) if (!(r[c] > 0)) err('traderProfiles', r, c, `${c} must be above 0`);
   }
+  const villageTraders = t.levels.filter(isVillageRow).map((r) => r.trader); // M6a §2.4: met only in their village
   for (const reg of t.regions) {
-    const n = t.traderProfiles.filter((r) => r.id !== 'default' && (!profileRegions(r).length || profileRegions(r).includes(reg.id))).length;
+    const n = t.traderProfiles.filter((r) => r.id !== 'default' && !villageTraders.includes(r.id) && (!profileRegions(r).length || profileRegions(r).includes(reg.id))).length;
     if (n < (reg.traders ?? 0)) warn('traderProfiles', '', 'regions', `only ${n} profiles for ${reg.id}'s ${reg.traders} Traders: some will repeat`);
   }
   // traderTables (M3e §3.2): known traders and tables, counts 0 or more, item rarities 1-3, pattern
@@ -286,7 +288,16 @@ export function validateTables(t, problems, maps = {}) {
   ids('sounds');
 
   for (const r of t.levels) {
-    if (!waveCounts[r.id]) err('levels', r, 'id', `${r.id} has no waves`);
+    if (isVillageRow(r)) {
+      if (!Number.isInteger(r.row)) err('levels', r, 'row', 'a village needs its row');
+      if (r.trader === undefined) err('levels', r, 'trader', 'a village needs its trader profile (traderProfiles tab)');
+      else known('levels', r, 'trader', profiles, 'trader profile');
+      continue;
+    }
+    if (r.trader !== undefined) err('levels', r, 'trader', 'only a village row names a trader');
+    if (r.stepBudget === undefined) err('levels', r, 'stepBudget', 'a value is required');
+    // M6a §2.1: a placeholder level borrows another level's waves (and map file) until M6e.
+    if (!waveCounts[PLACEHOLDER_LEVELS[r.id] ?? r.id]) err('levels', r, 'id', `${r.id} has no waves`);
     if (maps[r.id] && !maps[r.id].candidates.length) err('levels', r, 'id', `${r.id} has no candidates in its map file`);
   }
   return problems;

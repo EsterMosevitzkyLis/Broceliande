@@ -414,6 +414,7 @@ export function createUI(callbacks) {
     updateFoundItem(el, game);
     updateMapMessage(el, game);
     updateDebugPanel(el, game, clock, view, layoutLinesFor(game.scene), game.scene);
+    if (view.debug) updateSpawnLanes(game.scene);
   }
 
   // Stage coordinates of each HUD resource icon (M2d §2.2: where swept items fly to).
@@ -453,6 +454,43 @@ export function createUI(callbacks) {
     if (id) callbacks.onPlayDialogue(id);
   });
 
+  // M6a §5: Jump to region (any region's map, keeping resources and items) and Spawn enemy (any
+  // type, with the count and lane beside it; the lanes are the current level's).
+  const option = (select, value, label) => {
+    const o = document.createElement('option');
+    o.value = value;
+    o.textContent = label;
+    select.append(o);
+  };
+  const regionSelect = document.getElementById('debug-jump-region');
+  for (const id of C.REGION_ORDER) option(regionSelect, id, C.REGIONS[id].name);
+  regionSelect.addEventListener('change', () => {
+    const id = regionSelect.value;
+    regionSelect.value = '';
+    regionSelect.blur();
+    if (id) callbacks.onJumpToRegion(id);
+  });
+  const typeSelect = document.getElementById('debug-spawn-type');
+  const countSelect = document.getElementById('debug-spawn-count');
+  const laneSelect = document.getElementById('debug-spawn-lane');
+  for (const id of Object.keys(C.ENEMY_TYPES)) option(typeSelect, id, `${C.ENEMY_TYPES[id].name}${C.ENEMY_TYPES[id].region ? ` (${C.ENEMY_TYPES[id].region})` : ''}`);
+  for (const n of [1, 2, 3, 5, 10]) option(countSelect, n, `×${n}`);
+  typeSelect.addEventListener('change', () => {
+    const type = typeSelect.value;
+    typeSelect.value = '';
+    typeSelect.blur();
+    if (type) callbacks.onSpawnEnemy(type, Number(countSelect.value), laneSelect.value || null);
+  });
+  for (const s of [countSelect, laneSelect]) s.addEventListener('change', () => s.blur());
+  let laneLevel = null;
+  function updateSpawnLanes(scene) {
+    if (scene.levelId === laneLevel) return;
+    laneLevel = scene.levelId;
+    laneSelect.replaceChildren();
+    option(laneSelect, '', 'random lane');
+    for (const lane of scene.lanes) option(laneSelect, lane.id, lane.name);
+  }
+
   return { update, resourceTargets };
 }
 
@@ -469,7 +507,7 @@ function updateMapMessage(el, game) {
 // ENDING and under the Victory / Defeat overlay.
 // M5a §3.1: hidden under a dialogue, where it would show beside the left name plate.
 function updateLevelName(el, game, view) {
-  const shown = !view.dialogueOpen && ![GameState.START, GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.CROSSING].includes(game.state); // not in a place scene (M2n §4.2)
+  const shown = !view.dialogueOpen && ![GameState.START, GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.VILLAGE, GameState.CROSSING].includes(game.state); // not in a place scene (M2n §4.2)
   el.levelName.hidden = !shown;
   if (shown) setText(el.levelName, game.scene.level.name);
 }
@@ -698,7 +736,7 @@ function updateHud(el, game) {
   // M2i §4.1: in Combat, the wave (the current one, or the next during the countdown and gaps).
   setText(el.phase, isCombat && game.wave
     ? `WAVE ${Math.min(game.wave.index + 1, waveCount(game))} / ${waveCount(game)}`
-    : game.state === GameState.TINKER ? "TINKER'S REST" : game.state === GameState.CROSSING ? 'MAP' : game.state); // M2p §4.2, M3a §3
+    : game.state === GameState.TINKER ? "TINKER'S REST" : game.state === GameState.CROSSING ? 'MAP' : game.state); // M2p §4.2, M3a §3 (M6a: VILLAGE)
   if (isPrep) {
     // Countdown shows 00:25 at the start and 00:00 only at the moment Combat begins.
     setText(el.timer, formatTime(Math.ceil(game.prepRemaining)));
@@ -748,7 +786,7 @@ function updateHud(el, game) {
 function updateStepBar(el, game, view) {
   const shown = game.state === GameState.PREP && isStepMode(game);
   el.steps.hidden = !shown;
-  el.timer.hidden = shown || game.state === GameState.MAP || game.state === GameState.TRADER || game.state === GameState.TINKER; // no clock on the map (M2a §4) or in a place scene
+  el.timer.hidden = shown || [GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.VILLAGE].includes(game.state); // no clock on the map (M2a §4) or in a place scene
   if (!shown) return;
 
   const preview = routePreview(game, view.hover);
@@ -836,6 +874,7 @@ function mapTooltip(run, nodeId) {
   const anchor = { x: node.pos.x, y: node.pos.y, halfWidth: nodeRadius(node) * C.MAP_HOVER_SCALE };
   if (node.type === 'trader') return traderTooltip(run.traders[node.id], anchor);
   if (node.type === 'tinker') return tinkerTooltip(run, anchor);
+  if (node.type === 'village') return villageTooltip(run, node, anchor);
   const level = C.LEVELS[node.levelId];
   // M2i §4.3: "3 waves · Wolves 42 · Stirges 4 · Bears 3" (types in display order, from the waves).
   const waves = `${levelWaves(level).length} waves`;
@@ -878,6 +917,14 @@ function tinkerTooltip(run, anchor) {
     lines: [['', `Patterns known: ${known} · Craftable now: ${craftableCount(run)}`]],
     anchor,
   };
+}
+
+// A village node (M6a §2.2): "Rootkeeper Grove — Village. Trade and craft.", then its trader's shop
+// hints (as a Trader's) and the Tinker's Rest's pattern line.
+function villageTooltip(run, node, anchor) {
+  const shop = traderTooltip(run.traders[node.id], anchor);
+  const craft = tinkerTooltip(run, anchor);
+  return { title: `${node.name} — ${C.NODE_TYPES.village.label}. Trade and craft.`, lines: [...shop.lines, ...craft.lines], anchor };
 }
 
 function updateTooltip(el, game, view, prevKey) {
@@ -1392,6 +1439,12 @@ function updateDebugPanel(el, game, clock, view, layoutLines, scene) {
   }
   if (game.state === GameState.TRADER) {
     setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...traderDebugLines(game), ...dialogueLines].join('\n'));
+    return;
+  }
+  if (game.state === GameState.VILLAGE) { // M6a §2.3: both tabs, and the shared undo stack
+    const v = game.village;
+    const lines = [`Village: ${v.nodeId}  tab ${v.tab}   undo stack: ${v.history.join(', ') || 'empty'}`];
+    setText(el.debugPanel, [`State:  ${game.state}`, ...runLines(game), ...lines, ...traderDebugLines(game), ...tinkerDebugLines(game), ...dialogueLines].join('\n'));
     return;
   }
   if (game.state === GameState.TINKER) {

@@ -22,7 +22,8 @@ export function traderProfileIds() {
 // §3.1: a profile for a Trader node, from those allowed in the region and not yet used this run;
 // if every allowed one is used, any allowed one (and `default` if the region allows none).
 export function pickProfile(rng, regionId, used = []) {
-  const allowed = traderProfileIds().filter((id) => !C.TRADER_PROFILES[id].regions || C.TRADER_PROFILES[id].regions.includes(regionId));
+  const villages = Object.values(C.VILLAGES).map((v) => v.trader); // M6a §2.4: met only in their village
+  const allowed = traderProfileIds().filter((id) => !villages.includes(id) && (!C.TRADER_PROFILES[id].regions || C.TRADER_PROFILES[id].regions.includes(regionId)));
   const free = allowed.filter((id) => !used.includes(id));
   const pool = free.length ? free : allowed;
   return pool.length ? pool[rng.int(0, pool.length - 1)] : 'default';

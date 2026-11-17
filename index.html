@@ -224,6 +224,15 @@
         <button id="btn-craft-undo" type="button">Undo last craft</button>
         <button id="btn-tinker-leave" type="button">Back to the road</button>
       </div>
+      <!-- M6a §2.3: a village's name and its Trade / Craft tabs, built by js/villageScreen.js; each
+           tab's controls are the trader screen's or the Tinker's Rest's. Only shown in the VILLAGE state. -->
+      <div id="village-screen" hidden>
+        <div id="village-title"></div>
+        <div id="village-tabs">
+          <button type="button" data-tab="trade">Trade</button>
+          <button type="button" data-tab="craft">Craft</button>
+        </div>
+      </div>
       <!-- M2n §1: the fade into and out of a place scene; never blocks clicks. -->
       <div id="scene-fade"></div>
 
@@ -250,6 +259,14 @@
         <div id="debug-dialogue-buttons">
           <button id="btn-forget-dialogues" type="button">Forget seen dialogues</button>
           <select id="debug-play-dialogue"><option value="">Play dialogue…</option></select>
+        </div>
+        <!-- M6a §5: jump to any region's map; spawn any enemy (choosing its type spawns it, with the
+             count and lane chosen beside it; Combat only). -->
+        <div id="debug-test-buttons">
+          <select id="debug-jump-region"><option value="">Jump to region…</option></select>
+          <select id="debug-spawn-type"><option value="">Spawn enemy…</option></select>
+          <select id="debug-spawn-count" title="How many"></select>
+          <select id="debug-spawn-lane" title="Lane"></select>
         </div>
         <!-- M2p §6: pattern debug buttons; Forget asks for confirmation here, not in a browser dialog. -->
         <div id="debug-pattern-buttons">

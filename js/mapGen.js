@@ -4,7 +4,7 @@
 // the roads between adjacent rows and their curves.
 //
 // The run's Trader nodes (M2n §2) and Tinker's Rests (M2p §4.1) are generated here too: ids
-// trader1, trader2…, tinker1…, no level.
+// trader1, trader2…, tinker1…, no level. A village (M6a §2.2) is a fixed node, placed like a level's.
 // A map: { regionId, nodes: [{ id, levelId, name, type, row, pos: { x, y }, next: [ids] }],
 //          roads: [{ from, to, bend }] (bend: px the curve bows sideways, + to the road's left),
 //          attempts, failed: [check names the chosen map fails], failCounts: { check: attempts it failed } }.
@@ -68,10 +68,11 @@ export function mapSeedFor(runSeed, regionId, visit = 1) {
 }
 
 // The region's level nodes' rows, bottom to top: [[node, …], …], each node a fresh copy with its row.
+// M6a §2.2: a village is one of them, in its own row like a level (always on the map).
 function levelRows(regionId) {
   const byRow = new Map();
   for (const n of C.MAP_NODES.filter((m) => m.region === regionId)) {
-    const row = C.LEVELS[n.levelId].row;
+    const row = n.row;
     if (!byRow.has(row)) byRow.set(row, []);
     byRow.get(row).push({ id: n.id, levelId: n.levelId, name: n.name, type: n.type, row, pos: null, next: [] });
   }

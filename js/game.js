@@ -33,6 +33,7 @@ import { updateDoubles } from './systems/doubleSystem.js';
 import { startSweep, updateSweep, finishSweep } from './systems/sweepSystem.js';
 import { updateVisit, enterTrader, isTraderNode } from './visit.js';
 import { updateTinker, enterTinker, isTinkerNode } from './tinker.js';
+import { updateVillage, enterVillage, isVillageNode } from './village.js';
 import { learnPattern, randomUnknownPattern } from './patterns.js';
 
 export { GameState };
@@ -41,9 +42,10 @@ export { GameState };
 // debug R key can restart mid-encounter; a new run (→ MAP) from any state (Start again, Shift+R).
 const TRANSITIONS = {
   [GameState.START]: [GameState.MAP, GameState.PREP], // PREP: a direct start without the map (tests, debug)
-  [GameState.MAP]: [GameState.PREP, GameState.MAP, GameState.TRADER, GameState.TINKER],
+  [GameState.MAP]: [GameState.PREP, GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.VILLAGE],
   [GameState.TRADER]: [GameState.MAP], // M2n §4.1
   [GameState.TINKER]: [GameState.MAP], // M2p §4.2
+  [GameState.VILLAGE]: [GameState.MAP], // M6a §2.3
   [GameState.CROSSING]: [GameState.MAP], // M3a §3: Enter the next region
   [GameState.PREP]: [GameState.COMBAT, GameState.PREP, GameState.MAP],
   [GameState.COMBAT]: [GameState.ENDING, GameState.PREP, GameState.MAP],
@@ -105,7 +107,8 @@ export function createGame(levelId) {
     druidStrike: null,    // strike in progress (M1f §4): { elapsed, targetId, dirX, dirY, fromReady, impactAt }
     resources: emptyResources(),
     visit: null,       // M2n §4: the Trader visit in progress (visit.js), in the TRADER state only
-    tinker: null,      // M2p §4: the Tinker's Rest visit in progress (tinker.js), in the TINKER state only
+    tinker: null,      // M2p §4: the Tinker's Rest visit in progress (tinker.js), in the TINKER state only (and VILLAGE, its Craft tab)
+    village: null,     // M6a §2.3: the village visit in progress (village.js), in the VILLAGE state only (with visit and tinker for its tabs)
     layout: null,      // this run's layout (M1c §3): slots, features, candidate roles, fairness stats
     slots: [],         // this run's turret slot positions { x, y, candidate, lanes }
     features: [],
@@ -340,6 +343,7 @@ export function enterNode(game, nodeId) {
   if (game.state !== GameState.MAP || nodeState(game.run, nodeId) !== 'available') return false;
   if (isTraderNode(game.run, nodeId)) return enterTrader(game, nodeId); // M2n §4.1: a Trader's scene, not an encounter
   if (isTinkerNode(game.run, nodeId)) return enterTinker(game, nodeId); // M2p §4.2: a Tinker's Rest, not an encounter
+  if (isVillageNode(game.run, nodeId)) return enterVillage(game, nodeId); // M6a §2.3: a village, not an encounter
   const node = mapNode(game.run, nodeId);
   game.run.currentNodeId = nodeId;
   game.encounterStart = {
@@ -403,6 +407,22 @@ export function returnToRegion(game) {
 export function debugNextRegion(game) {
   if (game.state !== GameState.MAP || !nextRegionId(game.run)) return false;
   arriveInNextRegion(game);
+  emitRegionEntered(game);
+  return true;
+}
+
+// M6a §5: the debug panel's Jump to region: that region's map, newly generated (as on arriving),
+// keeping resources and items. From the map or any encounter state; not from a place scene or the
+// crossing dialog.
+export function debugJumpToRegion(game, regionId) {
+  const from = [GameState.MAP, GameState.PREP, GameState.COMBAT, GameState.ENDING, GameState.VICTORY, GameState.DEFEAT];
+  if (!C.REGIONS[regionId] || !from.includes(game.state) || !game.run) return false;
+  if (game.state !== GameState.MAP && !setState(game, GameState.MAP)) return false;
+  enterRegion(game.run, regionId);
+  game.encounterStart = null;
+  game.deathLoss = null;
+  game.mapAmbience = { at: C.MAP_AMBIENCE_GAPS[0], count: 0 };
+  showRunOnHud(game);
   emitRegionEntered(game);
   return true;
 }
@@ -545,6 +565,19 @@ export function spawnDebugStirges(game, type = 'stirge') {
   return true;
 }
 
+// M6a §5: the debug panel's Spawn enemy: count of exactly this type (any enemy, any region) at a
+// lane (null: random). Combat only; an error if the corridors are too narrow for it.
+export function spawnDebugEnemy(game, type, count, laneId = null) {
+  if (game.state !== GameState.COMBAT || !C.ENEMY_TYPES[type]) return false;
+  const width = corridorWidth(game.scene.level);
+  if (!fitsCorridor(type, width)) {
+    console.error(`${game.levelId}: corridors are ${width} px, too narrow for the ${C.ENEMY_TYPES[type].name} (needs ${2 * C.ENEMY_TYPES[type].radius + 2})`);
+    return false;
+  }
+  queueDebugEnemy(game, type, count, { laneId, exact: true });
+  return true;
+}
+
 // Debug key Shift+G (M2l §4): spawn DEBUG_GRIM_WOLVES Grim Wolves at a random lane. Combat only.
 export function spawnDebugGrimWolves(game) {
   if (game.state !== GameState.COMBAT) return false;
@@ -559,7 +592,7 @@ export function grantResources(game) {
   add(game.resources, grant);
   game.doubleStats.boughsGained += n;
   // On the map and in a place scene (M2n §5, M2p §4), the grant goes to the carried inventory the next encounter starts with (M2a §3).
-  if (game.state === GameState.MAP || game.state === GameState.TRADER || game.state === GameState.TINKER) add(game.run.inventory, grant);
+  if ([GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.VILLAGE].includes(game.state)) add(game.run.inventory, grant);
   // M2d §1.3: the same floaters as any gain, above the Druid (not on the map or at a Trader).
   else addResourceFloaters(game, grant, game.druidPos.x, game.druidPos.y - C.DRUID_RADIUS * 2.2);
 }
@@ -572,6 +605,9 @@ export function updateGame(game, dt) {
       break;
     case GameState.TINKER:
       updateTinker(game, dt); // M2p §4: the scene's clock, the craft animation's sound cues and leaving
+      break;
+    case GameState.VILLAGE:
+      updateVillage(game, dt); // M6a §2.3: both tabs' clocks and leaving
       break;
     case GameState.MAP:
       // M2p §3.3: the "Pattern learned" message ages only while the map is shown.

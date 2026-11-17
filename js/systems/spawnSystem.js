@@ -96,9 +96,11 @@ function trySpawn(game, lane, type, first = true) {
 // start of a random lane, from now, spaced by its burst stagger. They spawn as soon as the entry
 // point is clear. Uses the seeded RNG. M3b §1: the type is the level's region's enemy for that
 // role (B in Hag's Causeway queues a Mirebound Brute).
-export function queueDebugEnemy(game, type, count = 1) {
-  type = C.regionalEnemy(type, game.scene.level.region);
-  const queue = game.spawnQueues[game.rng.int(0, game.spawnQueues.length - 1)];
+// M6a §5 (the debug Spawn enemy dropdown): laneId picks the lane (null: a random one); exact spawns
+// that very type, not the region's enemy for its role.
+export function queueDebugEnemy(game, type, count = 1, { laneId = null, exact = false } = {}) {
+  if (!exact) type = C.regionalEnemy(type, game.scene.level.region);
+  const queue = game.spawnQueues.find((q) => q.lane.id === laneId) ?? game.spawnQueues[game.rng.int(0, game.spawnQueues.length - 1)];
   const stagger = C.ENEMY_TYPES[type].burstStagger ?? C.BURST_STAGGER;
   for (let k = 0; k < count; k++) queue.spawns.push({ time: game.waveTime + k * stagger, type, first: k === 0 });
   queue.spawns.sort((a, b) => a.time - b.time); // stable: wave spawns already due keep their order

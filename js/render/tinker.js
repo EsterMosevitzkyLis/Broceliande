@@ -293,7 +293,7 @@ function drawHorseshoe(ctx) {
 // ---------------------------------------------------------------------------
 const ANVIL_TOP = 92; // px from the stump's base to the anvil's face
 
-function drawAnvil(ctx, x, y) {
+export function drawAnvil(ctx, x, y) {
   drawShadow(ctx, x, y, 90, 16);
   ctx.fillStyle = COLORS.woodDark;                   // the stump
   ctx.fillRect(x - 46, y - 50, 92, 50);
@@ -321,7 +321,7 @@ function drawAnvil(ctx, x, y) {
 
 // The craft (§4.3): the hammer swings down on the anvil at each strike with a spray of sparks,
 // then the item rises from the anvil in a burst of sparks and a soft glow, and settles.
-function drawCraft(ctx, anvil, visit, age) {
+export function drawCraft(ctx, anvil, visit, age) {
   const face = { x: anvil.x + 10, y: anvil.y - ANVIL_TOP - 18 };
   const A = C.CRAFT_ANIM;
   const crafting = age >= 0 && age < A.end;
@@ -402,7 +402,7 @@ function drawSparks(ctx, x, y, k, n, reach, seed) {
 // ---------------------------------------------------------------------------
 // The workbench and the open book on it (the pages' contents are HTML over them).
 // ---------------------------------------------------------------------------
-function drawWorkbench(ctx, { x, y, w, h }) {
+export function drawWorkbench(ctx, { x, y, w, h }) {
   const top = y + h - 30;
   drawShadow(ctx, x + w / 2, top + 130, w * 0.55, 24);
   ctx.fillStyle = COLORS.woodDark;                   // legs

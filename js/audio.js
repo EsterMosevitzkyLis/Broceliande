@@ -834,6 +834,18 @@ const RECIPES = {
     return 1.0;
   },
 
+  // The Lost Vale's map ambience (M6a §3): a far-off waterfall's hush, a drip, and now and then a
+  // distant bird's two-note call.
+  mapAmbienceVale(t, out, p) {
+    noise(t, out, { filter: 'lowpass', freq: 420 * p, to: 380 * p, q: 0.5, dur: 1.8, attack: 0.6, gain: 0.35 });
+    tone(t, out, { freq: 1300 * p, to: 650 * p, dur: 0.07, attack: 0.002, gain: 0.35, delay: 0.4 });
+    if (rng.next() < 0.6) {
+      tone(t, out, { freq: 2400 * p, to: 2900 * p, dur: 0.12, attack: 0.01, gain: 0.22, delay: 0.9 });
+      tone(t, out, { freq: 2000 * p, to: 1700 * p, dur: 0.16, attack: 0.01, gain: 0.2, delay: 1.08 });
+    }
+    return 1.8;
+  },
+
   // Bough Double arrives (M1i §2.8): a soft woody creak with a low shimmer under it.
   doubleAppears(t, out, p) {
     creak(t, out, 40 * p, 58 * p, 0.32, 0.7);

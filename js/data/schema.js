@@ -114,7 +114,8 @@ export const TABS = {
     columns: {
       id: { type: 'id', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
       row: { type: 'int' }, nodeType: { type: 'id', required: true }, region: { type: 'id', required: true }, enemyHpMult: { type: 'number' },
-      stepBudget: { type: 'number', required: true }, stuckTime: { type: 'number' },
+      stepBudget: { type: 'number' }, stuckTime: { type: 'number' }, // stepBudget: every battle level's (validate.js)
+      trader: { type: 'id' }, // M6a §2.2: a village row's trader profile (blank for battle levels)
     },
     pattern: [/^mix_[a-z][a-zA-Z0-9]*$/, { type: 'int' }],
   },

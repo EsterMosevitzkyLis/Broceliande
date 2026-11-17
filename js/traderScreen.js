@@ -2,7 +2,8 @@
 // resources with what the trader pays, his items with their sell price); the trader's goods on the
 // blanket (resources with stock, price and tag; item cards; pattern cards); the centre panel with
 // the selected deal (quantity, total, before/after, Buy or Sell and why not); Undo last trade and
-// Back to the road. Also how dark the scene fade should be. Shown only in the TRADER state. It
+// Back to the road. Also how dark the scene fade should be. Shown in the TRADER state, and on a
+// village's Trade tab (M6a §2.3: its title and the fade are the village's, its Undo the shared one). It
 // reads game state and calls back for every action; the art is on the canvas (render/trader.js).
 
 import * as C from './config.js';
@@ -14,6 +15,7 @@ import { costRowsElement } from './costRows.js';
 import { isPatternKnown } from './patterns.js';
 import { resourcePrice, sellBundle, itemSellPrice, goodsTag } from './trade.js';
 import { currentDeal } from './visit.js';
+import { canUndoVillage } from './village.js';
 
 const CARD_ICON_PX = 52;
 const PACK_ICON_PX = 34;
@@ -53,7 +55,8 @@ export function createTraderScreen(callbacks) {
   // Returns how dark the scene fade should be (0–1) for this screen.
   function update(game) {
     const v = game.visit;
-    el.root.hidden = game.state !== GameState.TRADER || !v;
+    const village = game.state === GameState.VILLAGE ? game.village : null;
+    el.root.hidden = !v || !(game.state === GameState.TRADER || village?.tab === 'trade');
     if (el.root.hidden) {
       for (const k of Object.keys(keys)) delete keys[k];
       return 0;
@@ -63,7 +66,8 @@ export function createTraderScreen(callbacks) {
     const t = v.trader;
     const sel = v.sel;
     const isSel = (kind, side, id) => !!sel && sel.kind === kind && sel.side === side && sel.id === id;
-    setText(el.title, `${t.name}'s Cart`);
+    el.title.hidden = !!village; // the village screen shows the village's name
+    setText(el.title, `${possessive(t.name)} Cart`);
     setText(el.speech, `“${v.line}”`);
     setText(el.gold, String(inv.gold ?? 0));
 
@@ -82,7 +86,7 @@ export function createTraderScreen(callbacks) {
     });
 
     // The trader's goods: stocked resources, then the item and pattern cards.
-    setText(el.goodsTitle, `${t.name}'s goods`);
+    setText(el.goodsTitle, `${possessive(t.name)} goods`);
     once('goodsRes', [sel?.kind, sel?.side, sel?.id, ...t.offers.map((k) => `${k}${t.stock[k]}`)].join(','), () => {
       el.goodsRes.replaceChildren(...t.offers.map((k) => resourceChip(k, t.stock[k], String(resourcePrice(t, k)), true,
         t.stock[k] <= 0 ? ['Sold out', 'poor'] : TAGS[goodsTag(t, k)], isSel('resource', 'buy', k), () => callbacks.onSelect('resource', 'buy', k), t.stock[k] <= 0)));
@@ -98,18 +102,20 @@ export function createTraderScreen(callbacks) {
     const deal = currentDeal(game);
     el.hint.hidden = !!deal;
     el.deal.hidden = !deal;
-    const leaving = v.leaving !== null;
-    el.undo.disabled = !v.trades.length || leaving;
+    const leaving = (village ?? v).leaving !== null;
+    el.undo.disabled = (village ? !canUndoVillage(game) : !v.trades.length) || leaving;
+    setText(el.undo, village ? 'Undo' : 'Undo last trade');
     el.leave.disabled = leaving;
+    const fadeNow = village ? 0 : fade(v); // the village's own fade (village.js) covers both tabs
     if (!deal) {
-      setText(el.hint, 'Pick something from his goods to buy, or from your pack to sell.');
-      return fade(v);
+      setText(el.hint, `Pick something from ${village ? 'their' : 'his'} goods to buy, or from your pack to sell.`);
+      return fadeNow;
     }
     once('dealHead', `${deal.kind}|${deal.side}|${deal.id}`, () => fillDealHead(el, deal, inv));
     fillDealBody(el, deal, game, t);
     el.action.disabled = !!deal.blocker || leaving;
     setText(el.reason, deal.blocker ?? '');
-    return fade(v);
+    return fadeNow;
   }
 
   return { update };
@@ -278,6 +284,9 @@ function fade(v) {
   const opacity = v.leaving !== null ? v.leaving / C.TRADER_FADE_TIME : 1 - v.time / C.TRADER_FADE_TIME;
   return Math.max(0, Math.min(1, opacity));
 }
+
+// "Hettie Thistlewick's", "The Rootkeepers'".
+const possessive = (name) => (name.endsWith('s') ? `${name}'` : `${name}'s`);
 
 function setText(node, text) {
   if (node.textContent !== text) node.textContent = text;

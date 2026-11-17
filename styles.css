@@ -806,7 +806,8 @@ html, body {
   cursor: pointer;
 }
 
-/* M5a §5: dialogue debug buttons under the panel. */
+/* M5a §5: dialogue debug buttons under the panel; M6a §5: the region and enemy dropdowns. */
+#debug-test-buttons,
 #debug-dialogue-buttons {
   display: flex;
   gap: 8px;
@@ -817,7 +818,8 @@ html, body {
   pointer-events: auto;
 }
 #debug-dialogue-buttons button,
-#debug-dialogue-buttons select {
+#debug-dialogue-buttons select,
+#debug-test-buttons select {
   font: 13px 'Consolas', monospace;
   padding: 3px 8px;
   cursor: pointer;
@@ -1815,6 +1817,45 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
 }
 #btn-craft-undo { position: absolute; left: 80px; bottom: 50px; }
 #btn-tinker-leave { position: absolute; right: 80px; bottom: 50px; font-size: 26px !important; }
+/* ---------- Village (M6a §2.3) ---------- */
+/* The village's name top left, its Trade / Craft tabs under it (clear of the trader's speech and the
+   book's own tabs). */
+#village-screen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+#village-title {
+  position: absolute;
+  top: 96px;
+  left: 80px;
+  font-size: 44px;
+  font-weight: bold;
+  color: #ffd98a;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+#village-tabs {
+  position: absolute;
+  top: 160px;
+  left: 80px;
+  display: flex;
+  gap: 10px;
+}
+#village-tabs button {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 24px;
+  min-width: 120px;
+  padding: 6px 18px;
+  cursor: pointer;
+  background: rgba(20, 14, 8, 0.7);
+  color: #f1e8cc;
+  border: 2px solid rgba(233, 228, 208, 0.4);
+  border-radius: 8px;
+}
+#village-tabs button:hover:not(.selected) { border-color: #ffd98a; }
+#village-tabs button.selected { background: #c89a56; color: #2a1c0e; border-color: #ffd98a; font-weight: bold; }
 #scene-fade {
   position: absolute;
   inset: 0;

@@ -304,6 +304,19 @@ export const TINKER_SCENE = {
   beam: { x1: 560, x2: 960, y: 250 },     // the beam the tools hang from, above the forge
   book: { x: 990, y: 150, w: 870, h: 790 }, // the open book (both pages), stage px
 };
+// A village (M6a §2.3, Rootkeeper Grove): timber dwellings round two living trees joined by a rope
+// walkway with lanterns, a workshop with half-finished carvings on the right, tree ferns and mist at
+// the back. The Trade tab's goods lie on TRADER_SCENE's blanket; the Craft tab's book is
+// TINKER_SCENE's, its craft animation over TINKER_SCENE's anvil. Drawing only.
+export const VILLAGE_SCENE = {
+  trees: [{ x: 250, base: 470, width: 120 }, { x: 1180, base: 450, width: 104 }], // the living trees' trunks
+  huts: [{ x: 250, y: 300, w: 230, h: 120 }, { x: 1180, y: 270, w: 200, h: 110 }], // on platforms round them (y: the floor)
+  walkway: { from: { x: 365, y: 300 }, to: { x: 1080, y: 270 }, sag: 70, lanterns: 4 },
+  workshop: { x: 1700, y: 440, w: 300, h: 190 },    // its floor's centre
+  carvings: [{ x: 1500, y: 470, h: 150 }, { x: 905, y: 455, h: 110 }], // half-finished totems
+  ferns: 9,                                         // tree ferns along the back edge
+  shavings: 26,                                     // curls of wood shavings on the ground
+};
 export const TINKER_FADE_TIME = 0.35;     // s, the fade into and out of the Tinker's Rest (M2n §1)
 export const CRAFT_ANIM = {               // s from Craft (M2p §4.3): visual timings only
   strikes: [0.25, 0.6],                   // the hammer hits the anvil
@@ -363,7 +376,28 @@ export const NODE_TYPES = {
   // M2p §4.1: a Tinker's Rest (no battle): a copper rim, an anvil, and a small hammer mark once
   // visited. Generated with the map, like the Traders.
   tinker: { label: "Tinker's Rest", icon: 'anvil', rim: '#c8784a', fill: '#4e3226', completedMark: 'hammer' },
+  // M6a §2.2: a fixed village (no battle), a levels row of its own (always on its region's map, in
+  // its row): a timber hut under a broad tree in a warm wood-and-green circle, the coin mark once
+  // visited. Its scene has a Trade and a Craft tab (village.js).
+  village: { label: 'Village', icon: 'hut', rim: '#c89a56', fill: '#2f4a26', completedMark: 'coin' },
 };
+
+// M6a §2.1: the Lost Vale's placeholder levels until M6e. Each borrows another level's map file
+// (mapFile.js loadLevelMaps) and waves (applyData); its name, row, type, HP multiplier, step budget
+// and feature mix are its own, in the levels tab.
+export const PLACEHOLDER_LEVELS = {
+  emeraldGully: 'tornville',
+  serpentsRest: 'gallows', fernboundCourt: 'blackthorn', whisperingCanopy: 'wychwood',
+  blackstoneSteps: 'drowned', broodmothersHollow: 'barrow',
+  sunkenAtrium: 'charcoal', mossCrownedGate: 'stags', glasswaterBasin: 'briar',
+  scaleShrine: 'ashen', drownedObservatory: 'causeway', coilstoneCircle: 'widows',
+  fallenColossus: 'mossbound', fernsea: 'weeping', broodmothersDen: 'barrow',
+  saurianCrossing: 'bone', hollowZiggurat: 'bells', ironspan: 'weeping',
+  shamansPerch: 'heartwood',
+};
+
+// A levels row that is a village (M6a §2.2), not a battle level.
+export const isVillageRow = (r) => r.nodeType === 'village';
 
 // M2e §4.6 (as revised): the map's ground runs across the whole screen; its nodes use the right
 // half (x ≥ EQUIP_PANEL_WIDTH), and it doesn't scroll.
@@ -377,9 +411,10 @@ export const MAP_LABEL_PILL = { padX: 7, padY: 2, radius: 8, color: 'rgba(12, 16
 export const MAP_LABEL_FONT_PX = 18;      // node names; a name wider than MAP_LABEL_MAX_WIDTH wraps onto two lines
 export const MAP_LABEL_MAX_WIDTH = 170;   // px
 // M2g §1, M3a §1.2: the map's nodes, one per level (built in applyData from the levels tab), each
-// in its level's region and row: row 1 the region's start, its last row the boss. Their order
-// within a row, their positions and the roads between rows are generated per region map
-// (js/mapGen.js). { id (= levelId), levelId, name, type, region }.
+// in its level's region and row: row 1 the region's start, its last row the boss (M6a: and one per
+// village row, with no level). Their order within a row, their positions and the roads between rows
+// are generated per region map (js/mapGen.js). { id (= levelId), levelId (null for a village), name,
+// type, region, row }.
 export let MAP_NODES;
 export const MAP_NODE_RADIUS = 30;        // px (M2e §4.6, was 44)
 export const MAP_BOSS_SCALE = 1.5;        // M2f §2: a large node (the Boss) is drawn and hit-tested this much bigger
@@ -392,7 +427,11 @@ export const MAP_DECOR_SEED = 909;        // the map's procedural background sha
 export const MAP_BACKGROUNDS = {
   cinderwood: { clusters: 120, embers: 14, ashMotes: 40 },          // charred tree clusters, faint ember glows, drifting ash
   hags: { pools: 22, reeds: 40, willows: 12, stones: 10, mist: 9 }, // still pools, reed clumps, dead willows, causeway fragments, mist wisps
+  // M6a §3: tree-fern crowns, a river with small falls, moss-covered ruin fragments, light shafts,
+  // mist bands, and the Ironspan's silhouette near the top (the boss end).
+  vale: { ferns: 70, ruins: 9, shafts: 6, mist: 12, river: true, ironspan: true },
 };
+export const MAP_VALE_RIVER = { width: 34, falls: 3, sway: 140 }; // px: the river's width, how many small falls, how far it winds sideways
 export const MAP_ASH_DRIFT = { speed: 14, sway: 10 };       // px/s the ash motes fall, px they sway (wall-clock, visual only)
 export const MAP_MIST_DRIFT = { speed: 9, wobble: 12 };     // px/s the mist wisps drift sideways, px they bob
 export const MAP_AMBIENCE_GAPS = [3.2, 4.5, 2.6, 5.1, 3.8]; // s between the map's quiet ambience sounds, in turn (M3a §6)
@@ -495,7 +534,8 @@ export const SUMMON_KINDS = ['vulture', 'squirrel', 'double', 'slowWisp'];
 // Palettes of non-combat places (M2n §1): rows of the palettes tab that aren't levels.
 // M3a §5: a region's own version of a place (trader + 'Hags' = 'traderHags') is used there if it
 // exists; and each region's map background (map + 'Cinderwood').
-export const PLACE_PALETTES = ['trader', 'tinker', 'traderHags', 'tinkerHags', 'mapCinderwood', 'mapHags'];
+// M6a §2.3, §3: the village scene (Rootkeeper Grove) and the Vale's own versions.
+export const PLACE_PALETTES = ['trader', 'tinker', 'traderHags', 'tinkerHags', 'mapCinderwood', 'mapHags', 'village', 'traderVale', 'tinkerVale', 'mapVale'];
 // The traders tab's kinds (M2n §4.5, M3e §7): the lines for each moment (names are in traderProfiles).
 export const TRADER_LINE_KINDS = ['greet', 'buy', 'sell', 'poor', 'soldout', 'leave'];
 // The traderTables tab's tables (M3e §3.2).
@@ -563,6 +603,8 @@ export let STATS;
 // regions (M3a §1.1): id → { name, order, deathLossPct, traders, tinkers, tinkerMinRow, risingDead,
 // sinkingDrops, mireGround, introTitle, introText, finalLine }; REGION_ORDER: ids in order
 export let REGIONS, REGION_ORDER;
+// villages (M6a §2.2): id → { name, description, region, row, trader (a TRADER_PROFILES id) }
+export let VILLAGES;
 // levels: id → its map file's fields (mapFile.js levelFromMap: lanes, druidPos, sectors, corridorWidth,
 // candidateLocations, palette, ground, mire…) and background (an Image or null), plus name, description,
 // region, row, nodeType, stepBudget, featureMix, zoneQuotas, waves, and optional enemyHpMult, stuckTime
@@ -702,7 +744,8 @@ export function applyData(t, maps = {}, backgrounds = {}) {
   REGION_ORDER = [...t.regions].sort((a, b) => a.order - b.order).map((r) => r.id);
 
   const featureIds = Object.keys(FEATURE_TYPES);
-  LEVELS = byId(t.levels, (r) => {
+  VILLAGES = byId(t.levels.filter(isVillageRow), (r) => ({ name: r.name, description: r.description, region: r.region, row: r.row, trader: r.trader }));
+  LEVELS = byId(t.levels.filter((r) => !isVillageRow(r)), (r) => {
     // M4a §1.3: the level's ground (lanes, Druid, sectors, candidates, decoration, mire, palette…)
     // from its map file; the numbers about play from the levels tab.
     const level = { ...levelFromMap(maps[r.id]), name: r.name, description: r.description, region: r.region, row: r.row, nodeType: r.nodeType, stepBudget: r.stepBudget };
@@ -710,16 +753,20 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     for (const k of ['enemyHpMult', 'stuckTime']) opt(level, k, r[k]);
     level.featureMix = Object.fromEntries(featureIds.map((f) => [f, r[`mix_${f}`] ?? 0]));
     level.zoneQuotas = { near: { turret: ZONE_NEAR_TURRET, feature: ZONE_NEAR_FEATURE }, far: { turret: ZONE_FAR_TURRET, feature: ZONE_FAR_FEATURE } };
-    level.waves = t.waves.filter((w) => w.level === r.id).map((w) => {
+    const wavesOf = PLACEHOLDER_LEVELS[r.id] ?? r.id; // M6a §2.1: a placeholder's borrowed waves
+    level.waves = t.waves.filter((w) => w.level === wavesOf).map((w) => {
       // M3b §1: each spawn is its region's enemy for the role (a wolf in Hag's Causeway is a Drowned Thrall).
-      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === r.id && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
+      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === wavesOf && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
       return opt(wave, 'tolls', w.tolls);
     });
     return level;
   });
   // Map nodes (M3a §1.2): one per level, with its name, type and region (and its row, M2g §1:
   // mapGen.js reads it there).
-  MAP_NODES = Object.entries(LEVELS).map(([id, l]) => ({ id, levelId: id, name: l.name, type: l.nodeType, region: l.region }));
+  MAP_NODES = [
+    ...Object.entries(LEVELS).map(([id, l]) => ({ id, levelId: id, name: l.name, type: l.nodeType, region: l.region, row: l.row })),
+    ...Object.entries(VILLAGES).map(([id, v]) => ({ id, levelId: null, name: v.name, type: 'village', region: v.region, row: v.row })),
+  ];
 
   SOUNDS = byId(t.sounds, (r) => ({ volume: r.volume, pitch: r.pitch, minGap: r.minGap, maxVoices: r.maxVoices, enabled: r.enabled }));
 

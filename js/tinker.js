@@ -30,13 +30,20 @@ export function openDebugTinker(game) {
 
 function openTinker(game, nodeId) {
   if (!setState(game, GameState.TINKER)) return false;
-  game.tinker = {
+  game.tinker = newTinkerVisit(nodeId);
+  syncResources(game);
+  return true;
+}
+
+// The book open on the All tab at its first known pattern. Also a village's Craft tab (village.js,
+// M6a §2.3), with nodeId null: the village completes its node.
+export function newTinkerVisit(nodeId) {
+  const v = {
     nodeId, tab: 'all', selected: null, crafts: [], craftAt: -Infinity, craftItem: null, appeared: true,
     time: 0, crackleAt: C.FORGE_CRACKLE_GAPS[0], crackles: 0, leaving: null,
   };
-  game.tinker.selected = recipesInTab('all').find(isPatternKnown) ?? null;
-  syncResources(game);
-  return true;
+  v.selected = recipesInTab('all').find(isPatternKnown) ?? null;
+  return v;
 }
 
 // Every recipe's item ID in the book's order (the recipes tab's), or a slot's only.

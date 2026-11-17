@@ -119,7 +119,7 @@ function drawCart(ctx, x, y, t) {
 }
 
 // A lantern hanging from a hook, its glow breathing a little. (x, y): the hook.
-function drawLantern(ctx, x, y, t) {
+export function drawLantern(ctx, x, y, t) {
   const flicker = 0.85 + 0.1 * Math.sin(t * 7.3) + 0.05 * Math.sin(t * 13.1);
   ctx.save();
   const g = ctx.createRadialGradient(x, y + 30, 0, x, y + 30, 120 * flicker);
@@ -256,7 +256,7 @@ function drawPedlar(ctx, x, y, look, t) {
 }
 
 // The blanket the goods lie on: a striped red rug in perspective.
-function drawBlanket(ctx, { x, y, rx, ry }) {
+export function drawBlanket(ctx, { x, y, rx, ry }) {
   ctx.save();
   ctx.fillStyle = COLORS.blanketEdge;
   ctx.beginPath();
@@ -312,7 +312,7 @@ function drawSatchel(ctx, x, y) {
 
 // The Druid's gold (M3e §5.1): a small heap of worn coins on the ground, one coin per
 // coinsPerCoin gold (at least one while he has any), up to coinsMax. Dull gold, a little green tarnish.
-function drawCoinPile(ctx, x, y, gold) {
+export function drawCoinPile(ctx, x, y, gold) {
   if (gold <= 0) return;
   const n = Math.min(C.TRADER_SCENE.coinsMax, Math.max(1, Math.ceil(gold / C.TRADER_SCENE.coinsPerCoin)));
   ctx.save();

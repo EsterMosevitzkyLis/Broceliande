@@ -54,7 +54,8 @@ function openVisit(game, trader, nodeId) {
   return true;
 }
 
-function newVisit(game, trader, nodeId) {
+// Also a village's Trade tab (village.js, M6a §2.3), with nodeId null: the village completes its node.
+export function newVisit(game, trader, nodeId) {
   const rng = createRng((game.run.seed ^ Math.imul(trader.look + 1, 2654435761) ^ Math.imul(game.run.regionVisits, 0x9e3779b1)) >>> 0);
   return { trader, nodeId, rng, trades: [], sel: null, qty: 1, line: traderLine(rng, 'greet', trader.profileId), time: 0, lastTradeAt: -Infinity, leaving: null };
 }

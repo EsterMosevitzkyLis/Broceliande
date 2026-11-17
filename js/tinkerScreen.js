@@ -1,6 +1,7 @@
 // The Tinker's Rest's HTML (M2p §4.2–4.3): the open book's slot tabs, its recipe list (left page)
 // and the selected recipe's page (right page) with Craft; Undo last craft and Back to the road;
-// plus how dark the scene fade should be. Shown only in the TINKER state. It reads game state and
+// plus how dark the scene fade should be. Shown in the TINKER state, and on a village's Craft tab
+// (M6a §2.3: its title and the fade are the village's, its Undo the shared one). It reads game state and
 // calls back for every action; the art is on the canvas (render/tinker.js).
 
 import * as C from './config.js';
@@ -9,6 +10,7 @@ import { drawSlotIcon, drawFramedItemIcon } from './render/items.js';
 import { costRowsElement, costRowsKey } from './costRows.js';
 import { isPatternKnown, knownPatterns, totalPatterns } from './patterns.js';
 import { recipesInTab, craftBlocker, isCrafting } from './tinker.js';
+import { canUndoVillage } from './village.js';
 
 const TABS = ['all', ...Object.keys(C.SLOT_TYPES)];
 const TAB_ICON_PX = 30;
@@ -22,7 +24,7 @@ const PAGE_RARITY_COLOR = { 0: '#6a3aa8', 1: '#7a4a22', 2: '#2f7a2c', 3: '#94700
 export function createTinkerScreen(callbacks) {
   const $ = (id) => document.getElementById(id);
   const el = {
-    root: $('tinker-screen'), book: $('tinker-book'), tabs: $('tinker-tabs'), count: $('tinker-count'), list: $('tinker-list'),
+    root: $('tinker-screen'), title: $('tinker-title'), book: $('tinker-book'), tabs: $('tinker-tabs'), count: $('tinker-count'), list: $('tinker-list'),
     detail: $('tinker-detail'), empty: $('tinker-empty'), icon: $('tinker-icon'), name: $('tinker-name'),
     rarity: $('tinker-rarity'), desc: $('tinker-desc'), cost: $('tinker-cost'), craft: $('btn-craft'),
     reason: $('tinker-reason'), undo: $('btn-craft-undo'), leave: $('btn-tinker-leave'),
@@ -42,11 +44,18 @@ export function createTinkerScreen(callbacks) {
   // Returns how dark the scene fade should be (0–1) for this screen.
   function update(game) {
     const v = game.tinker;
-    el.root.hidden = game.state !== GameState.TINKER || !v;
+    const village = game.state === GameState.VILLAGE ? game.village : null;
+    el.root.hidden = !v || !(game.state === GameState.TINKER || village?.tab === 'craft');
     if (el.root.hidden) {
       listKey = detailKey = costKey = null;
       return 0;
     }
+    el.title.hidden = !!village; // the village screen shows the village's name
+    const leaving = (village ?? v).leaving !== null;
+    const fadeNow = village ? 0 : fade(v); // the village's own fade (village.js) covers both tabs
+    el.undo.disabled = (village ? !canUndoVillage(game) : !v.crafts.length || isCrafting(game)) || leaving;
+    setText(el.undo, village ? 'Undo' : 'Undo last craft');
+    el.leave.disabled = leaving;
     const run = game.run;
     for (const tab of TABS) {
       if (tabEls[tab].classList.contains('selected') !== (v.tab === tab)) tabEls[tab].classList.toggle('selected', v.tab === tab);
@@ -67,7 +76,7 @@ export function createTinkerScreen(callbacks) {
     el.detail.hidden = !id;
     if (!id) {
       setText(el.empty, knownPatterns().length ? 'Choose a pattern from the list.' : 'You know no patterns yet. Search the wilds for them.');
-      return fade(v);
+      return fadeNow;
     }
     if (id !== detailKey) {
       detailKey = id;
@@ -87,13 +96,9 @@ export function createTinkerScreen(callbacks) {
       el.cost.replaceChildren(costRowsElement(cost, run.inventory));
     }
     const blocker = craftBlocker(run, id);
-    const leaving = v.leaving !== null;
-    const busy = isCrafting(game);
-    el.craft.disabled = !!blocker || leaving || busy;
+    el.craft.disabled = !!blocker || leaving || isCrafting(game);
     setText(el.reason, blocker ?? '');
-    el.undo.disabled = !v.crafts.length || leaving || busy;
-    el.leave.disabled = leaving;
-    return fade(v);
+    return fadeNow;
   }
 
   return { update };

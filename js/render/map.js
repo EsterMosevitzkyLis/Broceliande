@@ -1,5 +1,6 @@
 // The level map (M2a §4), drawn from the run's generated map (M2g): the region's own background
-// (M3a §5.2: burnt country for the Cinderwood, marsh for Hag's Causeway) and title (§5.1), gently
+// (M3a §5.2: burnt country for the Cinderwood, marsh for Hag's Causeway; M6a §3: rainforest for the
+// Lost Vale) and title (§5.1), gently
 // curved dashed roads for every `next` link, and the nodes in their state
 // (available, completed, locked, bypassed), with names, the hovered node, the Druid token and,
 // in debug, node IDs and links. Visual only: reads the run, never changes it.
@@ -66,7 +67,14 @@ function mapBackground(map) {
     willows: many(B.willows ?? 0, 90, (p) => ({ ...p, s: rng.range(0.8, 1.3), lean: rng.range(-0.25, 0.25) })),
     stones: many(B.stones ?? 0, 70, (p) => ({ ...p, rot: rng.range(-0.5, 0.5), n: rng.int(2, 4) })),
     mist: Array.from({ length: B.mist ?? 0 }, () => ({ x: rng.range(0, C.STAGE_WIDTH), y: rng.range(C.HUD_STRIP_HEIGHT + 60, C.STAGE_HEIGHT), rx: rng.range(160, 300), ry: rng.range(30, 60), phase: rng.range(0, Math.PI * 2) })),
+    // M6a §3 (the Lost Vale): the river (and its falls) first, so the other shapes can keep off it.
+    river: B.river ? valeRiver(rng) : null,
   };
+  const offRiver = (p, margin) => !bg.river || Math.abs(p.x - riverX(bg.river, p.y)) > C.MAP_VALE_RIVER.width + margin;
+  bg.ferns = many(B.ferns ?? 0, 60, (p) => ({ ...p, s: rng.range(0.7, 1.3), rot: rng.range(0, Math.PI), n: rng.int(7, 10) })).filter((p) => offRiver(p, 20));
+  bg.ruins = many(B.ruins ?? 0, 80, (p) => ({ ...p, rot: rng.range(-0.4, 0.4), n: rng.int(2, 4), w: rng.range(18, 30) })).filter((p) => offRiver(p, 30));
+  bg.shafts = Array.from({ length: B.shafts ?? 0 }, () => ({ x: rng.range(C.EQUIP_PANEL_WIDTH, C.STAGE_WIDTH), w: rng.range(60, 140), phase: rng.range(0, Math.PI * 2) }));
+  bg.ironspan = !!B.ironspan;
   backgroundByMap.set(map, bg);
   return bg;
 }
@@ -81,6 +89,7 @@ function drawMapBackground(ctx, map, t) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
   ctx.save();
+  if (bg.river || bg.ferns.length) drawValeBackground(ctx, bg, P, t); // M6a §3: the Lost Vale
   // The Hag's Causeway marsh: still black pools with a faint sheen, broken causeway stones.
   for (const pl of bg.pools) {
     ctx.fillStyle = P.water.rim;
@@ -208,6 +217,152 @@ function drawMapBackground(ctx, map, t) {
   ctx.restore();
 }
 
+// M6a §3: the Lost Vale's river, winding from the top of the map area to the bottom: its centre-line
+// x at each height is a sum of two slow waves; falls: the heights of its small waterfalls.
+function valeRiver(rng) {
+  const V = C.MAP_VALE_RIVER;
+  const top = C.HUD_STRIP_HEIGHT;
+  const falls = Array.from({ length: V.falls }, (_, i) => top + ((i + 1) / (V.falls + 1)) * (C.STAGE_HEIGHT - top) + rng.range(-40, 40));
+  return { x0: (C.EQUIP_PANEL_WIDTH + C.STAGE_WIDTH) / 2 + rng.range(-120, 120), a: rng.range(0.6, 1) * V.sway, b: rng.range(0.2, 0.4) * V.sway, p: rng.range(0, 6), q: rng.range(0, 6), falls };
+}
+
+function riverX(r, y) {
+  return r.x0 + r.a * Math.sin(y / 260 + r.p) + r.b * Math.sin(y / 90 + r.q);
+}
+
+// The river, its falls (pale foamy steps across it), tree-fern crowns seen from above, moss-grown
+// ruin fragments, soft shafts of gold light, and the Ironspan near the top (the boss end).
+function drawValeBackground(ctx, bg, P, t) {
+  const r = bg.river;
+  const W = C.MAP_VALE_RIVER.width;
+  if (r) {
+    const course = (offset) => {
+      ctx.beginPath();
+      for (let y = C.HUD_STRIP_HEIGHT; y <= C.STAGE_HEIGHT; y += 12) {
+        const x = riverX(r, y) + offset;
+        if (y === C.HUD_STRIP_HEIGHT) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+    };
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const [color, width] of [[P.water.rim, W * 2 + 14], [P.water.deep, W * 2]]) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      course(0);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = P.water.ripple; // a glint drifting down the river
+    ctx.lineWidth = 2;
+    ctx.setLineDash([18, 26]);
+    ctx.lineDashOffset = -t * 30;
+    course(-W * 0.3);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    for (const fy of r.falls) {
+      const fx = riverX(r, fy);
+      ctx.fillStyle = 'rgba(230, 245, 240, 0.55)';
+      ctx.fillRect(fx - W - 4, fy - 4, W * 2 + 8, 8);
+      for (let i = 0; i < 6; i++) { // foam below the step, bobbing
+        const bx = fx - W + (i + 0.5) * ((W * 2) / 6);
+        ctx.beginPath();
+        ctx.arc(bx, fy + 10 + Math.sin(t * 3 + i) * 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  for (const ru of bg.ruins) {
+    for (let i = 0; i < ru.n; i++) {
+      ctx.save();
+      ctx.translate(ru.x + i * ru.w * 1.1 * Math.cos(ru.rot), ru.y + i * ru.w * 1.1 * Math.sin(ru.rot));
+      ctx.rotate(ru.rot + (i % 2 ? 0.12 : -0.08));
+      ctx.fillStyle = P.rock.base;
+      ctx.fillRect(-ru.w / 2, -ru.w * 0.35, ru.w, ru.w * 0.7);
+      ctx.fillStyle = P.rock.light;
+      ctx.fillRect(-ru.w / 2, -ru.w * 0.35, ru.w, ru.w * 0.2);
+      ctx.fillStyle = P.moss;
+      ctx.beginPath();
+      ctx.ellipse(-ru.w * 0.15, -ru.w * 0.3, ru.w * 0.35, ru.w * 0.16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  for (const f of bg.ferns) {
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rot + Math.sin(t * 0.5 + f.rot) * 0.03);
+    for (let i = 0; i < f.n; i++) {
+      const a = (i / f.n) * Math.PI * 2;
+      const len = 30 * f.s * (0.8 + 0.2 * Math.sin(i * 2.1));
+      ctx.strokeStyle = i % 2 ? P.vegetation.light : P.vegetation.base;
+      ctx.lineWidth = 3.2 * f.s;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(Math.cos(a + 0.3) * len * 0.6, Math.sin(a + 0.3) * len * 0.6, Math.cos(a) * len, Math.sin(a) * len);
+      ctx.stroke();
+    }
+    ctx.fillStyle = P.treeDark.trunk;
+    ctx.beginPath();
+    ctx.arc(0, 0, 3.5 * f.s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  for (const s of bg.shafts) {
+    const k = 0.6 + 0.4 * Math.sin(t * 0.25 + s.phase);
+    const g = ctx.createLinearGradient(s.x, C.HUD_STRIP_HEIGHT, s.x + 160, C.STAGE_HEIGHT);
+    g.addColorStop(0, P.glow);
+    g.addColorStop(1, 'rgba(255, 220, 130, 0)');
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(s.x, C.HUD_STRIP_HEIGHT);
+    ctx.lineTo(s.x + s.w, C.HUD_STRIP_HEIGHT);
+    ctx.lineTo(s.x + s.w + 260, C.STAGE_HEIGHT);
+    ctx.lineTo(s.x + 260, C.STAGE_HEIGHT);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  if (bg.ironspan) {
+    const y = C.HUD_STRIP_HEIGHT + 130;
+    drawIronspan(ctx, r ? riverX(r, y) : (C.EQUIP_PANEL_WIDTH + C.STAGE_WIDTH) / 2, y, P);
+  }
+}
+
+// The Ironspan: a dark iron truss bridge across the river's gorge, centred at (x, y).
+function drawIronspan(ctx, x, y, P) {
+  const half = 230;
+  ctx.save();
+  ctx.strokeStyle = P.rock.dark;
+  ctx.fillStyle = P.rock.dark;
+  ctx.lineWidth = 7;
+  ctx.beginPath(); // the deck
+  ctx.moveTo(x - half, y);
+  ctx.lineTo(x + half, y);
+  ctx.stroke();
+  ctx.lineWidth = 5;
+  ctx.beginPath(); // the arch under it
+  ctx.moveTo(x - half * 0.8, y + 40);
+  ctx.quadraticCurveTo(x, y - 30, x + half * 0.8, y + 40);
+  ctx.stroke();
+  ctx.lineWidth = 3;
+  for (let i = -5; i <= 5; i++) { // the truss: uprights and diagonals over the deck
+    const px = x + (i / 6) * half;
+    ctx.beginPath();
+    ctx.moveTo(px, y);
+    ctx.lineTo(px, y - 26);
+    if (i < 5) ctx.lineTo(px + half / 6, y);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(x - (half * 5) / 6, y - 26);
+  ctx.lineTo(x + (half * 5) / 6, y - 26);
+  ctx.stroke();
+  for (const dir of [-1, 1]) ctx.fillRect(x + dir * half - 12, y - 6, 24, 60); // the abutments
+  ctx.restore();
+}
+
 // M3a §5.1: the region's name over the map area, in large storybook type.
 function drawRegionTitle(ctx, regionId) {
   const T = C.MAP_TITLE;
@@ -245,7 +400,7 @@ function roadStyle(run, from, to) {
 }
 
 // Icon draw functions named by NODE_TYPES (M2c §1.1).
-const NODE_ICONS = { wolfHead: drawWolfHead, lantern: drawLanternIcon, anvil: drawAnvilIcon };
+const NODE_ICONS = { wolfHead: drawWolfHead, lantern: drawLanternIcon, anvil: drawAnvilIcon, hut: drawHutIcon };
 
 const STATE_ALPHA = { available: 1, completed: 1, locked: 0.5, bypassed: 0.3 };
 
@@ -374,6 +529,35 @@ function drawAnvilIcon(ctx, x, y, size, color) {
   ctx.lineTo(x + s * 0.7, y - s * 0.42);
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
+}
+
+// The village node's icon (M6a §2.2): a timber hut under a broad tree. Same signature as the other
+// node icons; size: about its half-height.
+function drawHutIcon(ctx, x, y, size, color) {
+  const s = size;
+  ctx.save();
+  ctx.fillStyle = '#6fa04a';                         // the broad crown behind
+  ctx.beginPath();
+  ctx.ellipse(x, y - s * 0.45, s * 0.95, s * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#4e7a34';
+  ctx.beginPath();
+  ctx.ellipse(x + s * 0.2, y - s * 0.35, s * 0.6, s * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#5a3a1e';                         // the trunk
+  ctx.fillRect(x - s * 0.08, y - s * 0.2, s * 0.16, s * 0.5);
+  ctx.fillStyle = color;                             // the hut: walls, roof and a lit door
+  ctx.fillRect(x - s * 0.5, y + s * 0.05, s * 1.0, s * 0.55);
+  ctx.fillStyle = '#9a6a36';
+  ctx.beginPath();
+  ctx.moveTo(x - s * 0.66, y + s * 0.1);
+  ctx.lineTo(x, y - s * 0.28);
+  ctx.lineTo(x + s * 0.66, y + s * 0.1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffd77a';
+  ctx.fillRect(x - s * 0.13, y + s * 0.26, s * 0.26, s * 0.34);
   ctx.restore();
 }
 

@@ -1,7 +1,7 @@
 // Bootstrap, stage scaling and the fixed-timestep loop (spec §3.4, §3.5).
 
 import * as C from './config.js';
-import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, spawnDebugBogKing, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion } from './game.js';
+import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, spawnDebugBogKing, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion, debugJumpToRegion, spawnDebugEnemy } from './game.js';
 import { createInput } from './input.js';
 import { createRenderer } from './renderer.js';
 import { createUI, checkLevelNameLabel, checkBossBar, checkWavePreview } from './ui.js';
@@ -27,6 +27,8 @@ import { learnPattern, randomUnknownPattern, knownPatterns, learnAllPatterns, fo
 import { openDebugTrader, selectGoods, stepQty, maxQty, makeDeal, undoVisitTrade, leaveVisit } from './visit.js';
 import { initDialogues, takeNextDialogue, isDialogueOpen, forgetSeenDialogues, playDialogueNow } from './dialogue.js';
 import { createDialogueBox } from './dialogueBox.js';
+import { createVillageScreen } from './villageScreen.js';
+import { selectVillageTab, villageDeal, villageCraft, undoVillage, leaveVillage } from './village.js';
 
 const stage = document.getElementById('stage');
 const canvas = document.getElementById('game-canvas');
@@ -141,6 +143,8 @@ const ui = createUI({
   onForgetAllPatterns: forgetAllPatterns,
   onForgetDialogues: () => forgetSeenDialogues(game.run), // M5a §5
   onPlayDialogue: playDialogueNow,
+  onJumpToRegion: (id) => { if (debugJumpToRegion(game, id)) afterRestart(); }, // M6a §5
+  onSpawnEnemy: (type, count, laneId) => spawnDebugEnemy(game, type, count, laneId),
 });
 checkLevelNameLabel(LEVEL_IDS.map(sceneFor)); // M2a §6: the label must not cover a candidate in any level
 checkBossBar(LEVEL_IDS.map(sceneFor));        // M2c §2.7: nor may the boss HP bar
@@ -153,24 +157,29 @@ const equipPanel = createEquipmentPanel({
   onSlotViewed: (slot) => markSlotSeen(game.run, slot),
 });
 
-// The trader scene's controls (M2n §4, M3e §5).
+// The trader scene's controls (M2n §4, M3e §5); also a village's Trade tab (M6a §2.3), whose deals,
+// Undo and Back to the road are the village's.
+const inVillage = () => game.state === GameState.VILLAGE;
 const traderScreen = createTraderScreen({
   onSelect: (kind, side, id) => selectGoods(game, kind, side, id),
   onStep: (delta) => stepQty(game, delta),
   onMax: () => maxQty(game),
-  onDeal: () => makeDeal(game),
-  onUndo: () => undoVisitTrade(game),
-  onLeave: () => leaveVisit(game),
+  onDeal: () => (inVillage() ? villageDeal(game) : makeDeal(game)),
+  onUndo: () => (inVillage() ? undoVillage(game) : undoVisitTrade(game)),
+  onLeave: () => (inVillage() ? leaveVillage(game) : leaveVisit(game)),
 });
 
-// The Tinker's Rest's controls (M2p §4).
+// The Tinker's Rest's controls (M2p §4); also a village's Craft tab.
 const tinkerScreen = createTinkerScreen({
   onTab: (tab) => selectTab(game, tab),
   onSelect: (itemId) => selectRecipe(game, itemId),
-  onCraft: () => craft(game),
-  onUndo: () => undoCraft(game),
-  onLeave: () => leaveTinker(game),
+  onCraft: () => (inVillage() ? villageCraft(game) : craft(game)),
+  onUndo: () => (inVillage() ? undoVillage(game) : undoCraft(game)),
+  onLeave: () => (inVillage() ? leaveVillage(game) : leaveTinker(game)),
 });
+
+// A village's name and Trade / Craft tabs (M6a §2.3).
+const villageScreen = createVillageScreen({ onTab: (tab) => selectVillageTab(game, tab) });
 
 // The fade into and out of a place scene (M2n §1): each scene's screen says how dark it should be;
 // back on the map after one, it fades in from black (visual only, wall-clock).
@@ -205,9 +214,9 @@ function updateSceneFade(opacity) {
   if (sceneFade.style.opacity !== value) sceneFade.style.opacity = value;
 }
 
-// A place scene (M2n §1): the Trader's or the Tinker's Rest's.
+// A place scene (M2n §1): the Trader's, the Tinker's Rest's or (M6a §2.3) a village's.
 function isPlaceScene(state) {
-  return state === GameState.TRADER || state === GameState.TINKER;
+  return state === GameState.TRADER || state === GameState.TINKER || state === GameState.VILLAGE;
 }
 
 const input = createInput(stage, canvas, () => scale, {
@@ -416,7 +425,7 @@ function frame(now) {
   renderer.render(game, view);
   ui.update(game, clock, view);
   equipPanel.update(game);
-  updateSceneFade(Math.max(traderScreen.update(game), tinkerScreen.update(game)));
+  updateSceneFade(Math.max(traderScreen.update(game), tinkerScreen.update(game), villageScreen.update(game)));
   requestAnimationFrame(frame);
 }
 
