@@ -261,6 +261,12 @@ export const DECOR = {
     charredRoof: { lift: 15, r: 40 },  // M3a §2: The Burnt Hamlet's ash pits
     charredBeams: { lift: 10, r: 32 },
     scorchedStones: { lift: 8, r: 36 }, // M3a §2: The Ember Road's ash pits
+    // M6e §2: the Lost Vale's signature decoration (landmarks: their size is px, the rest a multiplier).
+    mossSteps: { lift: 10, r: 34 }, baskingStones: { lift: 5, r: 30 }, flagstones: { lift: 3, r: 28 }, hangingVines: { lift: 40, r: 18 },
+    glyphStone: { lift: 20, r: 16 }, cocoons: { lift: 35, r: 22 }, web: { lift: 22, r: 26 }, glowFungus: { lift: 6, r: 18 },
+    elderColumn: { lift: 35, r: 14 }, lilyPads: { lift: 2, r: 18 }, totem: { lift: 32, r: 12 }, steppingStones: { lift: 2, r: 28 },
+    ruinedArch: { lift: 60, r: 70 }, serpentStatue: { lift: 40, r: 60 }, dryFountain: { lift: 25, r: 52 }, giantTrunk: { lift: 70, r: 50 },
+    ropeBridge: { lift: 60, r: 70 }, basaltSteps: { lift: 20, r: 72 }, mossGate: { lift: 60, r: 92 }, waterfall: { lift: 50, r: 72 },
   },
   clearingRadius: 120,        // px, open dirt clearing around the Druid
   groundPatches: 70,          // subtle floor colour blobs
@@ -270,6 +276,8 @@ export const DECOR = {
     mound: 135, bell: 60, altarStone: 44, peatThrone: 50, chapelWall: 110, sunkenBelfry: 46, gallows: 55,
     tanneryVats: 60, cairn: 90, plagueCart: 40, footbridge: 70, ossuary: 52, sluiceGate: 55, widowTree: 30,
     relicPylon: 24, // M6b §6: half its base's width; a breakable target in battle (oracleSystem.js)
+    // M6e §2: the Lost Vale's landmarks.
+    ruinedArch: 60, serpentStatue: 55, dryFountain: 50, giantTrunk: 45, ropeBridge: 70, basaltSteps: 70, mossGate: 90, waterfall: 70,
   },
 };
 
@@ -438,12 +446,8 @@ export const NODE_TYPES = {
 
 // M6a §2.1: the Lost Vale's placeholder levels until M6e. Each borrows another level's map file
 // (mapFile.js loadLevelMaps) and waves (applyData); its name, row, type, HP multiplier, step budget
-// and feature mix are its own, in the levels tab.
+// and feature mix are its own, in the levels tab. M6e: rows 1-4 are real levels now.
 export const PLACEHOLDER_LEVELS = {
-  emeraldGully: 'tornville',
-  serpentsRest: 'gallows', fernboundCourt: 'blackthorn', whisperingCanopy: 'wychwood',
-  blackstoneSteps: 'drowned', broodmothersHollow: 'barrow',
-  sunkenAtrium: 'charcoal', mossCrownedGate: 'stags', glasswaterBasin: 'briar',
   scaleShrine: 'ashen', drownedObservatory: 'causeway', coilstoneCircle: 'widows',
   fallenColossus: 'mossbound', fernsea: 'weeping', broodmothersDen: 'barrow',
   saurianCrossing: 'bone', hollowZiggurat: 'bells', ironspan: 'weeping',
@@ -453,7 +457,7 @@ export const PLACEHOLDER_LEVELS = {
 // M6b: what a placeholder's borrowed Stirge entries become, in turn (see placeholderSpawn).
 export const PLACEHOLDER_FLYER_SWAP = ['lizardman', 'hunter', 'lizardman', 'shaman'];
 // M6b §5: the mini-boss a placeholder Fell level's borrowed Ogre becomes (others: the region's first).
-export const PLACEHOLDER_MINIBOSS = { broodmothersHollow: 'broodmother', scaleShrine: 'highShaman', broodmothersDen: 'grimBroodmother' };
+export const PLACEHOLDER_MINIBOSS = { scaleShrine: 'highShaman', broodmothersDen: 'grimBroodmother' };
 // M6b §6: until M6e, the boss a placeholder's borrowed mini-boss becomes in one wave (the Shaman's
 // Perch's wave 3 Ogre, at t 0, becomes the Iron Oracle), and the placeholders that already have a
 // map file of their own (its waves still borrowed): the Perch, for its relic pylons.

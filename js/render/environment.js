@@ -5,6 +5,7 @@
 import * as C from '../config.js';
 import { corridorWidth } from '../levelSettings.js';
 import { hasMire } from '../mire.js';
+import * as VD from './valeDecor.js'; // M6e: the Lost Vale's decoration
 
 // Scene colours come from the level's palette (M2a §5.5); only the ground shadow is shared, since
 // entities use it too.
@@ -73,6 +74,7 @@ const DECOR_DRAW = {
   tree: drawTree, gnarledTree: drawGnarledTree, bareTree: drawBareTree, charredTree: drawCharredTree,
   willowTree: drawWillowTree, orchardTree: drawOrchardTree,
   bush: drawBush, thornBush: drawThornBush, wormwoodBush: drawWormwoodBush,
+  fernTree: VD.drawFernTree, fernBush: VD.drawFernBush, // M6e: the Lost Vale's tree ferns and fern clumps
   rock: drawRock,
 };
 export function drawDecor(ctx, item, level) {
@@ -222,6 +224,12 @@ const THEMED = {
   relicPylon: drawRelicPylon,
   charredBeams: drawCharredBeams,
   scorchedStones: drawScorchedStones,
+  // M6e §2: the Lost Vale's signature decoration (render/valeDecor.js).
+  mossSteps: VD.drawMossSteps, ruinedArch: VD.drawRuinedArch, serpentStatue: VD.drawSerpentStatue, baskingStones: VD.drawBaskingStones,
+  dryFountain: VD.drawDryFountain, flagstones: VD.drawFlagstones, giantTrunk: VD.drawGiantTrunk, hangingVines: VD.drawHangingVines,
+  ropeBridge: VD.drawRopeBridge, basaltSteps: VD.drawBasaltSteps, glyphStone: VD.drawGlyphStone, cocoons: VD.drawCocoons,
+  web: VD.drawWeb, glowFungus: VD.drawGlowFungus, elderColumn: VD.drawElderColumn, lilyPads: VD.drawLilyPads,
+  mossGate: VD.drawMossGate, totem: VD.drawTotem, waterfall: VD.drawWaterfall, steppingStones: VD.drawSteppingStones,
 };
 
 // M3a §2 (The Burnt Hamlet): a cottage roof fallen into its ash pit, charred black, its rafters
