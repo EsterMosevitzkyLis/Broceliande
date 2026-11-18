@@ -219,6 +219,7 @@ const THEMED = {
   sunkenBelfry: drawSunkenBelfry,
   altarStone: drawAltarStone,
   peatThrone: drawPeatThrone,
+  relicPylon: drawRelicPylon,
   charredBeams: drawCharredBeams,
   scorchedStones: drawScorchedStones,
 };
@@ -1705,5 +1706,74 @@ function drawPeatThrone(ctx, { x, y, size: w }, P) {
   ctx.fillStyle = 'rgba(200, 160, 80, 0.35)'; // a dull gleam of old gold in the peat
   ctx.beginPath();
   ctx.arc(x, y - w * 1.15, w * 0.07, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// M6b §6 (The Shaman's Perch): an Elder relic pylon: a tall standing stone banded with dark metal,
+// a glowing core set in its upper half. size: half its base's width. In battle it is a target
+// (oracleSystem.js) drawn with its state: anim (the core's slow throb), hit (a pale flash) and
+// broken (a jagged stump, its top fallen beside it, the core dark). The editor draws it intact.
+export function drawRelicPylon(ctx, { x, y, size: w, variant = 0 }, P, { anim = 0, hit = false, broken = false } = {}) {
+  const stone = hit ? '#d8dde4' : P.rock.base;
+  const light = hit ? '#eef2f6' : P.rock.light;
+  const metal = '#2c3036';
+  const metalLight = '#5a626c';
+  const poly = (pts, fill) => {
+    ctx.beginPath();
+    pts.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(x + px * w, y + py * w) : ctx.lineTo(x + px * w, y + py * w)));
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  };
+  const band = (h, half) => {
+    ctx.fillStyle = metal;
+    ctx.fillRect(x - half * w, y - (h + 0.13) * w, half * 2 * w, 0.26 * w);
+    ctx.fillStyle = metalLight;
+    ctx.fillRect(x - half * w, y - (h + 0.13) * w, half * 2 * w, 0.05 * w);
+    for (const rx of [-0.6, 0, 0.6]) {
+      ctx.beginPath();
+      ctx.arc(x + rx * half * w, y - h * w, 0.05 * w, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+  drawShadow(ctx, x, y, w * 1.25, w * 0.3);
+  const lean = (variant - 1) * 0.04;
+  if (broken) {
+    poly([[-1, 0], [-0.95, -1.1], [-0.55, -1.45], [-0.2, -1.15], [0.15, -1.55], [0.5, -1.2], [0.92, -1.3], [1, 0]], stone);
+    poly([[-0.75, -0.2], [-0.7, -1.05], [-0.45, -1.3], [-0.3, -0.2]], light);
+    band(0.45, 1);
+    // The fallen top, on its side beside the stump.
+    poly([[1.1, 0.15], [1.25, -0.45], [2.6, -0.55], [2.75, 0.1]], stone);
+    poly([[1.25, -0.4], [2.55, -0.5], [2.5, -0.32], [1.3, -0.24]], light);
+    ctx.fillStyle = metal;
+    ctx.fillRect(x + 1.85 * w, y - 0.5 * w, 0.22 * w, 0.62 * w);
+    ctx.fillStyle = '#3a4048'; // the dead core, a dark shard in the break
+    ctx.beginPath();
+    ctx.ellipse(x - 0.05 * w, y - 1.3 * w, 0.14 * w, 0.24 * w, 0, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  poly([[-1, 0], [-0.78 + lean, -3.2], [-0.35 + lean, -3.45], [0.4 + lean, -3.35], [0.74 + lean, -3.15], [1, 0]], stone);
+  poly([[-0.72, -0.1], [-0.55 + lean, -3.1], [-0.3 + lean, -3.3], [-0.42, -0.1]], light);
+  band(0.45, 1);
+  band(1.55, 0.92);
+  band(2.95, 0.8);
+  // The core: a lens of cold light in a metal setting, throbbing slowly.
+  const cy = y - 2.45 * w;
+  const throb = 0.75 + 0.25 * Math.sin(anim * 2.2 + x * 0.01);
+  const g = ctx.createRadialGradient(x, cy, 0, x, cy, w * 1.1);
+  g.addColorStop(0, `rgba(225, 240, 255, ${0.55 * throb})`);
+  g.addColorStop(1, 'rgba(160, 200, 255, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, cy, w * 1.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = metal;
+  ctx.beginPath();
+  ctx.ellipse(x, cy, 0.3 * w, 0.46 * w, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(235, 245, 255, ${0.7 + 0.3 * throb})`;
+  ctx.beginPath();
+  ctx.ellipse(x, cy, 0.16 * w, 0.32 * w, 0, 0, Math.PI * 2);
   ctx.fill();
 }

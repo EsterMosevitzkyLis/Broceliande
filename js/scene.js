@@ -186,7 +186,7 @@ function waveChecks(scene, add) {
 export const TOTAL_LETTERS = [['wolf', 'W'], ['grimWolf', 'GW'], ['thrall', 'T'], ['grimThrall', 'GT'], ['stirge', 'S'], ['grimStirge', 'GS'], ['bear', 'B'], ['grimBear', 'GB'], ['brute', 'MB'], ['grimBrute', 'GMB'], ['ogre', 'O'], ['grimOgre', 'GO'], ['knight', 'K'], ['grimKnight', 'GK'],
   ['spider', 'Sp'], ['grimSpider', 'GSp'], ['lizardman', 'L'], ['grimLizardman', 'GL'], ['hunter', 'H'], ['grimHunter', 'GH'],
   ['giantLizard', 'GiL'], ['grimGiantLizard', 'GGiL'], ['shaman', 'Sh'], ['grimShaman', 'GSh'],
-  ['broodmother', 'BM'], ['grimBroodmother', 'GBM'], ['highShaman', 'HS'], ['broodEgg', 'E'], ['grimBroodEgg', 'GE']]; // M6b
+  ['broodmother', 'BM'], ['grimBroodmother', 'GBM'], ['highShaman', 'HS'], ['broodEgg', 'E'], ['grimBroodEgg', 'GE'], ['ironOracle', 'IO']]; // M6b
 export function logWaveTotals() {
   for (const id of LEVEL_IDS) {
     const level = C.LEVELS[id];
@@ -202,6 +202,23 @@ export function logWaveTotals() {
 // 'info'), message, target } (target, when there is one: { kind: 'candidate', index },
 // { kind: 'lane', id } or { kind: 'zone', zone }). The game logs them at start-up (validateLevel);
 // the map editor shows them as it edits (M4a §5.4).
+// M6b §6: relic pylons (landmark:relicPylon decoration): each within the base TURRET_RANGE of at
+// least PYLON_MIN_SPOTS candidate spots, and none on a corridor; a level whose waves bring the Iron
+// Oracle needs PYLON_COUNT of them (the map editor shows these with the decoration checks).
+function pylonChecks(scene, add) {
+  const pylons = scene.decor.filter((d) => d.kind === 'relicPylon');
+  const oracle = levelWaves(scene.level).some((w) => w.spawns.some((s) => C.ENEMY_TYPES[s.type]?.baseType === 'ironOracle'));
+  if (oracle && pylons.length !== C.PYLON_COUNT) add('error', `the Iron Oracle comes in its waves: it needs ${C.PYLON_COUNT} relic pylons (landmark:relicPylon decoration), the map has ${pylons.length}`);
+  for (const p of pylons) {
+    const where = `relic pylon at (${Math.round(p.x)}, ${Math.round(p.y)})`;
+    const target = { kind: 'decor', index: p.mapIndex };
+    const spots = scene.candidates.filter((c) => Math.hypot(c.x - p.x, c.y - p.y) <= C.TURRET_RANGE).length;
+    if (spots < C.PYLON_MIN_SPOTS) add('error', `${where}: ${spots} candidate spots within turret range (${C.TURRET_RANGE} px), needs ${C.PYLON_MIN_SPOTS}`, target);
+    const clear = Math.min(...scene.lanes.map((l) => l.path.distanceTo(p))) - corridorWidth(scene.level) / 2;
+    if (clear < p.size) add('error', `${where} stands on a corridor (its base must clear the corridor edge)`, target);
+  }
+}
+
 export function levelChecks(scene) {
   const { level } = scene;
   const out = [];
@@ -216,6 +233,7 @@ export function levelChecks(scene) {
   for (const kind of new Set(scene.flats.map((f) => f.kind))) {
     if (!decorDrawable(kind, level.palette)) add('error', `its palette lacks colours its "${kind}" ground needs`);
   }
+  pylonChecks(scene, add);
   for (const { index, problem } of candidateProblems(scene)) {
     const c = scene.candidates[index];
     add('warn', `candidate ${index} at (${c.x}, ${c.y}): ${problem}`, { kind: 'candidate', index });

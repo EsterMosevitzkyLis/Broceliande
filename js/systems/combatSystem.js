@@ -14,6 +14,7 @@ import { isBeingUpgraded } from './doubleSystem.js';
 import { events } from '../events.js';
 import { willRise, layBody, burnToAsh } from './riseSystem.js';
 import { sinkAtHalf } from './bogKingSystem.js';
+import { pylonFell, pylonsInRange, targetById } from './oracleSystem.js';
 
 const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
 
@@ -24,13 +25,16 @@ const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
 // The in-range enemies by priority, best first: least remaining lane distance to the Druid
 // (enemies already at the Druid count as 0), whatever its type (M1e §3.4). Ties go to the nearer
 // one. The Sprinkler aims at the first; Twin shot (M2m §2.3) at the first two.
+// M6b §6: never the bound Iron Oracle; relic pylons (nearest first) only when no enemy is in range.
 function selectTargets(game, turret, count) {
   const range = turretRange(turret);
   const inRange = [];
   for (const enemy of game.enemies) {
+    if (enemy.bound) continue;
     const dist = Math.hypot(enemy.x - turret.x, enemy.y - turret.y);
     if (dist <= range) inRange.push({ enemy, dist, remaining: remainingDistance(enemy) });
   }
+  if (!inRange.length) return pylonsInRange(game, turret.x, turret.y, range).slice(0, count);
   inRange.sort((a, b) => a.remaining - b.remaining || a.dist - b.dist);
   return inRange.slice(0, count).map((c) => c.enemy);
 }
@@ -91,6 +95,7 @@ function breatheFire(game, turret, target) {
   const aim = Math.atan2(target.y - turret.y, target.x - turret.x);
   const half = (stats.cone.angle / 2) * (Math.PI / 180);
   const inCone = game.enemies.filter((e) => {
+    if (e.bound) return false; // M6b §6
     const dx = e.x - turret.x;
     const dy = e.y - turret.y;
     if (Math.hypot(dx, dy) > range) return false;
@@ -100,6 +105,7 @@ function breatheFire(game, turret, target) {
     applyBurn(game, e, stats.cone.burn, turret.id, turret.level);
     damageEnemy(game, e, stats.damage, `${turret.type}:impact:${turret.level}`);
   }
+  if (target.pylon) damagePylon(game, target, stats.damage, `${turret.type}:impact:${turret.level}`); // M6b §6
   game.coneBursts.push({ x: turret.x, y: turret.y, aim, half, range, level: turret.level, type: turret.type, age: 0 }); // type: its look (M3c §4.2)
   turret.aim = aim;
   events.emit('turretFired', { type: turret.type, x: turret.x, y: turret.y });
@@ -109,7 +115,8 @@ function breatheFire(game, turret, target) {
 
 // Poison Toader targeting (M1f §6.3): among enemies in range, prefer those not already inside
 // an active cloud, then the least remaining lane distance (ties: nearer). If every enemy in
-// range is already in a cloud, the second rule alone.
+// range is already in a cloud, the second rule alone. M6b §6: as selectTargets, never the bound
+// Iron Oracle, and the nearest relic pylon when no enemy is in range.
 function selectCloudTarget(game, turret) {
   const range = turretRange(turret);
   let best = null;
@@ -118,13 +125,14 @@ function selectCloudTarget(game, turret) {
     const dist = Math.hypot(enemy.x - turret.x, enemy.y - turret.y);
     if (dist > range) continue;
     if (enemy.flying && !C.CLOUDS_HIT_FLYERS) continue; // M2h §3.4: Toaders don't target flyers
+    if (enemy.bound) continue;
     const key = [isInsideCloud(game, enemy) ? 1 : 0, remainingDistance(enemy), dist];
     if (!best || key[0] < bestKey[0] || (key[0] === bestKey[0] && (key[1] < bestKey[1] || (key[1] === bestKey[1] && key[2] < bestKey[2])))) {
       best = enemy;
       bestKey = key;
     }
   }
-  return best;
+  return best ?? pylonsInRange(game, turret.x, turret.y, range)[0] ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -135,12 +143,12 @@ export function updateProjectiles(game, dt) {
   for (const p of game.projectiles) {
     const pellet = p.kind === 'pellet';
     const step = turretType(p.source).projectileSpeed * dt; // pebble or pellet speed, per turret type
-    const target = game.enemies.find((e) => e.id === p.targetId);
+    const target = targetById(game, p.targetId); // an enemy, or a relic pylon (M6b §6)
     if (target) {
       // Remember where the target was: a pellet bursts there if it dies in flight (M1f §6.4).
       p.lastX = target.x;
       p.lastY = target.y;
-      p.lastHitHeight = enemyType(target).hitHeight;
+      p.lastHitHeight = target.pylon ? target.hitHeight : enemyType(target).hitHeight;
     } else if (!pellet || p.lastX === null) {
       continue; // pebble: target gone, it disappears
     }
@@ -151,10 +159,10 @@ export function updateProjectiles(game, dt) {
     if (dist <= step) {
       if (pellet) {
         // Impact: damage the target if it is still alive, and a cloud bursts on the ground there.
-        if (target) damageEnemy(game, target, p.damage, `${p.source}:impact:${p.level}`);
+        if (target) hitTarget(game, target, p.damage, `${p.source}:impact:${p.level}`);
         createCloud(game, p.lastX, p.lastY, p.source, p.level);
       } else {
-        const taken = damageEnemy(game, target, p.damage, `${p.source}:impact:${p.level}`);
+        const taken = hitTarget(game, target, p.damage, `${p.source}:impact:${p.level}`);
         if (p.twin) game.traitStats.twinShotDamage += taken; // M2m §3
       }
       continue;
@@ -176,6 +184,7 @@ export function updateProjectiles(game, dt) {
 // takes its mult more from every hit, before armor. M6b §3: then a shield takes what it can (it
 // shatters when used up), and the rest comes off HP. Returns the HP damage actually taken.
 export function damageEnemy(game, enemy, damage, source = null) {
+  if (enemy.bound) return 0; // M6b §6: the Iron Oracle on his perch, while any pylon stands
   const armor = enemyType(enemy).armor ?? 0;
   const afterArmor = (d) => (armor > 0 ? Math.min(d, Math.max(1, d - armor)) : d);
   let plain = afterArmor(damage);
@@ -208,6 +217,32 @@ export function damageEnemy(game, enemy, damage, source = null) {
   if (sinkAtHalf(game, enemy)) return taken; // M3b §5.2: the Bog King sinks at half HP
   if (enemy.hp <= 0) killEnemy(game, enemy);
   return taken;
+}
+
+// M6b §6: a relic pylon takes a hit: PYLON_ARMOR off it as an enemy's armor (never below 1), then
+// HP; at 0 it breaks (oracleSystem.js pylonFell). Returns the damage taken.
+export function damagePylon(game, pylon, damage, source = null) {
+  if (pylon.broken) return 0;
+  const armor = C.PYLON_ARMOR;
+  const dealt = armor > 0 ? Math.min(damage, Math.max(1, damage - armor)) : damage;
+  if (dealt < damage) {
+    game.traitStats.armorBlocked += damage - dealt;
+    game.armorSparks.push({ x: pylon.x, y: pylon.y - pylon.hitHeight, age: 0 });
+  }
+  const taken = Math.min(dealt, pylon.hp);
+  if (source) recordDamage(game, source, taken);
+  pylon.hp -= dealt;
+  pylon.lastHitTime = game.combatTime;
+  if (pylon.hp <= 0) {
+    pylon.hp = 0;
+    pylonFell(game, pylon);
+  }
+  return taken;
+}
+
+// A hit on what a turret or Vulture aims at: an enemy or a relic pylon.
+export function hitTarget(game, target, damage, source = null) {
+  return target.pylon ? damagePylon(game, target, damage, source) : damageEnemy(game, target, damage, source);
 }
 
 // After one of its bites or blows lands on anything (M2l §1.3, the Grim Stirge's Bloodsucker):
@@ -322,9 +357,10 @@ function blow(game, enemy, t) {
     lifestealOnBite(game, enemy);
     if (t.splashRatio) splash(game, at, aim.kind === 'summon' ? aim.id : null, t);
   }
-  // M3b §5.3: the Bog King's slam throws up a wide splash ring and shakes the screen harder.
+  // M3b §5.3: the Bog King's slam throws up a wide splash ring and shakes the screen harder (M6b §6:
+  // the Iron Oracle's staff too, a dust ring).
   const king = t.role === 'boss';
-  game.dustRings.push({ x: at.x, y: at.y, age: 0, wet: king, radius: king ? C.BOG_KING_SPLASH_RADIUS : landed && t.splashRatio ? t.splashRadius : C.OGRE_DUST_RADIUS });
+  game.dustRings.push({ x: at.x, y: at.y, age: 0, wet: t.baseType === 'bogKing', radius: king ? C.BOG_KING_SPLASH_RADIUS : landed && t.splashRatio ? t.splashRadius : C.OGRE_DUST_RADIUS });
   game.shake = king ? { age: 0, px: C.BOG_KING_SHAKE_PX, time: C.BOG_KING_SHAKE_TIME } : { age: 0 };
   enemy.attack = AttackState.READY;
   enemy.sinceBlow = 0;

@@ -3,7 +3,7 @@
 import * as C from './config.js';
 import { GameState, ActionState } from './states.js';
 import { drawDebugOverlay } from './debug/debugOverlay.js';
-import { drawFloor, drawCorridors, drawFlats, drawDecor, drawStream, drawAshFlecks, drawLaneGlow, drawMire } from './render/environment.js';
+import { drawFloor, drawCorridors, drawFlats, drawDecor, drawStream, drawAshFlecks, drawLaneGlow, drawMire, drawRelicPylon } from './render/environment.js';
 import {
   drawTurretSlot, drawDruid, drawFeature, drawEnemyHpBar, enemyBarY, drawArmorSpark, drawHealSparkle, drawCorrodeDrips, drawDruidHpBar, drawDustRing, drawLanePulse,
   drawTurret, drawToader, toaderMouthOpen, drawPellet, drawCloud, drawRange, drawProgressBar, drawFloatingText, drawPebble,
@@ -28,7 +28,8 @@ import { drawWisp, drawWispTarget, drawWispGhost, drawWispBurst, drawSlowSpiral 
 import { isSlowed, isCorroded, isBurning } from './systems/statusSystem.js';
 import { drawEnemyLook } from './render/enemyLook.js';
 import { drawSpear, drawShieldBubble, drawShieldShatter, drawShamanThreads, drawTurretHpBar, drawWreck, drawDebris } from './render/vale.js'; // M6b
-import { drawEggHatch, drawRelicPulse } from './render/valeBosses.js'; // M6b §5 // an enemy's look, Grims included (M2l §2.1)
+import { drawEggHatch, drawRelicPulse, drawOracleWard, drawPylonLinks, drawLinkSnap, drawPylonBreak, drawPylonHpBar, drawIronCall } from './render/valeBosses.js'; // M6b §5–§6
+import { pylonCore, oracleChest, standingPylons } from './systems/oracleSystem.js'; // an enemy's look, Grims included (M2l §2.1)
 import { drawBody, drawAsh, drawBossEntrance, drawSunkRing } from './render/undead.js'; // M3b §3.3, §5.3: the rising dead, the Bog King
 import { drawShowcase } from './debug/showcase.js';
 
@@ -46,11 +47,11 @@ export function createRenderer(canvas) {
   canvas.height = C.STAGE_HEIGHT;
 
   // Static decor of each level's scene, built once per level; everything else is merged in
-  // and y-sorted per frame.
+  // and y-sorted per frame. M6b §6: relic pylons are targets, drawn from game.pylons instead.
   const decorByLevel = new Map();
   const decorOf = (scene) => {
     if (!decorByLevel.has(scene.levelId)) {
-      decorByLevel.set(scene.levelId, scene.decor.map((item) => ({ y: item.y, draw: () => drawDecor(ctx, item, scene.level) })));
+      decorByLevel.set(scene.levelId, scene.decor.filter((item) => item.kind !== 'relicPylon').map((item) => ({ y: item.y, draw: () => drawDecor(ctx, item, scene.level) })));
     }
     return decorByLevel.get(scene.levelId);
   };
@@ -117,6 +118,7 @@ export function createRenderer(canvas) {
     });
     for (const w of game.wrecks) drawWreck(ctx, w); // M6b §2.2: collapsed turrets, on their slots
     for (const p of game.relicPulses) drawRelicPulse(ctx, p, p.age / C.RELIC_PULSE_TIME); // M6b §5.3, on the ground
+    for (const c of game.ironCalls ?? []) drawIronCall(ctx, c, c.age / C.IRON_CALL_TIME); // M6b §6, on the ground
     // Enemy drops lie on the ground: above floor, corridors and pads, below anything upright (M1d §1.3).
     const now = performance.now() / 1000;
     for (const drop of game.drops) drawDrop(ctx, drop, now);
@@ -156,6 +158,7 @@ export function createRenderer(canvas) {
     for (const w of game.wisps) drawWispTarget(ctx, w);
     const drawables = [
       ...decorOf(scene),
+      ...(game.pylons ?? []).map((p) => ({ y: p.y, draw: () => drawRelicPylon(ctx, p, scene.level.palette, { anim, hit: recent(p.lastHitTime), broken: p.broken }) })), // M6b §6
       ...game.features.map((f) => ({
         y: featureBase(f).y,
         draw: () => drawFeature(ctx, f, isPrep && hover?.kind === 'feature' && hover.index === f.index),
@@ -181,6 +184,14 @@ export function createRenderer(canvas) {
     for (const e of game.enemies) {
       if (e.flying) drawEnemy(e);
     }
+    // M6b §6: the bound Iron Oracle's ward and the links from the standing pylons; pylon HP bars.
+    const cores = standingPylons(game).map(pylonCore);
+    for (const e of game.enemies) {
+      if (!e.bound) continue;
+      drawPylonLinks(ctx, cores, oracleChest(e), anim);
+      drawOracleWard(ctx, e, anim, enemyBarY(e));
+    }
+    for (const p of game.pylons ?? []) drawPylonHpBar(ctx, p);
     // M6b §3–§4.3: shield bubbles, a casting shaman's threads (the debug overlay: every shield link).
     for (const e of game.enemies) if (e.statuses.shielded) drawShieldBubble(ctx, e, e.statuses.shielded, anim, enemyBarY(e));
     for (const e of game.enemies) {
@@ -197,6 +208,8 @@ export function createRenderer(canvas) {
     for (const s of game.shieldShatters) drawShieldShatter(ctx, s, s.age / C.SHIELD_SHATTER_TIME);
     for (const d of game.debris) drawDebris(ctx, d, d.age / C.WRECK_DEBRIS_TIME);
     for (const h of game.eggHatches) drawEggHatch(ctx, h, h.age / C.EGG_HATCH_TIME); // M6b §5.1
+    for (const b of game.pylonBreaks ?? []) drawPylonBreak(ctx, b, b.age / C.PYLON_BREAK_TIME); // M6b §6
+    for (const s of game.linkSnaps ?? []) drawLinkSnap(ctx, s, s.age / C.LINK_SNAP_TIME);
     for (const s of game.swipes) drawSwipe(ctx, s, s.age / C.DRUID_SWIPE_TIME);
     for (const s of game.sparks) drawSpark(ctx, s, s.age / C.STRIKE_SPARK_TIME);
     // Grim trait feedback (M2l §2.2): armor sparks; lifesteal sparkles on the biter, wherever it is now.

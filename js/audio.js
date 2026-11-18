@@ -84,19 +84,19 @@ const TURRET_FIRE_SOUND = { sprinkler: 'sprinklerFire', toader: 'toaderFire', ci
 const ENEMY_ATTACK_SOUND = {
   wolf: 'wolfBite', bear: 'bearAttack', ogre: 'ogreBlow', stirge: 'stirgeBite', thrall: 'thrallAttack', brute: 'bruteAttack', knight: 'knightBlow', bogKing: 'bogKingBlow',
   spider: 'spiderBite', lizardman: 'lizardmanAttack', hunter: 'lizardmanAttack', giantLizard: 'giantLizardAttack', shaman: 'shamanAttack',
-  broodmother: 'broodmotherBlow', highShaman: 'highShamanBlow', // M6b §5
+  broodmother: 'broodmotherBlow', highShaman: 'highShamanBlow', ironOracle: 'ironOracleBlow', // M6b §5–§6
 };
 const ENEMY_DEATH_SOUND = {
   wolf: 'wolfDie', bear: 'bearDie', ogre: 'ogreDies', stirge: 'stirgeDies', thrall: 'thrallDie', brute: 'bruteDie', knight: 'knightDies', bogKing: 'bogKingDies',
   spider: 'spiderDie', lizardman: 'lizardmanDie', hunter: 'hunterDie', giantLizard: 'giantLizardDie', shaman: 'shamanDie',
-  broodmother: 'broodmotherDies', highShaman: 'highShamanDies', broodEgg: 'eggBurst',
+  broodmother: 'broodmotherDies', highShaman: 'highShamanDies', broodEgg: 'eggBurst', ironOracle: 'ironOracleDies',
 };
 const SPEAR_THROW_SOUND = { hunter: 'hunterThrow' }; // M6b §4.2
 const SHAMAN_CAST_SOUND = { shaman: 'shamanCast' };  // M6b §4.3
 // M2c §2.9: a mini-boss's arrival, footsteps and wind-up (none for wolves and Bears).
-const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns', knight: 'knightSpawns', bogKing: 'bogKingRoar', broodmother: 'broodmotherSpawns', highShaman: 'highShamanSpawns' }; // M2h: once per flock (its first Stirge)
-const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep', bogKing: 'bogKingStep', broodmother: 'broodmotherStep', highShaman: 'highShamanStep' };
-const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup', bogKing: 'bogKingWindup', broodmother: 'broodmotherWindup', highShaman: 'highShamanWindup' };
+const ENEMY_SPAWN_SOUND = { ogre: 'ogreSpawns', stirge: 'stirgeFlockSpawns', knight: 'knightSpawns', bogKing: 'bogKingRoar', broodmother: 'broodmotherSpawns', highShaman: 'highShamanSpawns', ironOracle: 'ironOracleSpawns' }; // M2h: once per flock (its first Stirge)
+const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep', bogKing: 'bogKingStep', broodmother: 'broodmotherStep', highShaman: 'highShamanStep', ironOracle: 'ironOracleStep' };
+const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup', bogKing: 'bogKingWindup', broodmother: 'broodmotherWindup', highShaman: 'highShamanWindup', ironOracle: 'ironOracleWindup' };
 
 function subscribe() {
   events.on('turretFired', (e) => play(TURRET_FIRE_SOUND[C.TURRET_TYPES[e.type].baseType], e)); // a variant fires as its base (M3c §4)
@@ -126,6 +126,8 @@ function subscribe() {
   for (const name of ['spearHit', 'shieldBroken', 'turretHit', 'turretWrecked', 'turretRepaired']) events.on(name, (e) => play(name, e));
   for (const name of ['eggLaid', 'relicPulse']) events.on(name, (e) => play(name, e)); // M6b §5
   events.on('eggHatched', (e) => play('eggHatch', e));
+  for (const name of ['ironCall', 'pylonHum', 'oracleReleased']) events.on(name, (e) => play(name, e)); // M6b §6
+  events.on('pylonBroken', (e) => play('pylonBreaks', e));
   events.on('resourcesGained', (e) => { // M2k §2.1: Shells have their own chime (and sounds row)
     const resources = e.resources ?? [];
     const others = resources.filter((r) => !OWN_CHIME[r]);
@@ -817,6 +819,77 @@ const RECIPES = {
     [523, 659, 784, 1046].forEach((f, i) => bell(t, out, f * p, 0.1 + i * 0.06, 0.8, 0.15));
     noise(t, out, { freq: 3000 * p, to: 6000 * p, q: 3, dur: 0.7, attack: 0.15, gain: 0.15 });
     return 0.9;
+  },
+
+  // M6b §6: the Iron Oracle on his perch: a resonant, voice-like drone and a ring of metal.
+  ironOracleSpawns(t, out, p) {
+    growl(t, out, { freq: 82 * p, to: 70 * p, dur: 2.2, attack: 0.5, cutoff: 900, trem: 5, gain: 0.8 });
+    tone(t, out, { type: 'triangle', freq: 164 * p, dur: 2, attack: 0.6, gain: 0.3 });
+    bell(t, out, 330 * p, 0.2, 2, 0.35);
+    bell(t, out, 247 * p, 0.6, 2, 0.3);
+    return 2.4;
+  },
+
+  // His step: a thin, heavy footfall with a scrape of metal.
+  ironOracleStep(t, out, p) {
+    tone(t, out, { freq: 64 * p, to: 34 * p, dur: 0.16, gain: 0.9 });
+    noise(t, out, { filter: 'highpass', freq: 3200 * p, dur: 0.06, gain: 0.25, delay: 0.03 });
+    return 0.18;
+  },
+
+  // The staff going up: a rising metallic whine.
+  ironOracleWindup(t, out, p) {
+    tone(t, out, { type: 'sawtooth', freq: 180 * p, to: 360 * p, dur: 0.9, attack: 0.2, gain: 0.18 });
+    noise(t, out, { freq: 2400 * p, to: 4200 * p, q: 6, dur: 0.8, attack: 0.2, gain: 0.2 });
+    return 0.95;
+  },
+
+  // The staff slams down: a heavy thud and a ringing clang.
+  ironOracleBlow(t, out, p) {
+    tone(t, out, { freq: 72 * p, to: 24 * p, dur: 0.55, gain: 1.5 });
+    noise(t, out, { filter: 'lowpass', freq: 600 * p, dur: 0.3, gain: 1 });
+    bell(t, out, 420 * p, 0.01, 1.1, 0.4);
+    bell(t, out, 610 * p, 0.01, 0.8, 0.25);
+    return 1.1;
+  },
+
+  // He falls: a ringing crash of metal, the drone dying away under it.
+  ironOracleDies(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 1800 * p, to: 500 * p, q: 1, dur: 0.6, gain: 1 });
+    [330, 415, 523, 698].forEach((f, i) => bell(t, out, f * p, i * 0.05, 2.2, 0.35));
+    growl(t, out, { freq: 80 * p, to: 30 * p, dur: 2.4, attack: 0.05, cutoff: 700, trem: 5, gain: 0.7, delay: 0.2 });
+    return 2.7;
+  },
+
+  // Iron Call: a resonant drone like a deep chanted voice, swelling and fading.
+  ironCall(t, out, p) {
+    growl(t, out, { freq: 98 * p, to: 92 * p, dur: 1.6, attack: 0.4, cutoff: 1100, trem: 4, gain: 0.7 });
+    tone(t, out, { type: 'triangle', freq: 196 * p, dur: 1.5, attack: 0.4, gain: 0.25 });
+    tone(t, out, { type: 'triangle', freq: 294 * p, dur: 1.4, attack: 0.5, gain: 0.15 });
+    return 1.7;
+  },
+
+  // A relic pylon's deep metallic hum.
+  pylonHum(t, out, p) {
+    tone(t, out, { freq: 58 * p, dur: 1.4, attack: 0.4, gain: 0.5 });
+    tone(t, out, { type: 'triangle', freq: 116 * p, dur: 1.2, attack: 0.4, gain: 0.15 });
+    return 1.45;
+  },
+
+  // A pylon breaks: a crack of stone, then a falling chime.
+  pylonBreaks(t, out, p) {
+    noise(t, out, { filter: 'highpass', freq: 1600 * p, dur: 0.12, gain: 1 });
+    tone(t, out, { freq: 110 * p, to: 40 * p, dur: 0.3, gain: 0.9 });
+    [1320, 1046, 880, 660].forEach((f, i) => bell(t, out, f * p, 0.1 + i * 0.12, 0.6, 0.25));
+    return 0.9;
+  },
+
+  // The last pylon's fall: his ward shatters, a long ringing burst.
+  oracleReleased(t, out, p) {
+    noise(t, out, { freq: 4000 * p, to: 1200 * p, q: 1.5, dur: 0.7, gain: 0.6 });
+    [784, 988, 1175].forEach((f, i) => bell(t, out, f * p, i * 0.04, 1.4, 0.3));
+    growl(t, out, { freq: 70 * p, to: 52 * p, dur: 1.4, attack: 0.2, cutoff: 600, trem: 6, gain: 0.7, delay: 0.3 });
+    return 1.8;
   },
 
   // M3b §2.2: the Drowned Thrall's bite: a short wet groan over a soft slap.

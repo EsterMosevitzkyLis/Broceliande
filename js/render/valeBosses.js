@@ -1,5 +1,6 @@
 // The Vale's mini-bosses (M6b §5): the Broodmother and her egg sacs, and the High-Shaman with his
-// relic pulse. Same signature and conventions as vale.js.
+// relic pulse; its final boss (§6), the Iron Oracle, with his ward, links and Iron Call (his relic
+// pylons are drawn by environment.js drawRelicPylon). Same signature and conventions as vale.js.
 
 import * as C from '../config.js';
 import { drawShadow } from './environment.js';
@@ -258,5 +259,262 @@ export function drawRelicPulse(ctx, p, progress) {
   ctx.stroke();
   ctx.fillStyle = 'rgba(170, 230, 120, 0.12)';
   ctx.fill();
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// The Iron Oracle (M6b §6)
+// ---------------------------------------------------------------------------
+const IRON = { plate: '#3a3f46', plateLight: '#66707a', dark: '#1c1f24', robe: '#26272c', robeEdge: '#3c3a40' };
+const COLD = (a) => `rgba(228, 242, 255, ${a})`;
+
+// Cold white eyes (instead of the lizardfolk's amber), a pale slit in each.
+function coldEye(ctx, x, y, size) {
+  ctx.fillStyle = COLD(0.35);
+  ctx.beginPath();
+  ctx.arc(x, y, size * 2.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f2f8ff';
+  ctx.beginPath();
+  ctx.arc(x, y, size, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#8ea4c0';
+  ctx.beginPath();
+  ctx.ellipse(x, y, size * 0.25, size * 0.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// A gaunt, towering lizard shaman fused with dark metal: an iron mask over half his face, metal
+// plates grown into his scales, a long staff of the same metal. The staff goes up for an Iron Call
+// and the wind-up, and slams down. Drawn in units of radius 28 (twice the size at his radius 56).
+export function drawIronOracle(ctx, e, hit, lunging, anim = 0) {
+  const r = e.radius;
+  if (e.part !== 'body') drawShadow(ctx, e.x, e.y + r * 0.5, r * 0.75, r * 0.22);
+  if (e.part === 'shadow') return;
+  const c = lizardColors(e, hit);
+  const call = Math.max(0, 1 - (anim - (e.callAt ?? -Infinity)) / C.IRON_CALL_TIME);
+  const windup = e.attack === 'WINDUP' ? 1 : 0;
+  const slam = Math.max(0, 1 - (anim - (e.lastBlowTime ?? -Infinity)) / 0.3);
+  begin(ctx, e, 28, lunging, 3);
+  ctx.save();
+  ctx.translate(0, -6);
+  lizardTail(ctx, c.dark, anim, e.id, 1.3);
+  ctx.restore();
+  // Long thin legs, metal greaves on the shins.
+  const step = e.bound ? 0 : Math.sin(e.stride * 0.08);
+  ctx.strokeStyle = c.dark;
+  ctx.lineWidth = 3.2;
+  ctx.beginPath();
+  ctx.moveTo(-3, -24);
+  ctx.lineTo(-5 - step * 3, 0);
+  ctx.moveTo(3, -24);
+  ctx.lineTo(4 + step * 3, 0);
+  ctx.stroke();
+  fillPoly(ctx, [[-6.5 - step * 2, -12], [-3.5 - step * 2, -12], [-4.5 - step * 3, -3], [-7 - step * 3, -3]], IRON.plate);
+  fillPoly(ctx, [[3 + step * 2, -12], [6 + step * 2, -12], [6.5 + step * 3, -3], [3.5 + step * 3, -3]], IRON.plate);
+  // A tattered dark robe from the shoulders, its hem ragged.
+  const robe = hit === 'strike' ? STRIKE_FLASH : IRON.robe;
+  fillPoly(ctx, [[-7, -52], [7, -52], [12, -14], [9, -9], [6, -13], [2, -8], [-2, -12], [-6, -8], [-9, -12], [-12, -10]], robe, IRON.robeEdge, 0.8);
+  // Scales showing at the chest, plates grown into them.
+  fillPoly(ctx, [[-4, -52], [5, -52], [6, -36], [-4, -36]], c.scale);
+  fillPoly(ctx, [[-3, -50], [4, -50], [4.5, -43], [-2.5, -42]], IRON.plate, IRON.plateLight, 0.6);
+  fillPoly(ctx, [[-2, -41], [5, -41], [5, -37], [-1, -36.5]], IRON.plate, IRON.plateLight, 0.6);
+  // Pauldrons: iron plates fused over each shoulder.
+  fillPoly(ctx, [[-9, -54], [-2, -56], [-1, -50], [-8, -47]], IRON.plate, IRON.plateLight, 0.7);
+  fillPoly(ctx, [[2, -56], [9, -54], [9, -48], [2, -50]], IRON.plate, IRON.plateLight, 0.7);
+  ctx.fillStyle = IRON.plateLight;
+  for (const [x, y] of [[-6, -51], [-3, -52], [5, -52], [7, -50]]) {
+    ctx.beginPath();
+    ctx.arc(x, y, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // The staff: dark metal, held out front; raised for a call or the wind-up, slammed down after a blow.
+  const lift = Math.max(windup, call) * 12 - slam * 4;
+  const px = 13;
+  const top = -86 - lift;
+  ctx.strokeStyle = c.scale;
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(4, -50);
+  ctx.lineTo(px - 1, -46 - lift);
+  ctx.stroke();
+  ctx.strokeStyle = IRON.dark;
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.moveTo(px, -2 - lift);
+  ctx.lineTo(px, top + 6);
+  ctx.stroke();
+  // Its head: an open iron fork round a cold white point, blazing during a call.
+  const glow = 0.45 + 0.15 * Math.sin(anim * 2 + e.id) + call * 0.6;
+  const R = 8 + call * 18;
+  const g = ctx.createRadialGradient(px, top, 0, px, top, R);
+  g.addColorStop(0, COLD(Math.min(1, glow)));
+  g.addColorStop(1, 'rgba(170, 200, 255, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(px, top, R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = IRON.plate;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px - 5, top - 6);
+  ctx.quadraticCurveTo(px - 5, top + 6, px, top + 6);
+  ctx.quadraticCurveTo(px + 5, top + 6, px + 5, top - 6);
+  ctx.stroke();
+  ctx.fillStyle = '#f4f9ff';
+  ctx.beginPath();
+  ctx.arc(px, top, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+  // Head, high on a long neck: iron spines for a crest, the mask over its upper half.
+  const hx = 5;
+  const hy = -62;
+  ctx.strokeStyle = c.scale;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, -53);
+  ctx.lineTo(hx - 1, hy + 2);
+  ctx.stroke();
+  for (let i = 0; i < 4; i++) fillPoly(ctx, [[hx - 4 - i * 2.4, hy - 2 + i * 1.8], [hx - 5 - i * 2.8, hy - 10 + i * 1.2], [hx - 2 - i * 2.4, hy - 3 + i * 1.8]], IRON.plate);
+  lizardHead(ctx, c, hx, hy, { crest: 0 });
+  fillPoly(ctx, [[hx - 3.5, hy - 4.6], [hx + 10.6, hy - 0.9], [hx + 10.4, hy + 0.2], [hx + 1, hy + 0.4], [hx - 3.5, hy + 1.4]], IRON.plate, IRON.plateLight, 0.6);
+  ctx.strokeStyle = IRON.dark;
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(hx + 4.5, hy - 2.6);
+  ctx.lineTo(hx + 6, hy + 0.2);
+  ctx.stroke();
+  coldEye(ctx, hx + 2.2, hy - 1.6, 1.5);
+  ctx.restore();
+}
+
+// His ward on the perch while any pylon stands: a cold sphere of thin iron-grey hoops round him.
+// top: the top of his HP bar (enemyBarY).
+export function drawOracleWard(ctx, e, anim, top) {
+  const feet = e.y + e.radius * 0.5;
+  const R = Math.max((feet - top) * 0.5, e.radius * 1.2);
+  const cx = e.x;
+  const cy = (feet + top) / 2 + 4;
+  ctx.save();
+  const g = ctx.createRadialGradient(cx, cy, R * 0.5, cx, cy, R);
+  g.addColorStop(0, 'rgba(200, 220, 255, 0)');
+  g.addColorStop(1, 'rgba(200, 220, 255, 0.2)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 3; i++) {
+    const a = anim * (0.5 + i * 0.2) + i * 2.1;
+    ctx.strokeStyle = COLD(0.35 + 0.25 * Math.max(0, Math.sin(anim * 2 + i)));
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, R * Math.abs(Math.cos(a)) + 1, R, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = COLD(0.5);
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, R, R * 0.3, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// The thin bright links from the standing pylons' cores to the bound Oracle, flickering.
+export function drawPylonLinks(ctx, cores, chest, anim) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  cores.forEach((p, i) => {
+    const flicker = 0.7 + 0.3 * Math.sin(anim * 9 + i * 2.3);
+    const mx = (p.x + chest.x) / 2;
+    const my = (p.y + chest.y) / 2 - 18 + Math.sin(anim * 1.5 + i) * 4; // a slight sag upward
+    for (const [width, alpha] of [[5, 0.15], [1.6, 0.85]]) {
+      ctx.strokeStyle = COLD(alpha * flicker);
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.quadraticCurveTo(mx, my, chest.x, chest.y);
+      ctx.stroke();
+    }
+  });
+  ctx.restore();
+}
+
+// A snapped link: its two ends whipping back toward the pylon and the Oracle, fading. progress 0 → 1.
+export function drawLinkSnap(ctx, s, progress) {
+  const left = (1 - progress) * 0.45;
+  ctx.save();
+  ctx.globalAlpha = 1 - progress;
+  ctx.strokeStyle = COLD(0.9);
+  ctx.lineWidth = 1.8;
+  ctx.lineCap = 'round';
+  const wob = Math.sin(progress * 20) * 10 * (1 - progress);
+  for (const [ax, ay, bx, by] of [[s.x1, s.y1, s.x2, s.y2], [s.x2, s.y2, s.x1, s.y1]]) {
+    const ex = ax + (bx - ax) * left;
+    const ey = ay + (by - ay) * left;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.quadraticCurveTo((ax + ex) / 2 + wob, (ay + ey) / 2 - wob, ex, ey);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// A pylon breaking: a crack of light bursting from its core, stone chips falling. progress 0 → 1.
+export function drawPylonBreak(ctx, b, progress) {
+  const w = b.size;
+  const cx = b.x;
+  const cy = b.y - w * 2.45;
+  ctx.save();
+  ctx.globalAlpha = 1 - progress;
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * (1.5 + progress * 3));
+  g.addColorStop(0, COLD(0.9));
+  g.addColorStop(1, 'rgba(180, 210, 255, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(cx, cy, w * (1.5 + progress * 3), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = COLD(1);
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + b.seed;
+    const len = w * (1 + progress * 2.5) * (0.7 + 0.3 * ((i * 37) % 5) / 5);
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * w * 0.3, cy + Math.sin(a) * w * 0.3);
+    ctx.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#7a7a80';
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + b.seed * 2;
+    const d = w * (0.6 + progress * 1.8);
+    ctx.fillRect(cx + Math.cos(a) * d - 2, cy + Math.sin(a) * d * 0.6 + progress * progress * w * 2.4, 4, 3);
+  }
+  ctx.restore();
+}
+
+// A pylon's small HP bar above it, once damaged.
+export function drawPylonHpBar(ctx, p) {
+  if (p.broken || p.hp >= p.maxHp) return;
+  const w = C.PYLON_HP_BAR.width;
+  const y = p.y - p.size * C.PYLON_HP_BAR.lift;
+  const f = Math.max(0, p.hp / p.maxHp);
+  ctx.fillStyle = 'rgba(20, 16, 12, 0.85)';
+  ctx.fillRect(p.x - w / 2 - 1, y - 1, w + 2, 6);
+  ctx.fillStyle = '#b8cce8';
+  ctx.fillRect(p.x - w / 2, y, w * f, 4);
+}
+
+// An Iron Call: two rings of cold light rolling out over the map from him. progress 0 → 1.
+export function drawIronCall(ctx, c, progress) {
+  ctx.save();
+  for (const [delay, k] of [[0, 1], [0.2, 0.7]]) {
+    const q = Math.max(0, (progress - delay) / (1 - delay));
+    if (q <= 0) continue;
+    const R = 520 * k * (0.1 + 0.9 * Math.sqrt(q));
+    ctx.globalAlpha = (1 - q) * 0.7;
+    ctx.strokeStyle = COLD(1);
+    ctx.lineWidth = 2 + (1 - q) * 4;
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, R, R * 0.55, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   ctx.restore();
 }

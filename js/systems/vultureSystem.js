@@ -3,7 +3,8 @@
 
 import * as C from '../config.js';
 import { VultureState } from '../entities/vulture.js';
-import { damageEnemy, lifestealOnBite } from './combatSystem.js';
+import { hitTarget, lifestealOnBite } from './combatSystem.js';
+import { targetById, pylonsInRange } from './oracleSystem.js';
 import { applyItemBurn } from './statusSystem.js';
 import { enemyType } from '../entities/enemy.js';
 import { blockingSquirrels } from './squirrelSystem.js';
@@ -13,23 +14,26 @@ import { events } from '../events.js';
 // between landed and flying from rounding error (which would reset its attack timer).
 const LANDING_SLACK = 1;
 
+// M6b §6: never the bound Iron Oracle; the nearest relic pylon when there is no other enemy.
 function nearestEnemy(game, x, y) {
   let best = null;
   let bestDist = Infinity;
   for (const enemy of game.enemies) {
+    if (enemy.bound) continue;
     const d = Math.hypot(enemy.x - x, enemy.y - y);
     if (d < bestDist) {
       bestDist = d;
       best = enemy;
     }
   }
-  return best;
+  return best ?? pylonsInRange(game, x, y, Infinity)[0] ?? null;
 }
 
 export function updateVultures(game, dt) {
   for (const v of game.vultures) {
     // Sticky target: only re-picked when it dies (or there was none).
-    let target = game.enemies.find((e) => e.id === v.targetId) ?? null;
+    let target = targetById(game, v.targetId);
+    if (target?.pylon && game.enemies.some((e) => !e.bound)) target = null; // an enemy turned up: leave the pylon
     if (!target) {
       target = nearestEnemy(game, v.x, v.y);
       v.targetId = target ? target.id : null;
@@ -67,8 +71,8 @@ export function updateVultures(game, dt) {
         v.attackTimer -= C.VULTURE_ATTACK_INTERVAL;
         v.lastPeckTime = game.combatTime;
         events.emit('vulturePecked', { x: v.x, y: v.y });
-        applyItemBurn(game, target, game.stats['vulture.burnDuration']); // M3c §5: Peatsmoke Crown (first, so a killing peck burns)
-        damageEnemy(game, target, game.stats['vulture.damage']); // effective (M2e); if it dies, next step picks a new target
+        if (!target.pylon) applyItemBurn(game, target, game.stats['vulture.burnDuration']); // M3c §5: Peatsmoke Crown (first, so a killing peck burns)
+        hitTarget(game, target, game.stats['vulture.damage']); // effective (M2e); if it dies, next step picks a new target
       }
     }
   }

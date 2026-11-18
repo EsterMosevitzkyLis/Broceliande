@@ -73,7 +73,7 @@ export const GRIM_SPARKS = 3;               // tiny ember sparks rising through 
 export const GRIM_SPARK_RATE = 0.9;         // rises per s
 export const ARMOR_SPARK_TIME = 0.18;       // s the grey spark shows where armor reduced a hit
 // M6b §3: shields (the shielded status) and the Lizard Shamans' casts; turret HP, wrecks and spears.
-export const LIZARDFOLK = new Set(['lizardman', 'hunter', 'giantLizard', 'shaman', 'highShaman']); // M6b §1: base types a shaman shields (never spiders)
+export const LIZARDFOLK = new Set(['lizardman', 'hunter', 'giantLizard', 'shaman', 'highShaman', 'ironOracle']); // M6b §1: base types a shaman shields (never spiders)
 export const SPEAR_SPEED = 520;              // TUNING — px/s, a hunter's spear (fast but not instant, M6b §4.2)
 export const SPEAR_HIT_RADIUS = 10;          // px from its target's centre at which a spear lands
 export const SHIELD_COLOR = 'rgba(120, 235, 200, 0.85)'; // its bubble's scale edges and HP bar segment
@@ -91,6 +91,17 @@ export const EGG_HATCH_SPREAD = 14;          // px the hatchlings spread round t
 export const LAY_POSE_TIME = 0.5;            // s her abdomen dips as she lays (drawing)
 export const EGG_HATCH_TIME = 0.5;           // s a hatching sac's shreds and goo show
 export const RELIC_PULSE_TIME = 0.9;         // s the High-Shaman's expanding ring shows
+// M6b §6: the Iron Oracle and his relic pylons (landmark:relicPylon in a level's map file).
+export const ORACLE_CALL_TYPE = 'lizardman';   // what an Iron Call brings at his lane's entrance
+export const ORACLE_PERCH_DIST = 220;          // TUNING — px along his lane from its entrance where he stands bound
+export const ORACLE_RELEASE_BANNER = "The Oracle's link is broken!";
+export const IRON_CALL_TIME = 1.1;             // s his Iron Call's cold ring shows (and his staff stays raised)
+export const PYLON_BREAK_TIME = 0.9;           // s a breaking pylon's crack of light shows
+export const LINK_SNAP_TIME = 0.5;             // s a snapped link's two ends whip back and fade
+export const PYLON_HUM_INTERVAL = 3.5;         // s between the standing pylons' hums (sound only)
+export const PYLON_HP_BAR = { width: 40, lift: 3.4 }; // px wide; its top this many × the pylon's size above its base
+export const PYLON_COUNT = 3;                  // relic pylons a level whose waves bring the Iron Oracle needs (map checks)
+export const PYLON_MIN_SPOTS = 2;              // candidate spots each pylon needs within the base TURRET_RANGE
 export const HEAL_SPARKLE_TIME = 0.4;       // s the red sparkle shows on a biter that healed
 export const DOGGED_SPIRAL_SPEED = 3;       // × the slow spiral's turn rate on a slow-resistant enemy
 export const DOGGED_SPIRAL_ALPHA = 0.5;     // its opacity
@@ -224,6 +235,7 @@ export const DECOR = {
     sunkenBelfry: { lift: 40, r: 46 }, // The Drowned Bell Tower (landmark)
     altarStone: { lift: 12, r: 44 },   // The Blackwater Shrine (landmark)
     peatThrone: { lift: 45, r: 50 },   // Bog King's Rest (landmark, at a lane's far end)
+    relicPylon: { lift: 80, r: 26 },   // M6b §6: The Shaman's Perch (landmarks, the Iron Oracle's pylons)
     charredRoof: { lift: 15, r: 40 },  // M3a §2: The Burnt Hamlet's ash pits
     charredBeams: { lift: 10, r: 32 },
     scorchedStones: { lift: 8, r: 36 }, // M3a §2: The Ember Road's ash pits
@@ -235,6 +247,7 @@ export const DECOR = {
   landmarkSize: {
     mound: 135, bell: 60, altarStone: 44, peatThrone: 50, chapelWall: 110, sunkenBelfry: 46, gallows: 55,
     tanneryVats: 60, cairn: 90, plagueCart: 40, footbridge: 70, ossuary: 52, sluiceGate: 55, widowTree: 30,
+    relicPylon: 24, // M6b §6: half its base's width; a breakable target in battle (oracleSystem.js)
   },
 };
 
@@ -419,6 +432,11 @@ export const PLACEHOLDER_LEVELS = {
 export const PLACEHOLDER_FLYER_SWAP = ['lizardman', 'hunter', 'lizardman', 'shaman'];
 // M6b §5: the mini-boss a placeholder Fell level's borrowed Ogre becomes (others: the region's first).
 export const PLACEHOLDER_MINIBOSS = { broodmothersHollow: 'broodmother', scaleShrine: 'highShaman', broodmothersDen: 'grimBroodmother' };
+// M6b §6: until M6e, the boss a placeholder's borrowed mini-boss becomes in one wave (the Shaman's
+// Perch's wave 3 Ogre, at t 0, becomes the Iron Oracle), and the placeholders that already have a
+// map file of their own (its waves still borrowed): the Perch, for its relic pylons.
+export const PLACEHOLDER_BOSS = { shamansPerch: { wave: 3, type: 'ironOracle' } };
+export const PLACEHOLDER_OWN_MAPS = new Set(['shamansPerch']);
 
 // A levels row that is a village (M6a §2.2), not a battle level.
 export const isVillageRow = (r) => r.nodeType === 'village';
@@ -590,6 +608,7 @@ export let ITEM_PRICE, PATTERN_PRICE; // M3e §4: rarity → default price (from
 export let DIALOGUE_TYPE_SPEED, DIALOGUE_HOP_HEIGHT, DIALOGUE_HOP_TIME, DIALOGUE_DIM_BRIGHTNESS; // M5a §3.6
 export let REPAIR_COST, REPAIR_TIME; // M6b §2.3: REPAIR_COST as a cost ({ pits: n }), on top of the Double's Bough
 export let BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_EGG_INTERVAL, GRIM_BROOD_HATCH_COUNT, BROOD_EGG_MIN_DIST, BROOD_EGG_SPACING; // M6b §5.1–§5.2
+export let ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR; // M6b §6
 export let HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED; // M6b §5.3
 export let SHAMAN_SHIELD_INTERVAL, SHAMAN_SHIELD_TARGETS, SHAMAN_SHIELD_RANGE, SHAMAN_SHIELD_AMOUNT, SHAMAN_SHIELD_DURATION,
   GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT; // M6b §4.3
@@ -688,6 +707,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     SHAMAN_SHIELD_DURATION, GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT,
     BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_EGG_INTERVAL, GRIM_BROOD_HATCH_COUNT, BROOD_EGG_MIN_DIST, BROOD_EGG_SPACING,
     HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED,
+    ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR,
   } = keyed(t.globals));
   REPAIR_COST = { pits: REPAIR_COST };
   ITEM_PRICE = [ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3];
@@ -797,7 +817,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     level.waves = t.waves.filter((w) => w.level === wavesOf).map((w) => {
       // M3b §1: each spawn is its region's enemy for the role (a wolf in Hag's Causeway is a Drowned Thrall).
       const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === wavesOf && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
-      if (PLACEHOLDER_LEVELS[r.id]) wave.spawns = wave.spawns.map((sp) => placeholderSpawn(sp, flyerSwaps, r.id)); // M6b: no Stirges in the Vale
+      if (PLACEHOLDER_LEVELS[r.id]) wave.spawns = wave.spawns.map((sp) => placeholderSpawn(sp, flyerSwaps, r.id, w.wave)); // M6b: no Stirges in the Vale
       return opt(wave, 'tolls', w.tolls);
     });
     return level;
@@ -842,8 +862,10 @@ export function regionalEnemy(type, regionId) {
 // M6b: a placeholder Vale level's borrowed Stirge entry (no Stirges in the Vale) becomes, in turn,
 // PLACEHOLDER_FLYER_SWAP's next enemy (the Grim one for a Grim Stirge), half as many. Goes with
 // PLACEHOLDER_LEVELS in M6e.
-function placeholderSpawn(sp, swaps, levelId) {
+function placeholderSpawn(sp, swaps, levelId, wave) {
   const t = ENEMY_TYPES[sp.type];
+  const boss = PLACEHOLDER_BOSS[levelId];
+  if (t.role === 'miniboss' && boss?.wave === wave) return { ...sp, type: boss.type };
   if (t.role === 'miniboss' && PLACEHOLDER_MINIBOSS[levelId]) return { ...sp, type: PLACEHOLDER_MINIBOSS[levelId] };
   if (t.role !== 'flyer') return sp;
   const base = PLACEHOLDER_FLYER_SWAP[swaps.n++ % PLACEHOLDER_FLYER_SWAP.length];

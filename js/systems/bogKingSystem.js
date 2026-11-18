@@ -1,4 +1,5 @@
-// The Bog King (M3b §5): the final boss, an enemy of role 'boss' (it works for any such type).
+// The Bog King (M3b §5): Hag's Causeway's final boss (base type bogKing; M6b §6: the Vale's, the
+// Iron Oracle, is oracleSystem.js).
 //   Entrance (§5.3): when his spawn is due, his lane's entrance bubbles and darkens for
 //     BOSS_ENTRANCE_TIME, then he rises from the peat there (game.bossEntrances).
 //   Raise the drowned (§5.2): every BOG_KING_SUMMON_INTERVAL s on the field he raises up to
@@ -15,7 +16,7 @@ import { createEnemy, laneWorldPos, maxOffset, enemyType } from '../entities/ene
 import { returnToLane } from './riseSystem.js';
 import { events } from '../events.js';
 
-export const isBogKing = (enemy) => enemyType(enemy).role === 'boss';
+export const isBogKing = (enemy) => enemyType(enemy).baseType === 'bogKing';
 
 // trySpawn (spawnSystem.js): his spawn starts the entrance instead of placing him.
 export function startEntrance(game, lane, type) {

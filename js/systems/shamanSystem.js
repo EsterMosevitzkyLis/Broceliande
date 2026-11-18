@@ -11,8 +11,9 @@ import { events } from '../events.js';
 
 const TIMER_EPSILON = 1e-9;
 
+// M6b §6: never the Iron Oracle while bound on his perch (nothing touches him then).
 export function isLizardfolk(enemy) {
-  return C.LIZARDFOLK.has(enemyType(enemy).baseType);
+  return C.LIZARDFOLK.has(enemyType(enemy).baseType) && !enemy.bound;
 }
 
 export function updateShamans(game, dt) {

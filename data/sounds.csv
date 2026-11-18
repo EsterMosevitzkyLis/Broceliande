@@ -107,3 +107,12 @@ highShamanWindup,0.7,1,0.3,2,TRUE
 highShamanBlow,1,1,0.3,2,TRUE
 highShamanDies,1,1,1,1,TRUE
 relicPulse,0.8,1,0.5,2,TRUE
+ironOracleSpawns,1,1,1,1,TRUE
+ironOracleStep,0.4,1,0.4,2,TRUE
+ironOracleWindup,0.6,1,0.3,1,TRUE
+ironOracleBlow,1,1,0.3,2,TRUE
+ironOracleDies,1,1,1,1,TRUE
+ironCall,0.8,1,1,1,TRUE
+pylonHum,0.35,1,1.5,2,TRUE
+pylonBreaks,0.9,1,0.3,2,TRUE
+oracleReleased,1,1,1,1,TRUE

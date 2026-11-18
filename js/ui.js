@@ -124,8 +124,11 @@ function bossDebugLines(game) {
     // M6b §5: egg sacs and relic pulses.
     if (t.baseType === 'broodmother') lines.push(`    lays an egg sac in ${Math.max(0, (t.variant === 'grim' ? C.GRIM_BROOD_EGG_INTERVAL : C.BROOD_EGG_INTERVAL) - (e.layTimer ?? 0)).toFixed(1)} s  (sacs about ${game.enemies.filter((x) => x.laidBy === e.id).length})`);
     if (t.baseType === 'highShaman') lines.push(`    relic pulse in ${Math.max(0, C.HIGH_SHAMAN_PULSE_INTERVAL - (e.pulseTimer ?? 0)).toFixed(1)} s  shield ${Math.round(e.statuses.shielded?.amount ?? 0)}  speeding ${game.enemies.filter((x) => x.auraMult > 1).length}`);
-    if (t.role === 'boss') lines.push(`    raises Thralls in ${Math.max(0, C.BOG_KING_SUMMON_INTERVAL - (e.summonTimer ?? 0)).toFixed(1)} s  (${raisedCount(game, e)} / ${C.BOG_KING_SUMMON_MAX} of his about)  ${e.hasSunk ? 'has sunk' : 'sinks at half HP'}`);
+    if (t.baseType === 'ironOracle') lines.push(`    ${e.bound ? 'BOUND on his perch' : 'descending'}  Iron Call in ${Math.max(0, C.ORACLE_CALL_INTERVAL - (e.callTimer ?? 0)).toFixed(1)} s  (${game.enemies.filter((x) => x.calledBy === e.id).length} of his called about)`);
+    if (t.baseType === 'bogKing') lines.push(`    raises Thralls in ${Math.max(0, C.BOG_KING_SUMMON_INTERVAL - (e.summonTimer ?? 0)).toFixed(1)} s  (${raisedCount(game, e)} / ${C.BOG_KING_SUMMON_MAX} of his about)  ${e.hasSunk ? 'has sunk' : 'sinks at half HP'}`);
   }
+  // M6b §6: the relic pylons.
+  if (game.pylons?.length) lines.push(`  Pylons: ${game.pylons.map((p) => (p.broken ? 'broken' : `${Math.ceil(p.hp)} / ${p.maxHp}`)).join('  ')}`);
   for (const en of game.bossEntrances) lines.push(`  ${C.ENEMY_TYPES[en.type].name} rises from ${en.lane.id} in ${Math.max(0, en.timer).toFixed(1)} s`);
   for (const sub of game.submerged) lines.push(`  ${C.ENEMY_TYPES[sub.enemy.type].name} under the bog: resurfaces in ${Math.max(0, sub.timer).toFixed(1)} s`);
   return lines;
@@ -331,6 +334,7 @@ export function createUI(callbacks) {
     bossName: document.getElementById('boss-name'),
     bossFill: document.getElementById('boss-bar-fill'),
     bossHp: document.getElementById('boss-hp'),
+    bossPips: document.getElementById('boss-pips'), // M6b §6
     bossBanner: document.getElementById('boss-banner'),
     itemFound: document.getElementById('item-found'),
     itemFoundIcon: document.getElementById('item-found-icon'),
@@ -577,7 +581,7 @@ function livingBoss(game) {
 // Wave preview (M2i §4.2): during the countdown and gaps, the next wave's number, countdown and
 // enemies (icons with counts, an Ogre outlined in red), with Call next wave.
 // Enemy types in display order: by base type, each followed by its variants (a Grim, M2l §2.1).
-const PREVIEW_ORDER = ['wolf', 'thrall', 'spider', 'stirge', 'lizardman', 'hunter', 'shaman', 'bear', 'brute', 'giantLizard', 'ogre', 'knight', 'broodmother', 'highShaman', 'broodEgg', 'bogKing'];
+const PREVIEW_ORDER = ['wolf', 'thrall', 'spider', 'stirge', 'lizardman', 'hunter', 'shaman', 'bear', 'brute', 'giantLizard', 'ogre', 'knight', 'broodmother', 'highShaman', 'broodEgg', 'bogKing', 'ironOracle'];
 function enemyDisplayOrder() {
   const rank = (type) => {
     const base = C.ENEMY_TYPES[type].baseType;
@@ -668,7 +672,18 @@ function updateBoss(el, game) {
   el.bossBar.hidden = !boss;
   el.bossBar.classList.toggle('grim', !!boss && C.ENEMY_TYPES[boss.type].variant === 'grim'); // darker frame (M2l §2.1)
   el.bossBar.classList.toggle('submerged', !!boss && boss === sunk);
-  el.bossBar.classList.toggle('king', !!boss && C.ENEMY_TYPES[boss.type].role === 'boss'); // M3b §5.3: with a crown
+  el.bossBar.classList.toggle('king', !!boss && C.ENEMY_TYPES[boss.type].baseType === 'bogKing'); // M3b §5.3: with a crown
+  // M6b §6: the Iron Oracle's bar is greyed and marked bound on his perch, with a pip per relic
+  // pylon that goes dark as it falls.
+  const oracle = !!boss && C.ENEMY_TYPES[boss.type].baseType === 'ironOracle';
+  el.bossBar.classList.toggle('bound', oracle && !!boss.bound);
+  const pips = oracle ? game.pylons ?? [] : [];
+  el.bossPips.hidden = !pips.length;
+  const key = pips.map((p) => (p.broken ? 0 : 1)).join('');
+  if (el.bossPips.dataset.key !== key) {
+    el.bossPips.dataset.key = key;
+    el.bossPips.replaceChildren(...pips.map((p) => Object.assign(document.createElement('span'), { className: p.broken ? 'pip dark' : 'pip' })));
+  }
   el.uiLayer.classList.toggle('boss-active', !!boss);
   if (boss) {
     const max = boss.maxHp; // scaled by the level's enemyHpMult (M2f §3.1)

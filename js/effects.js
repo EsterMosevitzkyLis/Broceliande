@@ -68,6 +68,10 @@ export function updateEffects(game, dt) {
   game.eggHatches = game.eggHatches.filter((h) => h.age < C.EGG_HATCH_TIME);
   for (const p of game.relicPulses) p.age += dt;
   game.relicPulses = game.relicPulses.filter((p) => p.age < C.RELIC_PULSE_TIME);
+  for (const list of [game.ironCalls, game.pylonBreaks, game.linkSnaps]) for (const x of list) x.age += dt; // M6b §6
+  game.ironCalls = game.ironCalls.filter((x) => x.age < C.IRON_CALL_TIME);
+  game.pylonBreaks = game.pylonBreaks.filter((x) => x.age < C.PYLON_BREAK_TIME);
+  game.linkSnaps = game.linkSnaps.filter((x) => x.age < C.LINK_SNAP_TIME);
   if (game.shake) {
     game.shake.age += dt;
     if (game.shake.age >= (game.shake.time ?? C.OGRE_SHAKE_TIME)) game.shake = null;

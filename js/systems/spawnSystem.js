@@ -9,6 +9,7 @@ import { findBlocker } from './collisionSystem.js';
 import { levelWaves } from '../levelSettings.js';
 import { events } from '../events.js';
 import { startEntrance } from './bogKingSystem.js';
+import { perchOracle } from './oracleSystem.js';
 
 function shuffle(rng, items) {
   const a = [...items];
@@ -70,8 +71,10 @@ function trySpawn(game, lane, type, first = true) {
     ? (game.rng.next() < 0.5 ? -1 : 1) * Math.max(0, maxOffset(type, lane) - C.SIDE_KEEP_MARGIN)
     : game.rng.range(-maxOffset(type, lane), maxOffset(type, lane));
   // M3b §5.3: the Bog King rises from his lane's entrance after it has bubbled for a while.
+  // M6b §6: the Iron Oracle appears on his perch.
   if (t.role === 'boss') {
-    startEntrance(game, lane, type);
+    if (t.baseType === 'ironOracle') perchOracle(game, lane, type);
+    else startEntrance(game, lane, type);
     if (game.wave) { game.wave.spawned++; game.wave.lastSpawnAt = game.waveTime; }
     return true;
   }

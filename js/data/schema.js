@@ -41,6 +41,7 @@ export const GLOBAL_TYPES = {
   BROOD_EGG_INTERVAL: 'number', BROOD_HATCH_TIME: 'number', BROOD_HATCH_COUNT: 'int', GRIM_BROOD_EGG_INTERVAL: 'number', GRIM_BROOD_HATCH_COUNT: 'int', BROOD_EGG_MIN_DIST: 'number', BROOD_EGG_SPACING: 'number', // M6b §5.1–§5.2
   HIGH_SHAMAN_PULSE_INTERVAL: 'number', HIGH_SHAMAN_RANGE: 'number', HIGH_SHAMAN_PULSE_SHIELD: 'number', HIGH_SHAMAN_SELF_SHIELD: 'number',
   HIGH_SHAMAN_SHIELD_DURATION: 'number', HIGH_SHAMAN_AURA_SPEED: 'number', // M6b §5.3
+  ORACLE_CALL_INTERVAL: 'number', ORACLE_CALL_SHIELD: 'number', ORACLE_CALL_SHIELD_DURATION: 'number', ORACLE_CALL_SPAWNS: 'int', PYLON_HP: 'number', PYLON_ARMOR: 'number', // M6b §6
 };
 
 // Druid stats: key → type. Every key must have a row.

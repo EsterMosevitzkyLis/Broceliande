@@ -3,6 +3,7 @@
 import { updateRanged, updateSpears } from './systems/rangedSystem.js';
 import { updateShamans } from './systems/shamanSystem.js';
 import { updateValeBosses } from './systems/valeBossSystem.js';
+import { updateOracle, createPylons } from './systems/oracleSystem.js';
 import * as C from './config.js';
 import { createRng, makeRandomSeed } from './rng.js';
 import { buildWavePlans, updateSpawning, queueDebugEnemy } from './systems/spawnSystem.js';
@@ -142,6 +143,7 @@ export function createGame(levelId) {
     ashes: [],         // M3b §3.1: risers burnt to ash (visual only)
     bossEntrances: [], // M3b §5.3
     submerged: [],     // M3b §5.2
+    pylons: [],        // M6b §6
     meleeSlots: createMeleeSlots(scene.level.druidPos),
     spawnQueues: [],   // the current wave's spawns per lane (M2i §2)
     wavePlans: [],     // every wave's spawns per lane, lanes resolved at encounter start
@@ -242,6 +244,11 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.turretsWrecked = 0;  // M6b: this battle's figure (debug panel)
   game.eggHatches = [];     // M6b §5.1: { x, y, seed, grim, age } a sac splitting open (visual only)
   game.relicPulses = [];    // M6b §5.3: { x, y, age } the High-Shaman's expanding ring (visual only)
+  game.pylons = createPylons(game); // M6b §6: the Iron Oracle's relic pylons, from the map file
+  game.pylonHumTimer = 0;
+  game.ironCalls = [];      // M6b §6: { x, y, age } an Iron Call's cold ring (visual only)
+  game.pylonBreaks = [];    // M6b §6: { x, y, size, seed, age } a pylon's crack of light (visual only)
+  game.linkSnaps = [];      // M6b §6: { x1, y1, x2, y2, age } a snapped link (visual only)
   game.meleeSlots = createMeleeSlots(level.druidPos);
   game.wavePlans = buildWavePlans(level, game.lanes, game.rng);
   game.spawnQueues = [];
@@ -656,6 +663,7 @@ export function updateGame(game, dt) {
       updateBogKing(game, dt);       // M3b §5: his entrance, raising Thralls, resurfacing
       updateShamans(game, dt);       // M6b §4.3: shield casts
       updateValeBosses(game, dt);    // M6b §5: egg sacs laid and hatching, relic pulses and the aura
+      updateOracle(game, dt);        // M6b §6: Iron Call, pylon hums, his descent when the last pylon falls
       updateStatuses(game);          // M2k §3.4: timed statuses (slowed) run out
       updateDoubles(game, dt);       // Bough Double jobs (M1i §2)
       updateMelee(game, dt);

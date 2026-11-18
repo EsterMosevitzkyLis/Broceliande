@@ -32,6 +32,7 @@ function groupOf(check) {
   if (kind === 'candidate') return 'Candidates';
   if (kind === 'zone' || /^feature mix/.test(check.message)) return 'Zones';
   if (kind === 'lane') return 'Lanes';
+  if (kind === 'decor') return 'Decoration'; // M6b §6: relic pylon placement
   if (/decoration/.test(check.message)) return 'Decoration';
   return 'Waves';
 }

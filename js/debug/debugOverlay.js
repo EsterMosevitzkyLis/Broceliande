@@ -12,6 +12,7 @@ import { turretMuzzle, turretRange, levelStats } from '../entities/turret.js';
 import { doubleStandPos } from '../systems/doubleSystem.js';
 import { geometricZone } from '../zones.js';
 import { AttackState } from '../entities/enemy.js';
+import { targetById } from '../systems/oracleSystem.js';
 
 const COLOR = 'rgba(120, 220, 255, 0.9)';
 const EDGE_COLOR = 'rgba(120, 220, 255, 0.45)';
@@ -282,7 +283,7 @@ export function drawLane(ctx, lane) {
 function drawTurretTargets(ctx, game) {
   ctx.lineWidth = 1.5;
   for (const t of game.turrets) {
-    const target = game.enemies.find((e) => e.id === t.targetId);
+    const target = targetById(game, t.targetId);
     const muzzle = turretMuzzle(t);
     if (target) {
       ctx.strokeStyle = TARGET_COLOR;
@@ -323,7 +324,7 @@ function drawCinderjawCones(ctx, game) {
 function drawVultureTargets(ctx, game) {
   ctx.lineWidth = 1.5;
   for (const v of game.vultures) {
-    const target = game.enemies.find((e) => e.id === v.targetId);
+    const target = targetById(game, v.targetId);
     if (target) {
       ctx.strokeStyle = VULTURE_COLOR;
       ctx.beginPath();
@@ -405,7 +406,7 @@ function drawCloudsAndPellets(ctx, game) {
   }
   for (const p of game.projectiles) {
     if (p.kind !== 'pellet') continue;
-    const target = game.enemies.find((e) => e.id === p.targetId);
+    const target = targetById(game, p.targetId);
     const tx = target ? target.x : p.lastX;
     const ty = target ? target.y : p.lastY;
     if (tx === null) continue;
