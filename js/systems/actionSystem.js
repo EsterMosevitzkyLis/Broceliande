@@ -64,11 +64,13 @@ export function isBuildingSlot(game, slotIndex) {
 
 // Confirming a turret in the build menu (§9.2, M1f §5.2). Cost is checked now but only
 // deducted on completion. The action's target is the slot; turretType says what is built.
-export function startBuild(game, slotIndex, type) {
+// wall: a Scale Bulwark's wall placement, confirmed in wall placement mode (M6d §2.4).
+export function startBuild(game, slotIndex, type, wall = null) {
   if (!canStartBuild(game, slotIndex, type)) return false;
   // Build time divided by the effective work speed (M2e, Wright's Belt).
   if (!setAction(game, ActionState.BUILDING, slotIndex, buildTime(type) / game.stats['work.speed'])) return false;
   game.action.turretType = type;
+  game.action.wall = wall;
   return true;
 }
 
@@ -79,7 +81,7 @@ export function isTravelling(game) {
 // Step mode (M1b §5.3): clicking a valid, affordable marker spends the steps now and starts
 // the travel tween. The search or build happens instantly on arrival. target: { kind, index }.
 // For a slot, turretType is the turret chosen in the build menu (M1f §5.2); it must be affordable.
-export function startTravel(game, marker, turretType = null) {
+export function startTravel(game, marker, turretType = null, wall = null) {
   if (game.action.state !== ActionState.IDLE || !canVisit(game, marker)) return false;
   if (marker.kind === 'slot' && !(turretType && canAfford(game.resources, buildCost(turretType)))) return false;
   const cost = stepCost(game, marker);
@@ -88,6 +90,7 @@ export function startTravel(game, marker, turretType = null) {
   game.trail.push(leg); // M1h §1.2: committed now, so the whole leg stays on the ground at once
   game.action.from = game.druidPos;
   game.action.turretType = turretType;
+  game.action.wall = wall; // M6d §2.4: the steps are paid now, as the wall is confirmed
   // Debug undo (M1b §8): what this move is about to change.
   game.moveHistory.push({
     marker: game.action.target,
@@ -120,7 +123,7 @@ export function undoLastMove(game) {
 
 // Arrival: the Druid now stands at the marker, which is the origin of the next cost (§4).
 // M6c §1.3: a hidden spot is revealed and resolved; then the ferns around him part.
-function completeTravel(game, marker, turretType) {
+function completeTravel(game, marker, turretType, wall) {
   game.druidPos = markerPos(game, marker);
   revealNear(game);
   if (marker.kind === 'hidden') {
@@ -129,7 +132,7 @@ function completeTravel(game, marker, turretType) {
     events.emit('searchStarted', { featureIndex: marker.index }); // step mode: rustle and chimes both on arrival
     completeSearch(game, marker.index);
   } else {
-    completeBuild(game, marker.index, turretType);
+    completeBuild(game, marker.index, turretType, wall);
   }
 }
 
@@ -231,7 +234,7 @@ export function updateAction(game, dt) {
     a.elapsed += dt;
     if (a.elapsed >= a.duration) {
       game.action = createIdleAction();
-      completeTravel(game, a.target, a.turretType);
+      completeTravel(game, a.target, a.turretType, a.wall);
     }
     return;
   }
@@ -240,7 +243,7 @@ export function updateAction(game, dt) {
   if (a.elapsed < a.duration) return;
 
   if (a.state === ActionState.SEARCHING) completeSearch(game, a.target);
-  else if (a.state === ActionState.BUILDING) completeBuild(game, a.target, a.turretType);
+  else if (a.state === ActionState.BUILDING) completeBuild(game, a.target, a.turretType, a.wall);
   game.action = createIdleAction();
 }
 

@@ -5,6 +5,7 @@ default,shells,3,6,0.85,1.15,
 default,reeds,2,5,0.85,1.15,
 default,boughs,1,2,0.85,1.15,
 default,peat,3,6,0.85,1.15,
+default,scales,3,6,0.85,1.15,
 hettie,pits,4,8,0.9,1.2,TUNING - small stock
 hettie,feathers,2,4,0.9,1.2,
 hettie,shells,2,3,0.9,1.2,
@@ -31,7 +32,7 @@ tom,shells,3,6,0.75,1,
 tom,reeds,2,5,0.75,1,
 tom,boughs,1,2,0.75,1,
 tom,peat,3,6,0.75,1,
-rootkeepers,boughs,3,6,0.6,0.8,"TUNING - M6a sec. 2.4: woodworkers' goods are cheap, Shells from the default line (Scales come in M6d)"
+rootkeepers,boughs,3,6,0.6,0.8,"TUNING - M6a sec. 2.4: woodworkers' goods are cheap, Shells and Scales from the default line"
 rootkeepers,pits,8,14,0.8,1,
 rootkeepers,reeds,8,14,0.8,1,
 rootkeepers,feathers,4,8,0.9,1.1,

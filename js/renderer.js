@@ -11,7 +11,9 @@ import {
   drawSquirrel, drawSquirrelStatus, drawSquirrelGhost, drawSwipe, drawSpark, drawNextRange, DRUID_REST_POSE,
   drawDoubleWisp, drawDoublePuff, drawChip, drawDoubleFade, drawDoubleTargeting, drawFloater, drawSweepItem,
 } from './render/entities.js';
-import { turretRange, levelRange, maxLevel, turretMaxHp } from './entities/turret.js';
+import { turretRange, levelRange, maxLevel, turretMaxHp, isWallType, wallReach } from './entities/turret.js';
+import { drawBulwark, drawWall, drawWallHpBar, drawWallCrumble, drawThornPrick, drawWallPlacement } from './render/bulwark.js'; // M6d §2
+import { wallMaxHp } from './systems/wallSystem.js';
 import { druidDisplayPos, actionTargetPos, isTimedAction } from './systems/actionSystem.js';
 import { isBeingUpgraded, isDoubleTargeting, isDoubleTarget, doubleTargets, doubleStandPos, doubleJob } from './systems/doubleSystem.js';
 import { DoubleState } from './entities/boughDouble.js';
@@ -174,6 +176,8 @@ export function createRenderer(canvas) {
       // M6c §1.2: fern clumps over hidden spots, parting or clearing once revealed.
       ...fernClumps(game).map(({ spot, progress }) => ({ y: spot.y + C.LOCATION_RADIUS * 0.45, draw: () => drawFernClump(ctx, spot.x, spot.y, now, progress, spot.cleared, isPrep && hover?.kind === 'hidden' && hover.index === spot.index) })),
       ...game.turrets.map((t) => ({ y: slotBase(t).y, draw: () => drawTurretHit(ctx, recent(t.lastHitTime), () => drawTurretOfType(ctx, t, isBeingUpgraded(game, t.slotIndex), anim)) })),
+      // M6d §2.7: Scale Bulwark walls across their lanes, rising from the ground.
+      ...game.turrets.filter((t) => t.wall?.up).map((t) => ({ y: t.wall.y, draw: () => drawWall(ctx, t.wall, { rise: Math.min(1, t.wall.riseAge / C.WALL_RISE_TIME), frac: t.wall.hp / wallMaxHp(t), hit: game.combatTime - t.wall.lastHitTime < C.WALL_HIT_FLASH_TIME, seed: t.wall.id }) })),
       ...doubleDrawables(ctx, game, anim),
       { y: druidPos.y + C.DRUID_RADIUS * 0.6, draw: () => drawDruid(ctx, druidPos.x, druidPos.y, hurt, defeatProgress(game), druidPose(game)) },
       ...game.enemies.filter((e) => !e.flying).map((e) => ({ // flyers: drawn after, above them
@@ -217,6 +221,8 @@ export function createRenderer(canvas) {
     for (const s of game.spears) drawSpear(ctx, s); // M6b §4.2
     for (const s of game.shieldShatters) drawShieldShatter(ctx, s, s.age / C.SHIELD_SHATTER_TIME);
     for (const d of game.debris) drawDebris(ctx, d, d.age / C.WRECK_DEBRIS_TIME);
+    for (const c of game.wallCrumbles) drawWallCrumble(ctx, c, c.age / C.WALL_CRUMBLE_TIME); // M6d §2.5
+    for (const p of game.thornPricks) drawThornPrick(ctx, p, p.age / (C.WALL_HIT_FLASH_TIME * 3));
     for (const h of game.eggHatches) drawEggHatch(ctx, h, h.age / C.EGG_HATCH_TIME); // M6b §5.1
     for (const b of game.pylonBreaks ?? []) drawPylonBreak(ctx, b, b.age / C.PYLON_BREAK_TIME); // M6b §6
     for (const s of game.linkSnaps ?? []) drawLinkSnap(ctx, s, s.age / C.LINK_SNAP_TIME);
@@ -252,11 +258,13 @@ export function createRenderer(canvas) {
       drawDoubleWisp(ctx, from, { x: to.x, y: to.y - C.DRUID_RADIUS * 0.6 }, Math.min(1, d.wispElapsed / C.DOUBLE_WISP_TIME));
     }
     // Targeting mode: valid targets lit, everything else dimmed, ghost on top (M1i §2.4).
-    if (isDoubleTargeting(game)) drawTargeting(ctx, game, view);
+    if (isDoubleTargeting(game) && !view.wallPlacement) drawTargeting(ctx, game, view);
+    if (view.wallPlacement) drawWallPlacement(ctx, game, view.wallPlacement, view.pointer); // M6d §2.4
 
     // Bars and text on top of everything so they stay readable.
     for (const e of game.enemies) if (!e.camouflaged) drawEnemyHpBar(ctx, e); // M6c §2.1: none while camouflaged
     for (const t of game.turrets) drawTurretHpBar(ctx, t, t.hp, turretMaxHp(t)); // M6b §2.1: damaged turrets only
+    for (const t of game.turrets) if (t.wall?.up) drawWallHpBar(ctx, t.wall, t.wall.hp, wallMaxHp(t)); // M6d §2.7
     // Slowed (M2k §3.5): a small turning spiral above the head, clear of the HP bar.
     // Dogged (M2l §2.2): on a slow-resistant enemy it spins faster and fainter (only partly slowed).
     for (const e of game.enemies) if (isSlowed(e) && !e.camouflaged) drawSlowSpiral(ctx, e.x, enemyBarY(e) - C.SLOW_SPIRAL_SIZE - 6, anim, !!C.ENEMY_TYPES[e.type].slowResist);
@@ -358,18 +366,23 @@ function drawRanges(ctx, game, view) {
   // Which turret's range an empty slot previews (M1f §5.2): the one being built, else the build
   // menu card under the pointer, else the Sprinkler.
   const previewType = game.action.state === ActionState.BUILDING ? game.action.turretType : (view.menuHoverType ?? 'sprinkler');
-  for (const i of shown) drawRange(ctx, game.slots[i].x, game.slots[i].y, levelRange(previewType, 1));
+  for (const i of shown) drawRange(ctx, game.slots[i].x, game.slots[i].y, shownRange(previewType, 1));
 
   for (const t of game.turrets) {
     const hovered = hover?.kind === 'turret' && hover.index === t.slotIndex;
     const menuOpen = view.menu?.kind === 'turret' && view.menu.index === t.slotIndex;
     if (hovered || menuOpen || view.debug) {
-      drawRange(ctx, t.x, t.y, turretRange(t));
+      drawRange(ctx, t.x, t.y, shownRange(t.type, t.level));
     }
     // M1e §4.3, M1i §2.4: the next level's range as a faint dashed circle while an upgrade is on
     // offer, i.e. while hovering the turret as a Bough Double target.
-    if (hovered && isDoubleTargeting(game) && isDoubleTarget(game, t.slotIndex) && doubleJob(game, t.slotIndex)?.job === 'upgrade') drawNextRange(ctx, t.x, t.y, levelRange(t.type, t.level + 1));
+    if (hovered && isDoubleTargeting(game) && isDoubleTarget(game, t.slotIndex) && doubleJob(game, t.slotIndex)?.job === 'upgrade') drawNextRange(ctx, t.x, t.y, shownRange(t.type, t.level + 1));
   }
+}
+
+// The circle a type shows at a level: its range, or (M6d §2.4) a Scale Bulwark's reach.
+function shownRange(type, level) {
+  return isWallType(type) ? wallReach(type, level) : levelRange(type, level);
 }
 
 const CRAFT_WIND_BACK = 0.9; // rad, staff pulled back before a crafting swing
@@ -445,6 +458,7 @@ function enemyTintFilter(e) {
 function drawTurretOfType(ctx, t, upgrading, anim) {
   if (t.type === 'toader') drawToader(ctx, t, upgrading, toaderMouthOpen(t, anim), anim);
   else if (C.TURRET_TYPES[t.type].baseType === 'cinderjaw') drawCinderjaw(ctx, t, upgrading, anim); // M2o §4.1, and the Peatjaw (M3c §4.2)
+  else if (isWallType(t.type)) drawBulwark(ctx, t, upgrading, t.wall?.up ? Math.max(0, 1 - t.wall.riseAge) : 0); // M6d §2.7: the ridge glows as its wall rises
   else drawTurret(ctx, t, upgrading, anim);
 }
 

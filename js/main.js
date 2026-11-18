@@ -65,7 +65,7 @@ const game = createGame(regionStartNode(C.REGION_ORDER[0]));
 const clock = { speed: 1, paused: false };
 // UI-only state: never read by the simulation.
 let wavesLogged = C.DEBUG_START_ENABLED; // per-wave totals logged (M2i §2)
-const view = { debug: C.DEBUG_START_ENABLED, showcase: null, revealItem: false, clickMarker: null, fps: 0, hover: null, menu: null, pointer: null, menuHoverType: null, mapHover: null }; // menuHoverType: build-menu card under the pointer (range preview); mapHover: available map node under the pointer; showcase: debug Shift+C comparison row
+const view = { debug: C.DEBUG_START_ENABLED, showcase: null, revealItem: false, clickMarker: null, fps: 0, hover: null, menu: null, pointer: null, menuHoverType: null, mapHover: null, wallPlacement: null }; // wallPlacement (M6d §2.4): { slotIndex, type, via: 'build' | 'double' } while choosing a wall's position // menuHoverType: build-menu card under the pointer (range preview); mapHover: available map node under the pointer; showcase: debug Shift+C comparison row
 document.body.classList.toggle('debug-on', view.debug); // the data warnings panel shows only with the debug overlay on (boot.js, styles.css)
 const interaction = createInteraction(game, view);
 
@@ -294,6 +294,7 @@ const input = createInput(stage, canvas, () => scale, {
 //   broceliande.forceEnd('VICTORY')  /  broceliande.forceEnd('DEFEAT')
 window.broceliande = {
   game,
+  view, // the UI's view state (menus, wall placement), for checking from the console
   forceEnd: (result) => beginEnding(game, result),
   // Temporary equipment helpers (M2e E1, until the map's equipment panel exists):
   //   broceliande.equip('talonCrown')  — adds the item to the run if needed and equips it

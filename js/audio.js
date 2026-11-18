@@ -75,7 +75,7 @@ export function toggleMute() {
 // Events → sounds
 // ---------------------------------------------------------------------------
 // Resources with a chime of their own (and sounds row): Shells (M2k §2.1), Peat (M3c §1).
-const OWN_CHIME = { shells: 'shellChime', peat: 'peatChime', gold: 'goldClink' }; // and Gold (M3e §2.1)
+const OWN_CHIME = { shells: 'shellChime', peat: 'peatChime', gold: 'goldClink', scales: 'scalesChime' }; // and Gold (M3e §2.1), Lizard Scales (M6d §1)
 const TURRET_FIRE_SOUND = { sprinkler: 'sprinklerFire', toader: 'toaderFire', cinderjaw: 'cinderjawFires' };
 // M3b §2.2: Hag's Causeway's undead: wet groans (Thrall), a deep creaking groan (Brute), a metallic,
 // sloshing roar (the Drowned Knight).
@@ -99,6 +99,10 @@ const ENEMY_STEP_SOUND = { ogre: 'ogreStep', knight: 'knightStep', bogKing: 'bog
 const ENEMY_WINDUP_SOUND = { ogre: 'ogreWindup', knight: 'knightWindup', bogKing: 'bogKingWindup', broodmother: 'broodmotherWindup', highShaman: 'highShamanWindup', ironOracle: 'ironOracleWindup' };
 
 function subscribe() {
+  // M6d §2.7: the Scale Bulwark's wall: a grinding rise, dry scale-knocks, a brittle crack.
+  events.on('wallRisen', (e) => play('wallRise', e));
+  events.on('wallHit', (e) => play('wallHit', e));
+  events.on('wallBroken', (e) => play('wallBreak', e));
   events.on('turretFired', (e) => play(TURRET_FIRE_SOUND[C.TURRET_TYPES[e.type].baseType], e)); // a variant fires as its base (M3c §4)
   events.on('cloudBurst', (e) => play('cloudBurst', e));
   // M2n §4.6, M3e §5.2: the trader scene; buying a pattern also plays the pattern sound.
@@ -999,6 +1003,38 @@ const RECIPES = {
       noise(t, out, { freq: 3000 * p, q: 2, dur: 0.02, gain: 0.25, delay: d + dt });
     }
     return d + 0.16;
+  },
+
+  // M6d §1: Lizard Scales gained: a light, dry clicking tone.
+  scalesChime(t, out, p, data) {
+    const d = data?.delay ?? 0;
+    for (const dt of [0, 0.045, 0.085]) {
+      noise(t, out, { freq: 4200 * p, q: 6, dur: 0.018, gain: 0.5, delay: d + dt });
+      tone(t, out, { type: 'triangle', freq: C.SOUND_RESOURCE_FREQ.scales * p, dur: 0.05, attack: 0.002, gain: 0.25, delay: d + dt });
+    }
+    return d + 0.14;
+  },
+
+  // M6d §2.7: the wall rising: a low grinding scrape that climbs.
+  wallRise(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 420 * p, to: 900 * p, q: 1.5, dur: 0.5, attack: 0.05, gain: 0.55 });
+    tone(t, out, { type: 'sawtooth', freq: 70 * p, to: 110 * p, dur: 0.45, attack: 0.04, gain: 0.18 });
+    return 0.5;
+  },
+
+  // A hit on the wall: a dry knock on hard scale.
+  wallHit(t, out, p) {
+    noise(t, out, { freq: 1800 * p, q: 3, dur: 0.035, gain: 0.55 });
+    tone(t, out, { type: 'square', freq: 340 * p, to: 220 * p, dur: 0.05, attack: 0.002, gain: 0.12 });
+    return 0.06;
+  },
+
+  // The wall breaking: a brittle crack, then the pieces rattling down.
+  wallBreak(t, out, p) {
+    noise(t, out, { freq: 2600 * p, q: 1.2, dur: 0.08, gain: 0.8 });
+    tone(t, out, { type: 'square', freq: 180 * p, to: 60 * p, dur: 0.18, attack: 0.002, gain: 0.2 });
+    for (let i = 0; i < 5; i++) noise(t, out, { freq: (2000 + i * 400) * p, q: 5, dur: 0.02, gain: 0.35, delay: 0.1 + i * 0.05 });
+    return 0.4;
   },
 
   // M3c §1: Peat gained: a soft, low, earthy thud-tone.

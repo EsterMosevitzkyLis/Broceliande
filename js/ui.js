@@ -19,7 +19,8 @@ import { isDoubleTargeting, isDoubleTarget, doubleOnSlot, doubleJob } from './sy
 import { DoubleState } from './entities/boughDouble.js';
 import { AttackState } from './entities/enemy.js';
 import { turretOnSlot } from './systems/buildSystem.js';
-import { buildCost, levelStats, levelRange, levelName, nextLevelStats, maxLevel, turretType, TURRET_TYPE_KEYS, buildableTypes, turretMaxHp, isDamaged } from './entities/turret.js';
+import { buildCost, levelStats, levelRange, levelName, nextLevelStats, maxLevel, turretType, TURRET_TYPE_KEYS, buildableTypes, turretMaxHp, isDamaged, isWallType, wallStats, wallReach } from './entities/turret.js';
+import { wallPlacementOpen, wallMaxHp } from './systems/wallSystem.js';
 import { isStepMode, stepCost, stepParts, canVisit, anyVisitable, routePreview, calibrationFigures, affordableTurretTypes } from './systems/stepSystem.js';
 import { enemyTotals, waveCounts } from './game.js';
 import { isMuted, soundStats, audioStatus } from './audio.js';
@@ -94,7 +95,15 @@ function valeDebugLine(game) {
   const damaged = game.turrets.filter((t) => isDamaged(t)).map((t) => `${t.type} ${Math.ceil(t.hp)}/${turretMaxHp(t)}`).join(', ');
   return `Vale:        shield absorbed ${Math.round(game.traitStats.shieldAbsorbed)}  shielded ${shielded}  hunters throwing ${throwing}  spears ${game.spears.length}  `
     + `wrecked ${game.turretsWrecked}  repairs ${game.doubleStats.repairs ?? 0}  damaged: ${damaged || 'none'}\n`
-    + twistDebugLine(game);
+    + twistDebugLine(game) + '\n' + wallDebugLine(game);
+}
+
+// M6d §2: each Scale Bulwark's wall (HP or regrow timer), the enemies held at walls, thorns damage.
+function wallDebugLine(game) {
+  const walls = game.turrets.filter((t) => t.wall).map((t) => (t.wall.up ? `#${t.id} L${t.level} ${Math.ceil(t.wall.hp)}/${wallMaxHp(t)}` : `#${t.id} L${t.level} regrows ${Math.max(0, t.wall.regrowIn).toFixed(1)} s`));
+  const ids = new Set(game.turrets.filter((t) => t.wall?.up).map((t) => t.wall.id));
+  const held = game.enemies.filter((e) => ids.has(e.blockedBy)).length;
+  return `Walls:       ${walls.join('  ') || 'none'}  held ${held}  thorns ${Math.round(game.damageStats.thorns ?? 0)}`;
 }
 
 // M6c §1.5, §2.4: hidden spots found / still hidden, and camouflaged hunters hidden / revealed.
@@ -313,6 +322,7 @@ export function createUI(callbacks) {
       boughs: document.getElementById('res-boughs'),
       shells: document.getElementById('res-shells'),
       peat: document.getElementById('res-peat'),
+      scales: document.getElementById('res-scales'), // M6d §1
     },
     startCombat: document.getElementById('btn-start-combat'),
     mute: document.getElementById('btn-mute'),
@@ -422,6 +432,7 @@ export function createUI(callbacks) {
       if (lastState !== null) view.menu = null;
       lastState = game.state;
     }
+    if (view.wallPlacement && !wallPlacementOpen(game, view.wallPlacement)) view.wallPlacement = null; // M6d §2.4
     updateHud(el, game);
     updateSpeedButtons(el, game);
     updateStepBar(el, game, view);
@@ -1038,6 +1049,13 @@ function placeByNode(popup, x, y, halfWidth) {
 function upgradeDetail(type, level) {
   const from = levelStats(type, level - 1);
   const to = levelStats(type, level);
+  if (from.wall) { // M6d §2.6
+    return `Wall ${from.wall.hp} → ${to.wall.hp} HP\n`
+      + `Regrows after ${from.wall.regrow} → ${to.wall.regrow} s\n`
+      + `Emitter ${from.hp} → ${to.hp} HP\n`
+      + specialLines(to).map((line) => `${line}\n`).join('')
+      + `Takes ${to.time} s — a broken wall doesn't regrow meanwhile`;
+  }
   const cone = from.cone && to.cone // M2o §3.1
     ? `Cone ${from.cone.angle} → ${to.cone.angle}°, burn every ${from.cone.burn.tickInterval} → ${to.cone.burn.tickInterval} s\n`
     : '';
@@ -1068,6 +1086,7 @@ function specialLines(stats) {
   if (corrode) lines.push(`Corrosion: +${Math.round((corrode.mult - 1) * 100)}% damage taken inside and ${corrode.linger} s after`);
   const spread = stats.cone?.burn.spreadRadius;
   if (spread) lines.push(`Wildfire: a burning enemy that dies sets those within ${spread} px burning`); // M2o §2.3
+  if (stats.wall?.thornsRatio) lines.push(`Thorns: attackers take ${Math.round(stats.wall.thornsRatio * 100)}% of the damage they deal to the wall`); // M6d §2.6
   return lines;
 }
 
@@ -1075,6 +1094,10 @@ function specialLines(stats) {
 function turretSummary(type) {
   const t = turretType(type);
   const l1 = t.levels[0];
+  if (t.attack === 'wall') { // M6d §2
+    return `Raises a wall of scales across a lane: ${l1.wall.hp} HP, holds ground enemies (bosses too), regrows after ${l1.wall.regrow} s\n`
+      + `You choose where, within reach ${Math.round(l1.reach)}`;
+  }
   if (t.attack === 'cone') { // M2o §2
     return `Fire cone (${l1.cone.angle}°): ${l1.damage} to every enemy in it, flyers too, then burning ${l1.cone.burn.tickDamage} every ${l1.cone.burn.tickInterval} s for ${l1.cone.burn.duration} s\n`
       + `Every ${l1.fireInterval} s · range ${Math.round(levelRange(type, 1))}`;
@@ -1090,7 +1113,8 @@ function turretSummary(type) {
 // any lane's centreline is within its level 1 range, its card warns (building is still allowed).
 function laneWarning(game, slotIndex, type) {
   const slot = game.slots[slotIndex];
-  return game.lanes.some((lane) => lane.path.distanceTo(slot) <= levelRange(type, 1)) ? '' : 'Reaches no lane';
+  const reach = isWallType(type) ? wallReach(type) : levelRange(type, 1); // M6d §2.4: a wall's reach
+  return game.lanes.some((lane) => lane.path.distanceTo(slot) <= reach) ? '' : 'Reaches no lane';
 }
 
 // Build menu (§9.2, M1f §5.2): one card per turret type. In step mode it also needs the steps
@@ -1146,6 +1170,11 @@ function doubleBuildOptions(game, menu) {
 // "Damage 3 every 0.75 s · range 220": a built turret's current level (Combat info menu).
 function turretStats(turret) {
   const s = levelStats(turret.type, turret.level);
+  if (s.wall) { // M6d §2.5
+    const w = turret.wall;
+    const state = !w ? 'No wall' : w.up ? `Wall ${Math.ceil(w.hp)} / ${s.wall.hp} HP` : `Wall broken · regrows in ${Math.max(0, w.regrowIn).toFixed(1)} s`;
+    return [`${state} · regrows after ${s.wall.regrow} s`, ...specialLines(s)].join('\n');
+  }
   const range = Math.round(levelRange(turret.type, turret.level));
   if (s.cone) {
     return [`Hit ${s.damage} every ${s.fireInterval} s · range ${range} · cone ${s.cone.angle}°`,

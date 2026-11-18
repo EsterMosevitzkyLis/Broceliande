@@ -43,6 +43,7 @@ export const GLOBAL_TYPES = {
   HIGH_SHAMAN_SHIELD_DURATION: 'number', HIGH_SHAMAN_AURA_SPEED: 'number', // M6b §5.3
   ORACLE_CALL_INTERVAL: 'number', ORACLE_CALL_SHIELD: 'number', ORACLE_CALL_SHIELD_DURATION: 'number', ORACLE_CALL_SPAWNS: 'int', PYLON_HP: 'number', PYLON_ARMOR: 'number', // M6b §6
   REVEAL_RADIUS: 'number', REVEAL_LINGER: 'number', THROW_REVEAL: 'number', WISP_REVEAL: 'number', // M6c
+  WALL_MIN_GAP: 'number', WALL_DRUID_CLEARANCE: 'number', // M6d §2.4
 };
 
 // Druid stats: key → type. Every key must have a row.
@@ -99,6 +100,8 @@ export const TABS = {
       levelName: { type: 'text' }, targets: { type: 'int' }, corrodeMult: { type: 'number' }, corrodeLinger: { type: 'number' }, // M2m §2
       coneAngle: { type: 'number' }, burnDuration: { type: 'number' }, burnTick: { type: 'number' }, burnTickDamage: { type: 'number' }, spreadRadius: { type: 'number' }, // M2o §3
       hp: { type: 'number' }, // M6b §2.1: the turret's HP at that level
+      // M6d §2.2, §2.6: the first region order it is built in (blank = any); the Scale Bulwark's wall.
+      minRegionOrder: { type: 'int' }, wallHp: { type: 'number' }, wallRegrow: { type: 'number' }, reach: { type: 'number' }, thornsRatio: { type: 'number' },
     },
     pattern: [/^cost_[a-z][a-zA-Z0-9]*$/, COST],
   },
@@ -150,7 +153,7 @@ export const TABS = {
   palettes: { columns: { level: { type: 'id', required: true } }, pattern: [/^[a-z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*$/, { type: 'text' }] },
   sounds: { columns: { id: { type: 'id', required: true }, volume: { type: 'number', required: true }, pitch: { type: 'number', required: true }, minGap: { type: 'number', required: true }, maxVoices: { type: 'int', required: true }, enabled: { type: 'bool', required: true } } },
   // M2n §3.1: each resource's trade value and a trader's stock range.
-  trade: { columns: { resource: { type: 'id', required: true }, baseValue: { type: 'number', required: true }, stockMin: { type: 'int', required: true }, stockMax: { type: 'int', required: true }, regions: { type: 'text' } } }, // regions (M3c §1): blank = every region
+  trade: { columns: { resource: { type: 'id', required: true }, baseValue: { type: 'number', required: true }, stockMin: { type: 'int', required: true }, stockMax: { type: 'int', required: true }, regions: { type: 'text' }, minRegionOrder: { type: 'int' } } }, // regions (M3c §1): blank = every region; minRegionOrder (M6d §1.1): blank = any
   // M2n §4.5, M3e §7: the traders' lines (greet, buy, sell, poor, soldout, leave), with an optional
   // {resource}; trader: a profile's own line (blank = any trader).
   traders: { columns: { kind: { type: 'id', required: true }, trader: { type: 'id' }, text: { type: 'text', required: true } } },

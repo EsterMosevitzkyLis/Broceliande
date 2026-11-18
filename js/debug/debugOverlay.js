@@ -30,6 +30,7 @@ const STRIKE_COLOR = 'rgba(255, 120, 80, 0.95)'; // Squirrel counter-attack targ
 const MELEE_COLOR = 'rgba(255, 255, 255, 0.95)';
 const CLOUD_COLOR = 'rgba(210, 150, 255, 0.95)';
 const FERN_COLOR = 'rgba(150, 240, 120, 0.95)'; // M6c: hidden spots, the reveal radius, camouflaged hunters
+const WALL_COLOR = 'rgba(220, 210, 120, 0.95)'; // M6d: Scale Bulwark walls
 const LABEL_BG = 'rgba(0, 0, 0, 0.55)';
 const STATE_TAGS = { WALKING: 'walk', WAITING: 'wait', APPROACHING: 'appr', BITING: 'bite' };
 
@@ -109,6 +110,7 @@ export function drawDebugOverlay(ctx, game, scene, revealItem = false, hover = n
 
   drawEnemies(ctx, game);
   drawCamouflage(ctx, game);
+  drawWalls(ctx, game); // M6d §2
   drawRisingAndSinking(ctx, game);
   drawTurretTargets(ctx, game);
   drawCinderjawCones(ctx, game); // M2o §5
@@ -145,6 +147,26 @@ function drawHiddenSpots(ctx, game) {
     ctx.stroke();
     const role = s.kind === 'slot' ? `turret slot T${s.roleIndex}` : s.kind === 'feature' ? `resource: ${C.FEATURE_TYPES[game.features[s.roleIndex].type].name}` : 'empty';
     label(ctx, `ferns: ${role}${s.revealed ? (s.cleared ? ' (cleared)' : ' (found)') : ''}`, s.x - C.LOCATION_RADIUS, s.y - C.LOCATION_RADIUS - 8, FERN_COLOR);
+  }
+  ctx.restore();
+}
+
+// M6d §2: each Scale Bulwark wall: a line from its emitter, its lanes crossed, HP or regrow timer,
+// and how many enemies it holds.
+function drawWalls(ctx, game) {
+  ctx.save();
+  ctx.strokeStyle = WALL_COLOR;
+  ctx.setLineDash([3, 4]);
+  for (const t of game.turrets) {
+    const w = t.wall;
+    if (!w) continue;
+    ctx.beginPath();
+    ctx.moveTo(t.x, t.y);
+    ctx.lineTo(w.x, w.y);
+    ctx.stroke();
+    const held = game.enemies.filter((e) => e.blockedBy === w.id).length;
+    const state = w.up ? `${Math.ceil(w.hp)} HP` : `regrows ${Math.max(0, w.regrowIn).toFixed(1)} s`;
+    label(ctx, `wall #${w.id} ${state} held ${held} lanes ${w.crossings.map((c) => `${c.laneId}@${Math.round(c.s)}`).join(',')}`, w.x + w.half * 0.5, w.y + 16, WALL_COLOR);
   }
   ctx.restore();
 }

@@ -99,8 +99,15 @@ export function validateTables(t, problems, maps = {}) {
     resourceColumns('turrets', raw, 'cost_', '');
     (turretLevels[raw.turret] ??= []).push(raw);
     const r = raw.baseType ? { ...baseRow(raw), ...raw } : raw; // M3c §4.1: a variant as merged with its base
-    if (!['projectile', 'cloud', 'cone'].includes(r.attack)) err('turrets', r, 'attack', `attack must be projectile, cloud or cone, not "${r.attack}"`);
-    if (r.attack !== 'cone' && r.projectileSpeed === undefined) err('turrets', r, 'projectileSpeed', 'a projectile or cloud turret needs a value');
+    if (!['projectile', 'cloud', 'cone', 'wall'].includes(r.attack)) err('turrets', r, 'attack', `attack must be projectile, cloud, cone or wall, not "${r.attack}"`);
+    if ((r.attack === 'projectile' || r.attack === 'cloud') && r.projectileSpeed === undefined) err('turrets', r, 'projectileSpeed', 'a projectile or cloud turret needs a value');
+    // M6d §2.6: a wall turret (the Scale Bulwark) needs its wall values and reach; thornsRatio is optional.
+    if (r.attack === 'wall') {
+      for (const c of ['wallHp', 'wallRegrow', 'reach']) if (!(r[c] > 0)) err('turrets', r, c, 'a wall turret needs a value above 0');
+    } else {
+      for (const c of ['damage', 'fireInterval', 'range']) if (r[c] === undefined) err('turrets', r, c, 'a firing turret needs a value');
+    }
+    if (r.thornsRatio !== undefined && r.attack !== 'wall') err('turrets', r, 'thornsRatio', 'only a wall turret has thorns');
     // M2o §3.1: a cone (Cinderjaw) needs its cone and burn values; spreadRadius (Wildfire) is optional.
     if (r.attack === 'cone') {
       for (const c of ['coneAngle', 'burnDuration', 'burnTick', 'burnTickDamage']) if (r[c] === undefined) err('turrets', r, c, 'a cone turret needs a value');
@@ -219,7 +226,8 @@ export function validateTables(t, problems, maps = {}) {
       known('turrets', r, 'region', regions, 'region');
       continue;
     }
-    for (const c of ['attack', 'damage', 'fireInterval', 'range', 'time', 'muzzleHeight']) if (r[c] === undefined) err('turrets', r, c, 'a value is required (only variant rows with a baseType may leave it blank)');
+    // damage, fireInterval and range: a firing turret's (checked above; M6d: a wall turret has none).
+    for (const c of ['attack', 'time', 'muzzleHeight']) if (r[c] === undefined) err('turrets', r, c, 'a value is required (only variant rows with a baseType may leave it blank)');
   }
   for (const r of t.trade) for (const reg of (r.regions ?? '').split(',').map((x) => x.trim()).filter(Boolean)) if (!regions.has(reg)) err('trade', r, 'regions', `unknown region "${reg}"`);
 

@@ -11,9 +11,11 @@ export const DoubleState = Object.freeze({
 
 // job: 'build' (turretType says what) or 'upgrade' (to toLevel). paid: the full cost taken at
 // the start, refunded on cancel.
-export function createDouble(id, { slotIndex, job, turretType, toLevel, duration, paid }) {
+// wall: a Scale Bulwark's wall placement for its build (M6d §2.4), else null.
+export function createDouble(id, { slotIndex, job, turretType, toLevel, duration, paid, wall = null }) {
   return {
     id,
+    wall,
     slotIndex,
     job,
     turretType,

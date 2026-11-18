@@ -43,6 +43,14 @@ export const RESOURCE_ICON_SVG = {
     + '<path d="M3.5 13 L2.5 13.6 M3.6 15.5 L2.4 16 M20.6 12 L21.6 12.4 M20.5 15 L21.5 15.6 M9 20.2 L8.6 21.4 M14 19.6 L13.8 20.8"'
     + ' stroke="#6a4e36" stroke-width="1" stroke-linecap="round"/>'
     + '<path d="M9 9.6 Q11 6.8 14 8.2 Q12.5 8.4 12 10.2 Z" fill="#7fb446"/></svg>',
+  // Lizard Scales (M6d §1): three overlapping green-bronze scales with a faint sheen.
+  scales: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">'
+    + '<path d="M3.5 9 Q3.5 3.5 8.5 3.5 Q13.5 3.5 13.5 9 Q13.5 14 8.5 16.5 Q3.5 14 3.5 9 Z" fill="#5e7a3a" stroke="#33421f" stroke-width="1"/>'
+    + '<path d="M10.5 9 Q10.5 3.5 15.5 3.5 Q20.5 3.5 20.5 9 Q20.5 14 15.5 16.5 Q10.5 14 10.5 9 Z" fill="#7a8a3c" stroke="#3e4520" stroke-width="1"/>'
+    + '<path d="M7 14 Q7 8.5 12 8.5 Q17 8.5 17 14 Q17 19 12 21.5 Q7 19 7 14 Z" fill="#9a8a44" stroke="#4e4422" stroke-width="1"/>'
+    + '<path d="M12 10 L12 20 M8.5 5 L8.5 13.5 M15.5 5 L15.5 13.5" stroke="#3a3a1e" stroke-width="0.8" opacity="0.55"/>'
+    + '<path d="M9.4 11.6 Q10.4 10 12.4 9.9" stroke="#e4e0a8" stroke-width="1.1" stroke-linecap="round" fill="none" opacity="0.75"/>'
+    + '<path d="M12.6 5.6 Q13.6 4.6 15.2 4.6" stroke="#d8e0a0" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.6"/></svg>',
 };
 
 // Canvas images built from the same SVG source, created on first use. An image that has not

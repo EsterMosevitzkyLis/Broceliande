@@ -3,6 +3,8 @@
 //   - Opening a menu never cancels the current action; confirming a new action does.
 //   - Clicking empty ground closes the menu and does not cancel the action.
 //   - Esc / right-click: close menu → exit summon placement / Double targeting → cancel timed action.
+//   - M6d §2.4: choosing the Scale Bulwark opens wall placement mode (view.wallPlacement); a click on
+//     a valid wall position confirms the build there, Esc / right-click leaves it at no cost.
 //     They never cancel a Bough Double's job (only "Cancel job" in the target's menu does, M1i §2.6).
 
 import { GameState, ActionState } from './states.js';
@@ -14,7 +16,8 @@ import {
 } from './systems/actionSystem.js';
 import { isStepMode, canVisit } from './systems/stepSystem.js';
 import { isDoubleTargeting, isDoubleTarget, doubleOnSlot, startDoubleJob, cancelDoubleJob } from './systems/doubleSystem.js';
-import { buildableTypes } from './entities/turret.js';
+import { buildableTypes, isWallType } from './entities/turret.js';
+import { wallPlacementAt } from './systems/wallSystem.js';
 import { startCombat, enterNode } from './game.js';
 import { availableNodeAt } from './run.js';
 import * as C from './config.js';
@@ -27,6 +30,20 @@ export function createInteraction(game, view) {
   function closeMenu() {
     view.menu = null;
   }
+  // M6d §2.4: the wall placement is confirmed: the build (or travel, or the Double's job) starts with it.
+  function confirmWall(world) {
+    const wp = view.wallPlacement;
+    const spot = wallPlacementAt(game, wp.slotIndex, wp.type, world);
+    if (!spot?.valid) {
+      events.emit('wallDenied', {});
+      return;
+    }
+    const wall = { laneId: spot.laneId, s: spot.s, x: spot.x, y: spot.y, tx: spot.tx, ty: spot.ty };
+    const started = wp.via === 'double' ? startDoubleJob(game, wp.slotIndex, wp.type, wall)
+      : isStepMode(game) ? startTravel(game, { kind: 'slot', index: wp.slotIndex }, wp.type, wall)
+        : startBuild(game, wp.slotIndex, wp.type, wall);
+    if (started) view.wallPlacement = null;
+  }
   // M6c §1.3: a turret slot found under ferns opens its build menu (no extra travel).
   events.on('hiddenSlotFound', ({ slotIndex }) => { view.menu = { kind: 'build', index: slotIndex }; });
 
@@ -38,6 +55,10 @@ export function createInteraction(game, view) {
       return;
     }
     if (game.state !== GameState.PREP && game.state !== GameState.COMBAT) return;
+    if (view.wallPlacement) {
+      confirmWall(world);
+      return;
+    }
     const hit = pick(game, world);
     // Bough Double targeting (M1i §2.4 step 3): a turret starts its upgrade job at once; an empty
     // slot opens the turret choice. Anything else closes that menu and keeps targeting.
@@ -100,6 +121,10 @@ export function createInteraction(game, view) {
 
   function onEscape() {
     if (game.state === GameState.ENDING) return; // M1e §1.2: input disabled while the battle ends
+    if (view.wallPlacement) {
+      view.wallPlacement = null; // M6d §2.4: cancelled at no cost (a Double keeps targeting)
+      return;
+    }
     if (view.menu) {
       closeMenu(); // closing the turret choice returns to Double targeting
       return;
@@ -115,13 +140,26 @@ export function createInteraction(game, view) {
     if (menu.kind === 'build') {
       // One card per turret type (M1f §5.2): build it, or in step mode travel there to build it.
       const type = buildableTypes(game.scene.level.region)[option];
+      if (isWallType(type)) { // M6d §2.4: choose where its wall goes first
+        view.wallPlacement = { slotIndex: menu.index, type, via: 'build' };
+        closeMenu();
+        return;
+      }
       const started = isStepMode(game)
         ? startTravel(game, { kind: 'slot', index: menu.index }, type)
         : startBuild(game, menu.index, type);
       if (started) closeMenu();
     }
     // M1i §2.4: the turret choice for a Double's build job.
-    if (menu.kind === 'doubleBuild' && startDoubleJob(game, menu.index, buildableTypes(game.scene.level.region)[option])) closeMenu();
+    if (menu.kind === 'doubleBuild') {
+      const type = buildableTypes(game.scene.level.region)[option];
+      if (isWallType(type)) {
+        view.wallPlacement = { slotIndex: menu.index, type, via: 'double' };
+        closeMenu();
+      } else if (startDoubleJob(game, menu.index, type)) {
+        closeMenu();
+      }
+    }
     // M1i §2.6: the turret menu's first card is "Cancel job" while a Double works there.
     if (menu.kind === 'turret' && option === 0 && cancelDoubleJob(game, menu.index)) closeMenu();
   }

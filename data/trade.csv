@@ -1,7 +1,8 @@
-resource,baseValue,stockMin,stockMax,regions,notes
-pits,1,10,20,,"TUNING - baseValue x GOLD_PER_VALUE is a resource's gold price, stock columns are only a fallback for the default trader (traderStock tab)"
-feathers,1.5,6,12,,TUNING
-shells,2,4,8,,TUNING
-reeds,3,3,6,,TUNING
-boughs,4,1,3,,TUNING
-peat,2,4,8,hags,"TUNING - stocked only in Hag's Causeway, traders anywhere still buy it"
+resource,baseValue,stockMin,stockMax,regions,minRegionOrder,notes
+pits,1,10,20,,,"TUNING - baseValue x GOLD_PER_VALUE is a resource's gold price, stock columns are only a fallback for the default trader (traderStock tab)"
+feathers,1.5,6,12,,,TUNING
+shells,2,4,8,,,TUNING
+reeds,3,3,6,,,TUNING
+boughs,4,1,3,,,TUNING
+peat,2,4,8,hags,,"TUNING - stocked only in Hag's Causeway, traders anywhere still buy it"
+scales,2.5,4,8,,3,"TUNING - stocked only in regions with order 3 or more (minRegionOrder), traders anywhere still buy it"

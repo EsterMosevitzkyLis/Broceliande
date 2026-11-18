@@ -4,7 +4,7 @@
 
 import * as C from '../config.js';
 import { EnemyState, AttackState, enemyType, remainingDistance } from '../entities/enemy.js';
-import { turretType, turretRange, turretDamage, turretFireInterval, turretMuzzle, turretTargets, levelStats } from '../entities/turret.js';
+import { turretType, turretRange, turretDamage, turretFireInterval, turretMuzzle, turretTargets, levelStats, isWallType } from '../entities/turret.js';
 import { createProjectile } from '../entities/projectile.js';
 import { dropLoot } from './dropSystem.js';
 import { createCloud, isInsideCloud } from './cloudSystem.js';
@@ -16,6 +16,7 @@ import { willRise, layBody, burnToAsh } from './riseSystem.js';
 import { sinkAtHalf } from './bogKingSystem.js';
 import { pylonFell, pylonsInRange, targetById } from './oracleSystem.js';
 import { canTarget } from './camouflageSystem.js';
+import { wallById, damageWall } from './wallSystem.js';
 
 const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
 
@@ -51,6 +52,7 @@ function turnToward(turret, target, dt) {
 
 export function updateTurrets(game, dt) {
   for (const turret of game.turrets) {
+    if (isWallType(turret.type)) continue; // M6d §2: a Scale Bulwark raises a wall instead of firing
     turret.cooldown -= dt;
     // No firing while a Bough Double upgrades it (§11.2, M1i §2.5). It stays ready, so a cancel resumes firing immediately.
     if (isBeingUpgraded(game, turret.slotIndex)) {
@@ -301,8 +303,9 @@ function currentAttackTarget(enemy) {
   return null;
 }
 
+// M6d §2.5: or the Scale Bulwark wall holding it up.
 function summonById(game, id) {
-  return game.vultures.find((v) => v.id === id) ?? game.squirrels.find((s) => s.id === id) ?? null;
+  return game.vultures.find((v) => v.id === id) ?? game.squirrels.find((s) => s.id === id) ?? wallById(game, id);
 }
 
 export function updateWindupAttacks(game, dt) {
@@ -347,11 +350,15 @@ function blow(game, enemy, t) {
   } else if (same) {
     const unit = summonById(game, aim.id);
     if (unit && unit.hp > 0) {
-      unit.hp -= t.damage;
-      unit.lastHitTime = game.combatTime;
+      if (unit.isWall) {
+        damageWall(game, unit, t.damage, enemy); // M6d §2.5: a boss's full blow
+      } else {
+        unit.hp -= t.damage;
+        unit.lastHitTime = game.combatTime;
+      }
       at = { x: unit.x, y: unit.y };
       landed = true;
-      events.emit('enemyAttacked', { type: enemy.type, target: 'summon' });
+      events.emit('enemyAttacked', { type: enemy.type, target: unit.isWall ? 'wall' : 'summon' });
     }
   }
   if (!same) events.emit('enemyAttacked', { type: enemy.type, target: 'nothing' });

@@ -10,6 +10,7 @@ import { enemyType } from '../entities/enemy.js';
 import { blockingSquirrels } from './squirrelSystem.js';
 import { canTarget } from './camouflageSystem.js';
 import { events } from '../events.js';
+import { wallAhead, damageWall } from './wallSystem.js';
 
 // Geometric tolerance (px) so a Vulture landing exactly at melee range does not flicker
 // between landed and flying from rounding error (which would reset its attack timer).
@@ -85,6 +86,8 @@ export function updateVultures(game, dt) {
 // attacks it (the nearest one if several). With SQUIRREL_BLOCKS_WOLVES, a waiting Squirrel blocks and
 // is attacked the same way (M1d §2.4). Runs before movement each step; an enemy with no blocker
 // this step simply resumes.
+// M6d §2.5: a ground enemy (bosses too) at a standing Scale Bulwark wall is held there the same way
+// and attacks it (a hunter throws spears at it instead, rangedSystem.js).
 export function updateBlocking(game, dt) {
   const blockers = [
     ...game.vultures.filter((v) => v.state === VultureState.LANDED).map((unit) => ({ unit, radius: C.VULTURE_BLOCK_RADIUS })),
@@ -102,6 +105,7 @@ export function updateBlocking(game, dt) {
         blocker = unit;
       }
     }
+    blocker ??= wallAhead(game, enemy);
     if (!blocker) {
       enemy.blockedBy = null;
       enemy.vultureBiteTimer = 0;
@@ -112,14 +116,19 @@ export function updateBlocking(game, dt) {
     enemy.facing = blocker.x >= enemy.x ? 1 : -1;
     const t = enemyType(enemy); // attacks the blocker with its own type's damage and interval (M1e §3.4)
     if (t.windupTime) continue; // wind-up attackers (the Ogre) strike it in updateWindupAttacks (M2c §2.5)
+    if (blocker.isWall && t.attackRange) continue; // a hunter throws at the wall (rangedSystem.js)
     enemy.vultureBiteTimer += dt;
     if (enemy.vultureBiteTimer >= t.attackInterval) {
       enemy.vultureBiteTimer -= t.attackInterval;
       enemy.lastBiteTime = game.combatTime;
-      blocker.hp -= t.damage;
-      blocker.lastHitTime = game.combatTime;
+      if (blocker.isWall) {
+        damageWall(game, blocker, t.damage, enemy);
+      } else {
+        blocker.hp -= t.damage;
+        blocker.lastHitTime = game.combatTime;
+      }
       lifestealOnBite(game, enemy);
-      events.emit('enemyAttacked', { type: enemy.type, target: 'summon' });
+      events.emit('enemyAttacked', { type: enemy.type, target: blocker.isWall ? 'wall' : 'summon' });
     }
   }
 }

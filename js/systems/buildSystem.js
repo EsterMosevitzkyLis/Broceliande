@@ -3,7 +3,8 @@
 // Double jobs in Combat pay up front (M1i §2.6) and then only place or raise the turret.
 
 import { canAfford, deduct } from '../resources.js';
-import { createTurret, buildCost, nextLevelStats, turretMaxHp } from '../entities/turret.js';
+import { createTurret, buildCost, nextLevelStats, turretMaxHp, isWallType } from '../entities/turret.js';
+import { createWall, wallFalls, raiseWallLevel, wallMaxHp } from './wallSystem.js';
 import { events } from '../events.js';
 
 export function turretOnSlot(game, slotIndex) {
@@ -11,8 +12,8 @@ export function turretOnSlot(game, slotIndex) {
 }
 
 // Prep build completion: deduct and place a turret of that type. If resources are somehow
-// short now, the build fails with no effect (§7.5).
-export function completeBuild(game, slotIndex, type) {
+// short now, the build fails with no effect (§7.5). wall: a Scale Bulwark's wall placement (M6d §2.4).
+export function completeBuild(game, slotIndex, type, wall = null) {
   if (turretOnSlot(game, slotIndex)) return;
   const cost = buildCost(type);
   if (!canAfford(game.resources, cost)) {
@@ -20,14 +21,17 @@ export function completeBuild(game, slotIndex, type) {
     return;
   }
   deduct(game.resources, cost);
-  placeTurret(game, slotIndex, type);
+  placeTurret(game, slotIndex, type, wall);
 }
 
 // A turret of that type appears on the slot (already paid for). Building on a wreck clears it (M6b §2.2).
-export function placeTurret(game, slotIndex, type) {
+// M6d §2.4: a Scale Bulwark raises its wall at the placement chosen for it.
+export function placeTurret(game, slotIndex, type, wall = null) {
   if (turretOnSlot(game, slotIndex)) return false;
   game.wrecks = game.wrecks.filter((w) => w.slotIndex !== slotIndex);
-  game.turrets.push(createTurret(game.nextEntityId++, slotIndex, game.slots[slotIndex], type));
+  const turret = createTurret(game.nextEntityId++, slotIndex, game.slots[slotIndex], type);
+  if (isWallType(type) && wall) turret.wall = createWall(game, turret, wall);
+  game.turrets.push(turret);
   events.emit('turretBuilt', { slotIndex, type });
   return true;
 }
@@ -38,8 +42,10 @@ export function raiseTurretLevel(game, slotIndex) {
   const turret = turretOnSlot(game, slotIndex);
   if (!turret || !nextLevelStats(turret)) return false;
   const before = turretMaxHp(turret);
+  const wallBefore = turret.wall ? wallMaxHp(turret) : 0;
   turret.level++;
   turret.hp += turretMaxHp(turret) - before;
+  raiseWallLevel(turret, wallBefore); // M6d §2.6: a standing wall gains the difference too
   events.emit('upgradeCompleted', { slotIndex, level: turret.level });
   return true;
 }
@@ -54,6 +60,7 @@ export function damageTurret(game, turret, damage) {
   events.emit('turretHit', { x: turret.x, y: turret.y });
   if (turret.hp > 0) return;
   game.turrets = game.turrets.filter((t) => t !== turret);
+  wallFalls(game, turret); // M6d §2.5: its wall falls and doesn't regrow
   game.wrecks.push({ slotIndex: turret.slotIndex, x: turret.x, y: turret.y, type: turret.type, seed: turret.id });
   game.debris.push({ x: turret.x, y: turret.y, seed: turret.id, age: 0 });
   game.turretsWrecked++;

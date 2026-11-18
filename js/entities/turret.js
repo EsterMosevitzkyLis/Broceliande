@@ -7,9 +7,11 @@ export const TURRET_TYPE_KEYS = Object.keys(C.TURRET_TYPES);
 
 // M3c §4.1: the types the build menus offer in a region: a region's variant instead of its base
 // type (the Peatjaw instead of the Cinderjaw in Hag's Causeway), and no other region's variants.
+// M6d §2.2: a type with a minRegionOrder only from that region order on (the Scale Bulwark from 3).
 export function buildableTypes(regionId) {
   return TURRET_TYPE_KEYS.filter((id) => {
     const t = C.TURRET_TYPES[id];
+    if (t.minRegionOrder !== null && (C.REGIONS[regionId]?.order ?? 0) < t.minRegionOrder) return false;
     if (t.baseType !== id) return t.region === regionId;
     return !TURRET_TYPE_KEYS.some((v) => C.TURRET_TYPES[v].baseType === id && v !== id && C.TURRET_TYPES[v].region === regionId);
   });
@@ -56,6 +58,20 @@ export function turretMaxHp(turret) {
 
 export function isDamaged(turret) {
   return turret.hp < turretMaxHp(turret);
+}
+
+// M6d §2: a wall turret (the Scale Bulwark) raises a wall instead of firing.
+export function isWallType(type) {
+  return C.TURRET_TYPES[type].attack === 'wall';
+}
+
+// Its wall's stats at a level: { hp, regrow, thornsRatio }, and the reach of its placement.
+export function wallStats(type, level) {
+  return levelStats(type, level).wall;
+}
+
+export function wallReach(type, level = 1) {
+  return levelStats(type, level).reach;
 }
 
 // Stats of a level (1-based) of a type.

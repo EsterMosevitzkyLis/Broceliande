@@ -52,6 +52,14 @@ function weighted(rng, rows) {
   return rows[rows.length - 1].value;
 }
 
+// Whether traders in a region stock a resource: the trade tab's regions (M3c §1, Peat) and its
+// minRegionOrder (M6d §1.1, Scales from region 3 on). Traders anywhere still buy it.
+function stockedIn(k, regionId) {
+  const t = C.TRADE[k];
+  if (t.regions && !t.regions.includes(regionId)) return false;
+  return t.minRegionOrder === null || (C.REGIONS[regionId]?.order ?? 0) >= t.minRegionOrder;
+}
+
 // Rolls a visit to a trader of `profileId` (§3.2, §3.3), from a seeded rng. regionId: where it
 // stands (Peat is stocked only where the trade tab allows); ownedItems: the run's items (never sold).
 export function rollTrader(rng, { profileId, regionId, ownedItems = [] }) {
@@ -63,7 +71,7 @@ export function rollTrader(rng, { profileId, regionId, ownedItems = [] }) {
     const line = stockLine(profileId, k);
     mult[k] = rng.range(line.priceMin, line.priceMax);
     stock[k] = rng.int(line.stockMin, line.stockMax);
-    if (C.TRADE[k].regions && !C.TRADE[k].regions.includes(regionId)) stock[k] = 0;
+    if (!stockedIn(k, regionId)) stock[k] = 0;
     else offers.push(k);
   }
   const rolls = {};

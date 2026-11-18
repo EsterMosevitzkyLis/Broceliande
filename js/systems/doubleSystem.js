@@ -84,7 +84,8 @@ export function doubleAvailability(game) {
 
 // Confirm (§2.4 step 3): pay the full cost now, send the wisp, Druid back to IDLE (his melee
 // timer restarts, as after any summon). turretType: for an empty slot, the type chosen.
-export function startDoubleJob(game, slotIndex, turretType = null) {
+// wall: a Scale Bulwark's wall placement (M6d §2.4), chosen before the job is confirmed.
+export function startDoubleJob(game, slotIndex, turretType = null, wall = null) {
   if (game.state !== GameState.COMBAT || !isDoubleTargeting(game)) return false;
   if (!isDoubleTarget(game, slotIndex) || game.doubles.length >= game.stats['double.max']) return false;
   const job = doubleJob(game, slotIndex, turretType);
@@ -92,7 +93,7 @@ export function startDoubleJob(game, slotIndex, turretType = null) {
   deduct(game.resources, job.cost);
   game.doubleStats.boughsSpent += job.cost.boughs;
   game.doubles.push(createDouble(game.nextEntityId++, {
-    slotIndex, job: job.job, turretType: job.turretType, toLevel: job.toLevel, duration: job.time, paid: job.cost,
+    slotIndex, job: job.job, turretType: job.turretType, toLevel: job.toLevel, duration: job.time, paid: job.cost, wall: job.job === 'build' ? wall : null,
   }));
   game.action = { state: ActionState.IDLE, target: null, elapsed: 0, duration: 0 };
   return true;
@@ -158,7 +159,7 @@ export function updateDoubles(game, dt) {
       craftHit(game, d);
     }
     if (d.elapsed < d.duration - TIMER_EPSILON) continue;
-    if (d.job === 'build') placeTurret(game, d.slotIndex, d.turretType);
+    if (d.job === 'build') placeTurret(game, d.slotIndex, d.turretType, d.wall);
     else if (d.job === 'repair') repairTurret(game, d.slotIndex);
     else raiseTurretLevel(game, d.slotIndex);
     game.doubleStats.completed++;

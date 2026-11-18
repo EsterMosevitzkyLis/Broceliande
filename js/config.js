@@ -114,6 +114,16 @@ export const CAMO_WOBBLE = 1.6;                // px, the shimmer's slight wobbl
 export const CAMO_FADE_TIME = 0.35;            // s from shimmer to the full hunter and back
 export const CAMO_SHIVER_TIME = 0.4;           // s of the soft "shiver" as it resolves
 export const THROW_FLASH_TIME = 0.25;          // s of the shimmer-flash as a camouflaged hunter throws
+// M6d §2: the Scale Bulwark's wall (drawing, and how far it reaches along its lane).
+export const WALL_THICKNESS = 18;              // px, the wall's depth along its lane (enemies stop at its face)
+export const WALL_RISE_TIME = 0.5;             // s a wall takes to rise from the ground (and push enemies inside it back)
+export const WALL_CRUMBLE_TIME = 0.8;          // s the scale pieces of a broken wall fly and fade
+export const WALL_HIT_FLASH_TIME = 0.12;       // s a wall flashes when hit
+export const WALL_HP_BAR = { width: 44, above: 26 }; // px: a damaged wall's bar, its bottom this far above the wall's centre
+export const WALL_GHOST_VALID = 'rgba(150, 220, 140, 0.55)';
+export const WALL_GHOST_INVALID = 'rgba(230, 90, 70, 0.55)';
+export const WALL_REACH_COLOR = 'rgba(190, 220, 150, 0.5)';
+export const WALL_LIT_LANE_COLOR = 'rgba(200, 240, 150, 0.55)';
 export const HEAL_SPARKLE_TIME = 0.4;       // s the red sparkle shows on a biter that healed
 export const DOGGED_SPIRAL_SPEED = 3;       // × the slow spiral's turn rate on a slow-resistant enemy
 export const DOGGED_SPIRAL_ALPHA = 0.5;     // its opacity
@@ -311,7 +321,7 @@ export const DROP_SETTLE_TIME = 0.08;     // s of squash-and-settle on landing (
 // ---------------------------------------------------------------------------
 // Sound (M1g §3) — synthesised in js/audio.js, triggered by gameplay events. Never affects the simulation.
 // ---------------------------------------------------------------------------
-export const SOUND_RESOURCE_FREQ = { pits: 440, reeds: 660, feathers: 990, boughs: 300, shells: 520, peat: 180 }; // TUNING — Hz, chime pitch per resource (Boughs lowest and woody, M1i §1.3; Shells soft and hollow, M2k §2.1)
+export const SOUND_RESOURCE_FREQ = { pits: 440, reeds: 660, feathers: 990, boughs: 300, shells: 520, peat: 180, scales: 1250 }; // TUNING — Hz, chime pitch per resource (Boughs lowest and woody, M1i §1.3; Shells soft and hollow, M2k §2.1)
 export const SOUND_CHIME_STAGGER = 0.07;  // s between chimes when one search finds several resources
 export const SOUND_SUMMON_FREQ = { vulture: 330, squirrel: 880 }; // TUNING — Hz, shimmer base pitch per summon
 export const SOUND_STATS_WINDOW = 5;      // s, debug panel: sounds played / skipped over this much real time (M1g §5)
@@ -581,9 +591,10 @@ export const EQUIP_CLEARING_RAGGED = 0.2;
 // ===========================================================================
 
 // Code-side lists the data must match: the resources the game draws (icons, HUD) and its summons.
-export const RESOURCE_IDS = ['gold', 'pits', 'reeds', 'feathers', 'boughs', 'shells', 'peat'];
+export const RESOURCE_IDS = ['gold', 'pits', 'reeds', 'feathers', 'boughs', 'shells', 'peat', 'scales'];
 // M3c §1: a regional resource's HUD counter shows only from its region on (or while any is held).
-export const REGIONAL_RESOURCES = { peat: 'hags' };
+// M6d §1: Lizard Scales from the Lost Vale (region 3) on.
+export const REGIONAL_RESOURCES = { peat: 'hags', scales: 'vale' };
 export const SUMMON_KINDS = ['vulture', 'squirrel', 'double', 'slowWisp'];
 // Palettes of non-combat places (M2n §1): rows of the palettes tab that aren't levels.
 // M3a §5: a region's own version of a place (trader + 'Hags' = 'traderHags') is used there if it
@@ -622,6 +633,7 @@ export let REPAIR_COST, REPAIR_TIME; // M6b §2.3: REPAIR_COST as a cost ({ pits
 export let BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_EGG_INTERVAL, GRIM_BROOD_HATCH_COUNT, BROOD_EGG_MIN_DIST, BROOD_EGG_SPACING; // M6b §5.1–§5.2
 export let ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR; // M6b §6
 export let REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL; // M6c
+export let WALL_MIN_GAP, WALL_DRUID_CLEARANCE; // M6d §2.4
 export let HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED; // M6b §5.3
 export let SHAMAN_SHIELD_INTERVAL, SHAMAN_SHIELD_TARGETS, SHAMAN_SHIELD_RANGE, SHAMAN_SHIELD_AMOUNT, SHAMAN_SHIELD_DURATION,
   GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT; // M6b §4.3
@@ -673,7 +685,7 @@ export let VILLAGES;
 export let LEVELS;
 // sounds: id → { volume, pitch, minGap, maxVoices, enabled }
 export let SOUNDS;
-// trade (M2n §3.1, M3e §4): resource → { baseValue, stockMin, stockMax (default's fallback), regions }
+// trade (M2n §3.1, M3e §4): resource → { baseValue, stockMin, stockMax (default's fallback), regions, minRegionOrder (M6d) }
 export let TRADE;
 // traders (M2n §4.5, M3e §7): kind → [{ trader (a profile id, or null: any trader), text }] (TRADER_LINE_KINDS)
 export let TRADER_TEXT;
@@ -722,7 +734,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_EGG_INTERVAL, GRIM_BROOD_HATCH_COUNT, BROOD_EGG_MIN_DIST, BROOD_EGG_SPACING,
     HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED,
     ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR,
-    REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL,
+    REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL, WALL_MIN_GAP, WALL_DRUID_CLEARANCE,
   } = keyed(t.globals));
   REPAIR_COST = { pits: REPAIR_COST };
   ITEM_PRICE = [ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3];
@@ -774,8 +786,10 @@ export function applyData(t, maps = {}, backgrounds = {}) {
   const turretRow = (id, level) => t.turrets.find((x) => x.turret === id && x.level === level);
   for (const row of t.turrets) {
     const r = row.baseType ? { ...turretRow(row.baseType, row.level), ...row } : row;
-    const type = (TURRET_TYPES[r.turret] ??= { name: r.name, attack: r.attack, range: r.range, projectileSpeed: r.projectileSpeed, muzzleHeight: r.muzzleHeight, baseType: row.baseType ?? r.turret, region: row.region ?? null, levels: [] });
+    const type = (TURRET_TYPES[r.turret] ??= { name: r.name, attack: r.attack, range: r.range, projectileSpeed: r.projectileSpeed, muzzleHeight: r.muzzleHeight, baseType: row.baseType ?? r.turret, region: row.region ?? null, minRegionOrder: r.minRegionOrder ?? null, levels: [] });
     const level = { damage: r.damage, fireInterval: r.fireInterval, range: r.range, cost: cost(r), time: r.time, name: r.levelName ?? null, targets: r.targets ?? 1, hp: r.hp };
+    // M6d §2.6: the Scale Bulwark's wall: its HP, regrow delay and thorns, and the reach of its placement.
+    if (r.attack === 'wall') { level.wall = { hp: r.wallHp, regrow: r.wallRegrow, thornsRatio: r.thornsRatio ?? 0 }; level.reach = r.reach; }
     if (r.attack === 'cloud') level.cloud = { radius: r.cloudRadius, duration: r.cloudDuration, tickInterval: r.cloudTick, tickDamage: r.cloudTickDamage };
     if (r.corrodeMult !== undefined) level.cloud.corrode = { mult: r.corrodeMult, linger: r.corrodeLinger }; // M2m §2.4: Corrosion
     // M2o §3.1: the Cinderjaw's cone (total angle, degrees) and the burn it sets; spreadRadius: Wildfire.
@@ -847,8 +861,9 @@ export function applyData(t, maps = {}, backgrounds = {}) {
 
   SOUNDS = byId(t.sounds, (r) => ({ volume: r.volume, pitch: r.pitch, minGap: r.minGap, maxVoices: r.maxVoices, enabled: r.enabled }));
 
-  // regions (M3c §1): where traders stock it; null = everywhere.
-  TRADE = byId(t.trade, (r) => ({ baseValue: r.baseValue, stockMin: r.stockMin, stockMax: r.stockMax, regions: r.regions ? r.regions.split(',').map((x) => x.trim()) : null }), 'resource');
+  // regions (M3c §1): where traders stock it; null = everywhere. minRegionOrder (M6d §1.1): stocked only
+  // in regions of that order or later; null = any.
+  TRADE = byId(t.trade, (r) => ({ baseValue: r.baseValue, stockMin: r.stockMin, stockMax: r.stockMax, regions: r.regions ? r.regions.split(',').map((x) => x.trim()) : null, minRegionOrder: r.minRegionOrder ?? null }), 'resource');
   TRADER_TEXT = Object.fromEntries(TRADER_LINE_KINDS.map((kind) => [kind, t.traders.filter((r) => r.kind === kind).map((r) => ({ trader: r.trader ?? null, text: r.text }))]));
   TRADER_PROFILES = byId(t.traderProfiles, (r) => {
     const tables = {};

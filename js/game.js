@@ -6,6 +6,7 @@ import { updateValeBosses } from './systems/valeBossSystem.js';
 import { updateOracle, createPylons } from './systems/oracleSystem.js';
 import { createHiddenSpots, revealNear, clearFerns } from './systems/hiddenSpotSystem.js';
 import { updateCamouflage } from './systems/camouflageSystem.js';
+import { updateWalls } from './systems/wallSystem.js';
 import * as C from './config.js';
 import { createRng, makeRandomSeed } from './rng.js';
 import { buildWavePlans, updateSpawning, queueDebugEnemy } from './systems/spawnSystem.js';
@@ -252,6 +253,8 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.ironCalls = [];      // M6b §6: { x, y, age } an Iron Call's cold ring (visual only)
   game.pylonBreaks = [];    // M6b §6: { x, y, size, seed, age } a pylon's crack of light (visual only)
   game.linkSnaps = [];      // M6b §6: { x1, y1, x2, y2, age } a snapped link (visual only)
+  game.wallCrumbles = [];   // M6d §2.5: { x, y, tx, ty, half, seed, age } a broken wall's scale pieces (visual only)
+  game.thornPricks = [];    // M6d §2.6: { x, y, age } thorns pricking a wall's attacker (visual only)
   game.meleeSlots = createMeleeSlots(level.druidPos);
   game.wavePlans = buildWavePlans(level, game.lanes, game.rng);
   game.spawnQueues = [];
@@ -643,6 +646,7 @@ export function updateGame(game, dt) {
       // Step mode has no countdown: Prep ends only via Start Battle (M1b §5.6).
       if (!isStepMode(game)) game.prepRemaining -= dt;
       updateAction(game, dt);
+      updateWalls(game, dt); // M6d §2.5: a wall built in Prep rises
       updateEffects(game, dt);
       if (!isStepMode(game) && game.prepRemaining <= 0) startCombat(game);
       break;
@@ -651,6 +655,7 @@ export function updateGame(game, dt) {
       updateWaveClock(game, dt);    // M2i §3: countdown, gap, the wave's own clock
       updateSpawning(game);
       updateTolls(game);             // M2f §4.10: a bell toll just before each surge (sound only)
+      updateWalls(game, dt);         // M6d §2.5: Scale Bulwark walls regrow and push back what is inside them
       updateBlocking(game, dt);      // wolves held by landed Vultures (and, if enabled, waiting Squirrels) stop and bite them
       updateSquirrelStrikes(game, dt); // M1h §3: a Squirrel being attacked strikes back
       updateRanged(game, dt);        // M6b §4.2: hunters stop and throw spears at what is in range

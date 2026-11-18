@@ -6,6 +6,7 @@
 import * as C from '../config.js';
 import { drawVulture, drawSquirrel, drawTurretSlot, drawTurret, drawToader, drawDruid, DRUID_REST_POSE } from './entities.js';
 import { drawCinderjaw } from './cinderjaw.js';
+import { drawBulwark } from './bulwark.js';
 import { drawEnemyLook } from './enemyLook.js';
 import { drawWisp } from './wisp.js';
 
@@ -53,6 +54,10 @@ const PORTRAIT_DRAW = {
   peatjaw: designSize((ctx, x, y) => { // M3c §4.2: the Cinderjaw in peat colours
     drawTurretSlot(ctx, { x, y }, false, false);
     drawCinderjaw(ctx, { x, y, level: 1, angle: -0.3, lastFireTime: -Infinity, type: 'peatjaw' }, false, 1);
+  }),
+  bulwark: designSize((ctx, x, y) => { // M6d §2.7: the Scale Bulwark's emitter
+    drawTurretSlot(ctx, { x, y }, false, false);
+    drawBulwark(ctx, { x, y, level: 1 }, false, 0.6);
   }),
 };
 

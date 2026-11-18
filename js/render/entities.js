@@ -116,7 +116,7 @@ const COLORS = {
 // (LOCATION_RADIUS around the location centre). Upright sprites therefore stand on a base
 // point below the centre; these offsets centre each sprite's drawn extent on the location.
 // Visual only: gameplay (range, travel cost, targeting) uses the location centre.
-const FEATURE_BASE_OFFSET = { tree: 36, reedPatch: 15, shrub: 20, ruins: 22, pond: 0, peatBog: 4 };
+const FEATURE_BASE_OFFSET = { tree: 36, reedPatch: 15, shrub: 20, ruins: 22, pond: 0, peatBog: 4, saurianDen: 6 };
 
 // Wolf drop idle effect (M1d §1.3), visual only: a slow bob and a soft pulsing glow.
 const DROP_BOB_PX = 1.5;
@@ -1189,9 +1189,64 @@ function drawFeatureArt(ctx, feature, hovered) {
     case 'ruins': drawRuins(ctx, x, y, R); break;
     case 'pond': drawPond(ctx, x, y, R); break;
     case 'peatBog': drawPeatBog(ctx, x, y, R); break; // M3c §2
+    case 'saurianDen': drawSaurianDen(ctx, x, y, R); break; // M6d §1.1
     default: break;
   }
   ctx.restore();
+}
+
+// M6d §1.1: a Saurian Den: a low burrow under roots, lined with shed skins and scraps of woven grass.
+function drawSaurianDen(ctx, x, y, R) {
+  const s = R / 30;
+  ctx.fillStyle = '#4a3b26'; // the heaped earth round the burrow
+  ctx.beginPath();
+  ctx.ellipse(x, y - 4 * s, 29 * s, 17 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#5e4b30';
+  ctx.beginPath();
+  ctx.ellipse(x - 3 * s, y - 9 * s, 24 * s, 12 * s, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.fillStyle = '#16110a'; // the burrow mouth
+  ctx.beginPath();
+  ctx.ellipse(x, y - 3 * s, 13 * s, 8 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#6e5232'; // roots arching over it
+  ctx.lineCap = 'round';
+  for (const [ax, w] of [[-12, 3.2], [8, 2.6], [-2, 2]]) {
+    ctx.lineWidth = w * s;
+    ctx.beginPath();
+    ctx.moveTo(x + (ax - 10) * s, y + 2 * s);
+    ctx.quadraticCurveTo(x + ax * s, y - 24 * s, x + (ax + 14) * s, y - 2 * s);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#b8b088'; // shed skins at the mouth, pale and papery
+  for (const [sx, sy, r] of [[-16, 4, 0.4], [14, 5, -0.3], [4, 7, 0.1]]) {
+    ctx.beginPath();
+    ctx.ellipse(x + sx * s, y + sy * s, 6 * s, 2.4 * s, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#8a8a60';
+  ctx.lineWidth = 0.8 * s;
+  for (const [sx, sy] of [[-16, 4], [14, 5], [4, 7]]) {
+    ctx.beginPath();
+    ctx.moveTo(x + (sx - 4) * s, y + sy * s);
+    ctx.lineTo(x + (sx + 4) * s, y + sy * s);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#a8a04a'; // a scrap of woven grass
+  ctx.lineWidth = 1.4 * s;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + 18 * s, y + (-6 + i * 3) * s);
+    ctx.lineTo(x + 27 * s, y + (-8 + i * 3) * s);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#6f8a3c'; // a few green-bronze scales in the earth
+  for (const [sx, sy] of [[-24, -6], [-8, -16], [20, -12]]) {
+    ctx.beginPath();
+    ctx.ellipse(x + sx * s, y + sy * s, 2.4 * s, 1.8 * s, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // M3c §2: a Peat Bog: a dark, wet patch of cut peat, a few stacked blocks, a cutting spade stuck in
