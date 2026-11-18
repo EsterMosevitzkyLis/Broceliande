@@ -4,8 +4,10 @@
 //     lays an egg sac on her lane just behind her: an enemy of its own (BROOD_EGG_TYPE, role 'egg',
 //     stationary), so turrets, summons and the HUD treat it like any other, but it never moves,
 //     blocks or attacks. BROOD_HATCH_TIME s after it is laid it hatches into BROOD_HATCH_COUNT (a
-//     Grim's GRIM_BROOD_HATCH_COUNT) spiders, unless destroyed first. Any egg sac hatches, however
-//     it came (the debug Spawn enemy too).
+//     Grim's GRIM_BROOD_HATCH_COUNT) spiders, unless destroyed first. She lays none until she is
+//     BROOD_EGG_MIN_DIST px into her lane, nor within BROOD_EGG_SPACING px of another sac: when due
+//     but held back she waits and lays as soon as she can. Any egg sac hatches, however it came
+//     (the debug Spawn enemy too).
 //   The High-Shaman (§5.3): every HIGH_SHAMAN_PULSE_INTERVAL s a relic pulse shields every lizardfolk
 //     within HIGH_SHAMAN_RANGE (and himself, more strongly); lizardfolk within that range (not he)
 //     move HIGH_SHAMAN_AURA_SPEED × faster (enemy.auraMult, read by moveMult in enemy.js).
@@ -26,10 +28,8 @@ export function updateValeBosses(game, dt) {
   for (const mother of game.enemies.filter(isBroodmother)) {
     const grim = enemyType(mother).variant === 'grim';
     mother.layTimer = (mother.layTimer ?? 0) + dt;
-    if (mother.layTimer >= (grim ? C.GRIM_BROOD_EGG_INTERVAL : C.BROOD_EGG_INTERVAL) - TIMER_EPSILON) {
-      mother.layTimer = 0;
-      layEgg(game, mother);
-    }
+    if (mother.layTimer >= (grim ? C.GRIM_BROOD_EGG_INTERVAL : C.BROOD_EGG_INTERVAL) - TIMER_EPSILON
+      && layEgg(game, mother)) mother.layTimer = 0;
   }
   for (const egg of game.enemies.filter(isEgg)) {
     egg.eggAge = (egg.eggAge ?? 0) + dt;
@@ -51,15 +51,19 @@ export function updateValeBosses(game, dt) {
 }
 
 // An egg sac on her lane just behind her (never before the lane's start), on her side of it.
+// Returns false (no sac) while she is too near the lane's start or the spot is too near another sac.
 function layEgg(game, mother) {
+  if (mother.s < C.BROOD_EGG_MIN_DIST) return false;
   const type = C.BROOD_EGG_TYPE[mother.type] ?? 'broodEgg';
   const lane = mother.lane;
   const s = Math.max(0, mother.s - mother.collisionRadius - C.EGG_LAY_GAP);
   const max = maxOffset(type, lane);
   const offset = Math.max(-max, Math.min(max, mother.offset));
+  const pos = laneWorldPos(lane, s, offset);
+  if (game.enemies.some((e) => isEgg(e) && Math.hypot(e.x - pos.x, e.y - pos.y) < C.BROOD_EGG_SPACING)) return false;
   const egg = createEnemy(game.nextEntityId++, type, lane, offset, game.rng, game.stats['enemy.hpMult']);
   egg.s = s;
-  Object.assign(egg, laneWorldPos(lane, s, offset));
+  Object.assign(egg, pos);
   egg.eggAge = 0;
   egg.laidBy = mother.id;
   game.enemies.push(egg);
@@ -67,6 +71,7 @@ function layEgg(game, mother) {
   game.enemyCounts[type].alive++;
   mother.layAt = game.combatTime; // her abdomen dips (drawing)
   events.emit('eggLaid', { x: egg.x, y: egg.y });
+  return true;
 }
 
 // The sac splits and its spiders spread out round it, on its lane, walking on from there.

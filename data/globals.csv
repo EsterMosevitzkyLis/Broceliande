@@ -119,6 +119,8 @@ BROOD_HATCH_TIME,5,TUNING - s an egg sac takes to hatch unless destroyed first
 BROOD_HATCH_COUNT,4,TUNING - spiders from one egg sac
 GRIM_BROOD_EGG_INTERVAL,5,"TUNING - the Grim Broodmother egg interval (s), her sacs are grimBroodEgg (M6b sec. 5.2)"
 GRIM_BROOD_HATCH_COUNT,5,TUNING - spiders from one of her egg sacs
+BROOD_EGG_MIN_DIST,120,TUNING - px a Broodmother (or Grim) must be into her lane before she lays egg sacs
+BROOD_EGG_SPACING,30,TUNING - px a new egg sac must be from every other egg sac, or she waits
 HIGH_SHAMAN_PULSE_INTERVAL,8,TUNING - s between the High-Shaman relic pulses (M6b sec. 5.3)
 HIGH_SHAMAN_RANGE,260,TUNING - px reach of his pulse and of his speed aura
 HIGH_SHAMAN_PULSE_SHIELD,20,TUNING - shield on every lizardfolk in range (x the level enemyHpMult)
