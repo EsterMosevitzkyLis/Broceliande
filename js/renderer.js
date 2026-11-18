@@ -32,6 +32,8 @@ import { drawEggHatch, drawRelicPulse, drawOracleWard, drawPylonLinks, drawLinkS
 import { pylonCore, oracleChest, standingPylons } from './systems/oracleSystem.js'; // an enemy's look, Grims included (M2l §2.1)
 import { drawBody, drawAsh, drawBossEntrance, drawSunkRing } from './render/undead.js'; // M3b §3.3, §5.3: the rising dead, the Bog King
 import { drawShowcase } from './debug/showcase.js';
+import { drawFernClump, drawCamouflaged } from './render/valeTwists.js'; // M6c
+import { isUnderFerns, fernClumps } from './systems/hiddenSpotSystem.js';
 
 const HIT_FLASH_TIME = 0.15; // s of hit flash on the Druid (bite) or an enemy (pebble); visual only
 const PROGRESS_GAP = 12;     // px between the top of a location's footprint and its progress bar
@@ -114,6 +116,7 @@ export function createRenderer(canvas) {
     // A mini-boss's lane entrance pulsing red as it arrives (M2c §2.6).
     for (const p of game.lanePulses) drawLanePulse(ctx, laneEntrance(game.lanes.find((l) => l.id === p.laneId)), p.age / C.BOSS_LANE_PULSE_TIME);
     game.slots.forEach((slot, i) => {
+      if (isUnderFerns(game, 'slot', i)) return; // M6c §1.2: not shown until found
       drawTurretSlot(ctx, slot, !isPrep, isPrep && hover?.kind === 'slot' && hover.index === i);
     });
     for (const w of game.wrecks) drawWreck(ctx, w); // M6b §2.2: collapsed turrets, on their slots
@@ -145,24 +148,31 @@ export function createRenderer(canvas) {
     const hurt = recent(game.druidLastHitTime);
     // An enemy, with a pale silver-blue tint while slowed (M2k §3.5), a faint yellow-green one while
     // Corroded (M2m §2.5), a teal mix of the two while both.
+    // M6c §2: a camouflaged hunter as its shimmer (camoShow set by camouflageSystem.js).
     const drawEnemy = (e) => {
-      const filter = enemyTintFilter(e);
-      if (filter) {
-        ctx.save();
-        ctx.filter = filter;
-      }
-      drawEnemyLook(ctx, knockedBack(e, anim), strikeFlash(e, anim) ? 'strike' : recent(e.lastHitTime), recent(e.lastBiteTime), anim);
-      if (filter) ctx.restore();
+      const look = (c) => {
+        const filter = enemyTintFilter(e);
+        if (filter) {
+          c.save();
+          c.filter = filter;
+        }
+        drawEnemyLook(c, knockedBack(e, anim), strikeFlash(e, anim) ? 'strike' : recent(e.lastHitTime), recent(e.lastBiteTime), anim);
+        if (filter) c.restore();
+      };
+      if (e.camoShow === undefined) look(ctx);
+      else drawCamouflaged(ctx, e, anim, look);
     };
     // Slow Wisps' target points while they travel (M2k §3.3): on the ground, under everything upright.
     for (const w of game.wisps) drawWispTarget(ctx, w);
     const drawables = [
       ...decorOf(scene),
       ...(game.pylons ?? []).map((p) => ({ y: p.y, draw: () => drawRelicPylon(ctx, p, scene.level.palette, { anim, hit: recent(p.lastHitTime), broken: p.broken }) })), // M6b §6
-      ...game.features.map((f) => ({
+      ...game.features.filter((f) => !isUnderFerns(game, 'feature', f.index)).map((f) => ({
         y: featureBase(f).y,
         draw: () => drawFeature(ctx, f, isPrep && hover?.kind === 'feature' && hover.index === f.index),
       })),
+      // M6c §1.2: fern clumps over hidden spots, parting or clearing once revealed.
+      ...fernClumps(game).map(({ spot, progress }) => ({ y: spot.y + C.LOCATION_RADIUS * 0.45, draw: () => drawFernClump(ctx, spot.x, spot.y, now, progress, spot.cleared, isPrep && hover?.kind === 'hidden' && hover.index === spot.index) })),
       ...game.turrets.map((t) => ({ y: slotBase(t).y, draw: () => drawTurretHit(ctx, recent(t.lastHitTime), () => drawTurretOfType(ctx, t, isBeingUpgraded(game, t.slotIndex), anim)) })),
       ...doubleDrawables(ctx, game, anim),
       { y: druidPos.y + C.DRUID_RADIUS * 0.6, draw: () => drawDruid(ctx, druidPos.x, druidPos.y, hurt, defeatProgress(game), druidPose(game)) },
@@ -193,7 +203,7 @@ export function createRenderer(canvas) {
     }
     for (const p of game.pylons ?? []) drawPylonHpBar(ctx, p);
     // M6b §3–§4.3: shield bubbles, a casting shaman's threads (the debug overlay: every shield link).
-    for (const e of game.enemies) if (e.statuses.shielded) drawShieldBubble(ctx, e, e.statuses.shielded, anim, enemyBarY(e));
+    for (const e of game.enemies) if (e.statuses.shielded && !e.camouflaged) drawShieldBubble(ctx, e, e.statuses.shielded, anim, enemyBarY(e));
     for (const e of game.enemies) {
       if (!e.castTargets) continue;
       const targets = e.castTargets.map((id) => game.enemies.find((x) => x.id === id)).filter((x) => x && (!view.debug || x.statuses.shielded));
@@ -245,11 +255,11 @@ export function createRenderer(canvas) {
     if (isDoubleTargeting(game)) drawTargeting(ctx, game, view);
 
     // Bars and text on top of everything so they stay readable.
-    for (const e of game.enemies) drawEnemyHpBar(ctx, e);
+    for (const e of game.enemies) if (!e.camouflaged) drawEnemyHpBar(ctx, e); // M6c §2.1: none while camouflaged
     for (const t of game.turrets) drawTurretHpBar(ctx, t, t.hp, turretMaxHp(t)); // M6b §2.1: damaged turrets only
     // Slowed (M2k §3.5): a small turning spiral above the head, clear of the HP bar.
     // Dogged (M2l §2.2): on a slow-resistant enemy it spins faster and fainter (only partly slowed).
-    for (const e of game.enemies) if (isSlowed(e)) drawSlowSpiral(ctx, e.x, enemyBarY(e) - C.SLOW_SPIRAL_SIZE - 6, anim, !!C.ENEMY_TYPES[e.type].slowResist);
+    for (const e of game.enemies) if (isSlowed(e) && !e.camouflaged) drawSlowSpiral(ctx, e.x, enemyBarY(e) - C.SLOW_SPIRAL_SIZE - 6, anim, !!C.ENEMY_TYPES[e.type].slowResist);
     if (view.showcase) drawShowcase(ctx, view.showcase, anim); // debug Shift+C: normal and Grim enemies side by side
     for (const v of game.vultures) drawVultureStatus(ctx, v);
     for (const s of game.squirrels) drawSquirrelStatus(ctx, s);

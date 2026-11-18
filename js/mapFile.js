@@ -115,6 +115,7 @@ export function mapProblems(map, id) {
   (map.candidates ?? []).forEach((c, i) => {
     if (c.pin !== undefined && !PINS.test(c.pin)) out.push(`candidate ${i}: pin "${c.pin}" should be auto, turret, feature, feature:<type>, notVacant or vacant`);
     if (c.jitter !== undefined && !(c.jitter >= 0)) out.push(`candidate ${i}: jitter should be a number of px, 0 or more`);
+    if (c.hide !== undefined && !['auto', 'always', 'never'].includes(c.hide)) out.push(`candidate ${i}: hide "${c.hide}" should be auto, always or never`); // M6c §1.1
   });
   for (const [k, v] of Object.entries(map.rules ?? {})) {
     if (!['laneMinTurretSlots', 'routeMinFactor', 'routeMaxFactor'].includes(k)) out.push(`rules: unknown rule "${k}"`);
@@ -159,10 +160,12 @@ export function levelFromMap(map) {
   };
   // zoneAuto: the zone worked out from the geometry; otherwise the stored zone is a manual override.
   // M4b §1–§2: an optional pinned role and jitter of its own (missing: rolled, LOCATION_JITTER).
+  // M6c §1.1: and whether it hides under ferns.
   level.candidateLocations = map.candidates.map((c) => {
     const loc = { x: c.x, y: c.y, zone: c.zoneAuto ? geometricZone(level, c) : c.zone };
     if (c.pin && c.pin !== 'auto') loc.pin = c.pin;
     if (c.jitter !== undefined) loc.jitter = c.jitter;
+    if (c.hide && c.hide !== 'auto') loc.hide = c.hide; // M6c §1.1: hidden under ferns always / never (missing: rolled)
     return loc;
   });
   const G = level.ground;

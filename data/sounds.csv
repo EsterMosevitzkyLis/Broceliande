@@ -116,3 +116,7 @@ ironCall,0.8,1,1,1,TRUE
 pylonHum,0.35,1,1.5,2,TRUE
 pylonBreaks,0.9,1,0.3,2,TRUE
 oracleReleased,1,1,1,1,TRUE
+fernsPart,0.4,1,0.05,3,TRUE
+fernsClear,0.5,1,0.5,1,TRUE
+onlyFerns,0.3,1,0.2,1,TRUE
+hunterRevealed,0.3,1,0.15,2,TRUE

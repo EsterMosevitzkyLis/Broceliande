@@ -8,13 +8,18 @@ import { generateLayout } from '../js/layout.js';
 import { laneMinTurretSlots } from '../js/levelSettings.js';
 import { createRng } from '../js/rng.js';
 import { createFeatures } from '../js/entities/searchableFeature.js';
+import { rollHiddenSpots } from '../js/hiddenSpots.js';
+import { regionTwist } from '../js/levelSettings.js';
 
 // The layout for a scene and seed: { slots, features (as the game makes them), vacant (candidate
-// indices left empty), layout (generateLayout's result) }.
+// indices left empty), hidden (M6c §1.1: candidate indices under ferns, rolled right after the layout
+// from the same RNG, as the game does), layout (generateLayout's result) }.
 export function previewLayout(scene, seed) {
-  const layout = generateLayout(createRng(seed), scene, { quiet: true });
+  const rng = createRng(seed);
+  const layout = generateLayout(rng, scene, { quiet: true });
   const vacant = layout.roles.map((r, i) => (r.kind === 'vacant' ? i : -1)).filter((i) => i >= 0);
-  return { slots: layout.slots, features: createFeatures(layout), vacant, layout };
+  const hidden = rollHiddenSpots(rng, scene.level);
+  return { slots: layout.slots, features: createFeatures(layout), vacant, hidden, layout };
 }
 
 // Lines for the preview panel: what failed, how often, and what came of it.
@@ -29,5 +34,9 @@ export function previewSummary(p, scene) {
   lines.push(`Constraint failures over those draws: ${failures || 'none'}.`);
   lines.push(`${p.slots.length} turret slots, ${p.features.length} resource spots, ${p.vacant.length} empty; feature route ${L.routeCost} steps.`);
   lines.push(`Lane coverage: ${scene.lanes.map((l) => `${l.name} ${L.coverage[l.id]}`).join(', ')} (needs ${laneMinTurretSlots(scene.level)}).`);
+  if (regionTwist(scene.level, 'hiddenSpots')) { // M6c §1.1
+    const of = (kind) => p.hidden.filter((i) => L.roles[i].kind === kind).length;
+    lines.push(`Hidden under ferns: ${p.hidden.length} (${of('slot')} turret slots, ${of('feature')} resource spots, ${of('vacant')} empty).`);
+  }
   return lines;
 }

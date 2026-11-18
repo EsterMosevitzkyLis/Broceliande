@@ -15,6 +15,7 @@ import { buildCost, buildTime } from '../entities/turret.js';
 import { doubleAvailability } from './doubleSystem.js';
 import { events } from '../events.js';
 import { addFloatingText } from '../effects.js';
+import { resolveHiddenSpot, revealNear } from './hiddenSpotSystem.js';
 
 // Timed actions show a progress bar and can be cancelled. TRAVELLING is neither:
 // its steps are already spent and input is ignored until it lands (M1b §5.3).
@@ -109,15 +110,22 @@ export function undoLastMove(game) {
   game.druidPos = move.druidPos;
   game.resources = move.resources;
   game.trail.pop();
-  if (move.marker.kind === 'feature') game.features[move.marker.index].exhausted = false;
+  const spot = move.marker.kind === 'hidden' ? game.hiddenSpots[move.marker.index] : null; // M6c: it stays revealed
+  if (spot?.kind === 'feature') game.features[spot.roleIndex].exhausted = false;
+  else if (spot) { /* a turret slot or empty spot: nothing was built */ }
+  else if (move.marker.kind === 'feature') game.features[move.marker.index].exhausted = false;
   else game.turrets = game.turrets.filter((t) => t.slotIndex !== move.marker.index);
   return true;
 }
 
 // Arrival: the Druid now stands at the marker, which is the origin of the next cost (§4).
+// M6c §1.3: a hidden spot is revealed and resolved; then the ferns around him part.
 function completeTravel(game, marker, turretType) {
   game.druidPos = markerPos(game, marker);
-  if (marker.kind === 'feature') {
+  revealNear(game);
+  if (marker.kind === 'hidden') {
+    resolveHiddenSpot(game, marker.index);
+  } else if (marker.kind === 'feature') {
     events.emit('searchStarted', { featureIndex: marker.index }); // step mode: rustle and chimes both on arrival
     completeSearch(game, marker.index);
   } else {

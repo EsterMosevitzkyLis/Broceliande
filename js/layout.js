@@ -10,7 +10,7 @@ import { zoneIds, zoneQuota, zoneCandidates } from './zones.js';
 import { featureMix, laneMinTurretSlots, routeFactors, spotJitter, spotPin } from './levelSettings.js';
 import { createRng } from './rng.js';
 
-function shuffle(rng, items) {
+export function shuffle(rng, items) {
   const a = [...items];
   for (let i = a.length - 1; i > 0; i--) {
     const j = rng.int(0, i);

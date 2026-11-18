@@ -93,7 +93,18 @@ function valeDebugLine(game) {
   const throwing = game.enemies.filter((e) => e.throwing).length;
   const damaged = game.turrets.filter((t) => isDamaged(t)).map((t) => `${t.type} ${Math.ceil(t.hp)}/${turretMaxHp(t)}`).join(', ');
   return `Vale:        shield absorbed ${Math.round(game.traitStats.shieldAbsorbed)}  shielded ${shielded}  hunters throwing ${throwing}  spears ${game.spears.length}  `
-    + `wrecked ${game.turretsWrecked}  repairs ${game.doubleStats.repairs ?? 0}  damaged: ${damaged || 'none'}`;
+    + `wrecked ${game.turretsWrecked}  repairs ${game.doubleStats.repairs ?? 0}  damaged: ${damaged || 'none'}\n`
+    + twistDebugLine(game);
+}
+
+// M6c §1.5, §2.4: hidden spots found / still hidden, and camouflaged hunters hidden / revealed.
+function twistDebugLine(game) {
+  const spots = game.hiddenSpots ?? [];
+  const found = spots.filter((s) => s.revealed && !s.cleared).length;
+  const cleared = spots.filter((s) => s.cleared).length;
+  const camo = game.enemies.filter((e) => e.camoShow !== undefined);
+  return `Vale twists: hidden spots ${spots.length}  revealed ${found}  still hidden ${spots.length - found - cleared}  cleared at Combat ${cleared}  `
+    + `camouflaged hunters ${camo.filter((e) => e.camouflaged).length} hidden / ${camo.filter((e) => !e.camouflaged).length} revealed`;
 }
 
 // Waves (M2i §7): the wave and its sub-state, this wave's spawned / alive / left, and the countdown.
@@ -841,6 +852,12 @@ function tooltipContent(game, hover) {
   const preview = stepMode ? routePreview(game, hover) : null;
   const travelLine = preview && [preview.affordable ? '' : 'tip-warn', `Travel: ${preview.cost} ${preview.cost === 1 ? 'step' : 'steps'}`];
 
+  // M6c §1.2: a fern clump says nothing of what it hides.
+  if (hover.kind === 'hidden') {
+    const s = game.hiddenSpots[hover.index];
+    if (s.revealed) return null;
+    return { title: C.FERN_TIP.title, lines: [['tip-muted', C.FERN_TIP.line], ...(travelLine ? [travelLine] : [])], anchor: { x: s.x, y: s.y, halfWidth: C.LOCATION_RADIUS } };
+  }
   if (hover.kind === 'feature') {
     const feature = game.features[hover.index];
     const type = C.FEATURE_TYPES[feature.type];

@@ -8,6 +8,7 @@ import { targetById, pylonsInRange } from './oracleSystem.js';
 import { applyItemBurn } from './statusSystem.js';
 import { enemyType } from '../entities/enemy.js';
 import { blockingSquirrels } from './squirrelSystem.js';
+import { canTarget } from './camouflageSystem.js';
 import { events } from '../events.js';
 
 // Geometric tolerance (px) so a Vulture landing exactly at melee range does not flicker
@@ -15,11 +16,12 @@ import { events } from '../events.js';
 const LANDING_SLACK = 1;
 
 // M6b §6: never the bound Iron Oracle; the nearest relic pylon when there is no other enemy.
+// M6c §2.1: never a camouflaged hunter.
 function nearestEnemy(game, x, y) {
   let best = null;
   let bestDist = Infinity;
   for (const enemy of game.enemies) {
-    if (enemy.bound) continue;
+    if (!canTarget(enemy)) continue;
     const d = Math.hypot(enemy.x - x, enemy.y - y);
     if (d < bestDist) {
       bestDist = d;
@@ -33,7 +35,8 @@ export function updateVultures(game, dt) {
   for (const v of game.vultures) {
     // Sticky target: only re-picked when it dies (or there was none).
     let target = targetById(game, v.targetId);
-    if (target?.pylon && game.enemies.some((e) => !e.bound)) target = null; // an enemy turned up: leave the pylon
+    if (target?.pylon && game.enemies.some(canTarget)) target = null; // an enemy turned up: leave the pylon
+    if (target && !target.pylon && !canTarget(target)) target = null; // M6c: it vanished into its camouflage
     if (!target) {
       target = nearestEnemy(game, v.x, v.y);
       v.targetId = target ? target.id : null;

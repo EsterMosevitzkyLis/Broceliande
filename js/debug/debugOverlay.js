@@ -13,6 +13,7 @@ import { doubleStandPos } from '../systems/doubleSystem.js';
 import { geometricZone } from '../zones.js';
 import { AttackState } from '../entities/enemy.js';
 import { targetById } from '../systems/oracleSystem.js';
+import { revealState } from '../systems/camouflageSystem.js';
 
 const COLOR = 'rgba(120, 220, 255, 0.9)';
 const EDGE_COLOR = 'rgba(120, 220, 255, 0.45)';
@@ -28,6 +29,7 @@ const DOUBLE_COLOR = 'rgba(230, 190, 120, 0.95)'; // Bough Double jobs (M1i §4)
 const STRIKE_COLOR = 'rgba(255, 120, 80, 0.95)'; // Squirrel counter-attack target (M1h §4)
 const MELEE_COLOR = 'rgba(255, 255, 255, 0.95)';
 const CLOUD_COLOR = 'rgba(210, 150, 255, 0.95)';
+const FERN_COLOR = 'rgba(150, 240, 120, 0.95)'; // M6c: hidden spots, the reveal radius, camouflaged hunters
 const LABEL_BG = 'rgba(0, 0, 0, 0.55)';
 const STATE_TAGS = { WALKING: 'walk', WAITING: 'wait', APPROACHING: 'appr', BITING: 'bite' };
 
@@ -103,8 +105,10 @@ export function drawDebugOverlay(ctx, game, scene, revealItem = false, hover = n
   drawZones(ctx, scene.level);
   drawMireDebug(ctx, game, scene, hover);
   drawCandidates(ctx, game, scene);
+  drawHiddenSpots(ctx, game);
 
   drawEnemies(ctx, game);
+  drawCamouflage(ctx, game);
   drawRisingAndSinking(ctx, game);
   drawTurretTargets(ctx, game);
   drawCinderjawCones(ctx, game); // M2o §5
@@ -118,6 +122,45 @@ export function drawDebugOverlay(ctx, game, scene, revealItem = false, hover = n
   for (const p of game.projectiles) ctx.fillText(`#${p.id}`, p.x + 7, p.y - 6);
   ctx.font = '13px monospace';
 
+  ctx.restore();
+}
+
+// M6c §1.5: hidden spots with their true role (and whether found), and in Prep the reveal radius
+// around the Druid.
+function drawHiddenSpots(ctx, game) {
+  const spots = game.hiddenSpots ?? [];
+  if (!spots.length) return;
+  ctx.save();
+  ctx.strokeStyle = FERN_COLOR;
+  ctx.setLineDash([6, 4]);
+  if (game.state === GameState.PREP) {
+    ctx.beginPath();
+    ctx.arc(game.druidPos.x, game.druidPos.y, C.REVEAL_RADIUS, 0, Math.PI * 2);
+    ctx.stroke();
+    label(ctx, `reveal ${C.REVEAL_RADIUS} px`, game.druidPos.x + C.REVEAL_RADIUS * 0.7, game.druidPos.y - C.REVEAL_RADIUS * 0.7, FERN_COLOR);
+  }
+  for (const s of spots) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, C.LOCATION_RADIUS + 5, 0, Math.PI * 2);
+    ctx.stroke();
+    const role = s.kind === 'slot' ? `turret slot T${s.roleIndex}` : s.kind === 'feature' ? `resource: ${C.FEATURE_TYPES[game.features[s.roleIndex].type].name}` : 'empty';
+    label(ctx, `ferns: ${role}${s.revealed ? (s.cleared ? ' (cleared)' : ' (found)') : ''}`, s.x - C.LOCATION_RADIUS, s.y - C.LOCATION_RADIUS - 8, FERN_COLOR);
+  }
+  ctx.restore();
+}
+
+// M6c §2.4: camouflaged hunters outlined in a dashed line with their reveal state.
+function drawCamouflage(ctx, game) {
+  ctx.save();
+  ctx.strokeStyle = FERN_COLOR;
+  ctx.setLineDash([4, 4]);
+  for (const e of game.enemies) {
+    if (e.camoShow === undefined) continue;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y - e.radius * 0.6, e.radius * 1.6, 0, Math.PI * 2);
+    ctx.stroke();
+    label(ctx, `camo: ${revealState(game, e)}`, e.x - e.radius * 1.6, e.y + e.radius * 1.6 + 14, FERN_COLOR);
+  }
   ctx.restore();
 }
 

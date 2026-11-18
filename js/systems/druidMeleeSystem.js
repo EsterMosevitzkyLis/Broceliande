@@ -11,15 +11,17 @@ import { EnemyState } from '../entities/enemy.js';
 import { damageEnemy } from './combatSystem.js';
 import { applyItemBurn } from './statusSystem.js';
 import { addFloatingText } from '../effects.js';
+import { canTarget } from './camouflageSystem.js';
 import { events } from '../events.js';
 
 const TIMER_EPSILON = 1e-9; // s
 export const STRIKE_LEAD = C.STRIKE_WINDUP_TIME + C.STRIKE_SWING_TIME; // s from strike start to impact
 
 // Valid targets (§2.3): enemies in a Druid melee slot actually biting him. Enemies still
-// walking to their slot, queuing, or held up attacking a summon are not.
+// walking to their slot, queuing, or held up attacking a summon are not. M6c §2.1: nor a
+// camouflaged hunter.
 function isAttacker(e) {
-  return e.state === EnemyState.BITING && e.blockedBy === null;
+  return e.state === EnemyState.BITING && e.blockedBy === null && canTarget(e);
 }
 
 // The weakest attacker: lowest HP, then attacking longest, then lowest entity ID.

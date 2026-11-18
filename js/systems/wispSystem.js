@@ -5,6 +5,7 @@
 import * as C from '../config.js';
 import { applySlow } from './statusSystem.js';
 import { events } from '../events.js';
+import { revealByWisp } from './camouflageSystem.js';
 
 export function updateWisps(game, dt) {
   const arrived = [];
@@ -33,6 +34,7 @@ function burst(game, w) {
     if (e.hp <= 0) continue;
     if (Math.hypot(e.x - w.x, e.y - w.y) > C.WISP_BURST_RADIUS) continue;
     applySlow(game, e, C.WISP_SLOW_MULT, C.WISP_SLOW_DURATION);
+    revealByWisp(game, e); // M6c §2.2
     slowed++;
   }
   game.wispBursts.push({ x: w.x, y: w.y, age: 0, seed: w.id });

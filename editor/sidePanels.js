@@ -5,7 +5,7 @@
 //
 // The new map-file fields are written only when set (a spot's pin and jitter, the level's rules), so
 // a file that doesn't use them is unchanged; a spot's keys keep the order x, y, zone, zoneAuto, pin,
-// jitter.
+// jitter, hide (M6c §1.1).
 
 import * as C from '../js/config.js';
 import { geometricZone, zoneIds, zoneQuota, zoneCandidates, isNearZone } from '../js/zones.js';
@@ -14,7 +14,7 @@ import { TOTAL_LETTERS } from '../js/scene.js';
 import { refPos, setRefPos, movedRefs } from './geometry.js';
 
 const JITTER_MAX = 40; // px, the jitter slider's top (§2)
-const SPOT_KEYS = ['x', 'y', 'zone', 'zoneAuto', 'pin', 'jitter'];
+const SPOT_KEYS = ['x', 'y', 'zone', 'zoneAuto', 'pin', 'jitter', 'hide'];
 const RULES = [
   ['laneMinTurretSlots', 'Turret slots covering each lane', () => C.LANE_MIN_TURRET_SLOTS, 1],
   ['routeMinFactor', 'Prep route band, lower edge (× stepBudget)', () => C.FEATURE_ROUTE_MIN_FACTOR, 0.05],
@@ -90,6 +90,15 @@ export function createSidePanels(api) {
     role.value = c.pin ?? 'auto';
     role.addEventListener('change', () => edit(() => setSpot(index, { pin: role.value === 'auto' ? undefined : role.value })));
     out.push(el('label', { className: 'ed-mix-row' }, 'Role', role));
+
+    // Hidden (M6c §1.1): under ferns in a hiddenSpots region: rolled, always or never.
+    const hide = el('select', {},
+      el('option', { value: 'auto', textContent: 'auto (rolled each run)' }),
+      el('option', { value: 'always', textContent: 'always (under ferns)' }),
+      el('option', { value: 'never', textContent: 'never' }));
+    hide.value = c.hide ?? 'auto';
+    hide.addEventListener('change', () => edit(() => setSpot(index, { hide: hide.value === 'auto' ? undefined : hide.value })));
+    out.push(el('label', { className: 'ed-mix-row' }, 'Hidden', hide));
 
     // Jitter (§2): its own, or the default.
     const value = el('span', { className: 'ed-slider-value', textContent: `${sc.jitter} px${c.jitter === undefined ? ' (default)' : ''}` });

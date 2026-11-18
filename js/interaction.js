@@ -18,6 +18,8 @@ import { buildableTypes } from './entities/turret.js';
 import { startCombat, enterNode } from './game.js';
 import { availableNodeAt } from './run.js';
 import * as C from './config.js';
+import { resolveHiddenSpot } from './systems/hiddenSpotSystem.js';
+import { events } from './events.js';
 
 const SUMMON_FLASH_MS = C.SUMMON_DENIED_FLASH_TIME * 1000; // real time: a UI flash, not gameplay
 
@@ -25,6 +27,8 @@ export function createInteraction(game, view) {
   function closeMenu() {
     view.menu = null;
   }
+  // M6c §1.3: a turret slot found under ferns opens its build menu (no extra travel).
+  events.on('hiddenSlotFound', ({ slotIndex }) => { view.menu = { kind: 'build', index: slotIndex }; });
 
   function onLeftClick(world) {
     // Map (M2a §4.3): clicking an available node starts its Prep; anything else does nothing.
@@ -62,11 +66,17 @@ export function createInteraction(game, view) {
     if (isPrep && isStepMode(game)) {
       if (isTravelling(game)) return;
       if (hit?.kind === 'slot' && canVisit(game, hit)) view.menu = { kind: 'build', index: hit.index };
-      else if (hit?.kind === 'feature' && startTravel(game, hit)) closeMenu();
+      else if ((hit?.kind === 'feature' || hit?.kind === 'hidden') && startTravel(game, hit)) closeMenu(); // M6c §1.3: a fern clump travels too
       else closeMenu();
       return;
     }
 
+    // M6c §1.3, timed Prep (no travel): a fern clump is revealed and resolved where it is.
+    if (hit?.kind === 'hidden' && isPrep) {
+      closeMenu();
+      resolveHiddenSpot(game, hit.index, startSearch);
+      return;
+    }
     if (hit?.kind === 'feature' && isPrep && !game.features[hit.index].exhausted) {
       // Starting a search confirms a new action, so it also closes any open menu.
       // Clicking the feature already being searched does nothing.
@@ -156,6 +166,7 @@ export function isInteractive(game, hover) {
   }
   if (game.state !== GameState.PREP) return false;
   if (isStepMode(game)) return !isTravelling(game) && canVisit(game, hover);
+  if (hover.kind === 'hidden') return !game.hiddenSpots[hover.index].revealed;
   if (hover.kind === 'feature') return !game.features[hover.index].exhausted;
   if (hover.kind === 'slot') return !isBuildingSlot(game, hover.index);
   return false;

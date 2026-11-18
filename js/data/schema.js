@@ -42,6 +42,7 @@ export const GLOBAL_TYPES = {
   HIGH_SHAMAN_PULSE_INTERVAL: 'number', HIGH_SHAMAN_RANGE: 'number', HIGH_SHAMAN_PULSE_SHIELD: 'number', HIGH_SHAMAN_SELF_SHIELD: 'number',
   HIGH_SHAMAN_SHIELD_DURATION: 'number', HIGH_SHAMAN_AURA_SPEED: 'number', // M6b §5.3
   ORACLE_CALL_INTERVAL: 'number', ORACLE_CALL_SHIELD: 'number', ORACLE_CALL_SHIELD_DURATION: 'number', ORACLE_CALL_SPAWNS: 'int', PYLON_HP: 'number', PYLON_ARMOR: 'number', // M6b §6
+  REVEAL_RADIUS: 'number', REVEAL_LINGER: 'number', THROW_REVEAL: 'number', WISP_REVEAL: 'number', // M6c
 };
 
 // Druid stats: key → type. Every key must have a row.
@@ -80,7 +81,7 @@ export const TABS = {
       // M3b §1–§3: role (swarm, brute, miniboss, flyer, boss), rises again (rising dead), region
       // (blank: every region) and a boss's arrival banner.
       role: { type: 'id' }, rises: { type: 'bool' }, region: { type: 'id' }, banner: { type: 'text' },
-      // M6b §2.1, §4.2: it can damage turrets; a ranged enemy's range; camouflage (M6c, not used yet).
+      // M6b §2.1, §4.2: it can damage turrets; a ranged enemy's range; camouflage (M6c §2).
       attacksTurrets: { type: 'bool' }, attackRange: { type: 'number' }, camouflage: { type: 'bool' },
       stationary: { type: 'bool' }, // M6b §5.1: a stationary target (an egg sac): never moves, blocks or attacks
     },
@@ -126,6 +127,7 @@ export const TABS = {
       id: { type: 'id', required: true }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
       row: { type: 'int' }, nodeType: { type: 'id', required: true }, region: { type: 'id', required: true }, enemyHpMult: { type: 'number' },
       stepBudget: { type: 'number' }, stuckTime: { type: 'number' }, // stepBudget: every battle level's (validate.js)
+      hiddenShareNear: { type: 'number' }, hiddenShareFar: { type: 'number' }, // M6c §1.1: blank = the region's
       trader: { type: 'id' }, // M6a §2.2: a village row's trader profile (blank for battle levels)
     },
     pattern: [/^mix_[a-z][a-zA-Z0-9]*$/, { type: 'int' }],
@@ -136,6 +138,7 @@ export const TABS = {
       id: { type: 'id', required: true }, name: { type: 'text', required: true }, order: { type: 'int', required: true },
       deathLossPct: { type: 'number', required: true }, traders: { type: 'int', required: true }, tinkers: { type: 'int', required: true },
       tinkerMinRow: { type: 'int', required: true }, risingDead: { type: 'bool' }, sinkingDrops: { type: 'bool' }, mireGround: { type: 'bool' },
+      hiddenSpots: { type: 'bool' }, camouflage: { type: 'bool' }, hiddenShareNear: { type: 'number' }, hiddenShareFar: { type: 'number' }, // M6c
       introTitle: { type: 'text' }, introText: { type: 'text' }, finalLine: { type: 'text' },
     },
   },

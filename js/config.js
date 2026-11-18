@@ -102,6 +102,18 @@ export const PYLON_HUM_INTERVAL = 3.5;         // s between the standing pylons'
 export const PYLON_HP_BAR = { width: 40, lift: 3.4 }; // px wide; its top this many × the pylon's size above its base
 export const PYLON_COUNT = 3;                  // relic pylons a level whose waves bring the Iron Oracle needs (map checks)
 export const PYLON_MIN_SPOTS = 2;              // candidate spots each pylon needs within the base TURRET_RANGE
+// M6c §1: hidden spots (ferns) in Prep.
+export const FERN_PART_TIME = 0.6;             // s a revealed spot's ferns take to part and fade
+export const FERN_CLEAR_TIME = 0.9;            // s every fern clump takes to sway and fade when Combat starts
+export const FERN_SWAY = 0.05;                 // rad, the clump's slight sway
+export const FERN_TIP = { title: 'Ferns', line: 'Something may be hidden here.' };
+export const ONLY_FERNS_TEXT = 'Only ferns';
+// M6c §2: camouflaged hunters in Combat (look only; the reveal rules' times are in the globals).
+export const CAMO_ALPHA = 0.13;                // opacity of a camouflaged hunter's shimmer
+export const CAMO_WOBBLE = 1.6;                // px, the shimmer's slight wobble
+export const CAMO_FADE_TIME = 0.35;            // s from shimmer to the full hunter and back
+export const CAMO_SHIVER_TIME = 0.4;           // s of the soft "shiver" as it resolves
+export const THROW_FLASH_TIME = 0.25;          // s of the shimmer-flash as a camouflaged hunter throws
 export const HEAL_SPARKLE_TIME = 0.4;       // s the red sparkle shows on a biter that healed
 export const DOGGED_SPIRAL_SPEED = 3;       // × the slow spiral's turn rate on a slow-resistant enemy
 export const DOGGED_SPIRAL_ALPHA = 0.5;     // its opacity
@@ -609,6 +621,7 @@ export let DIALOGUE_TYPE_SPEED, DIALOGUE_HOP_HEIGHT, DIALOGUE_HOP_TIME, DIALOGUE
 export let REPAIR_COST, REPAIR_TIME; // M6b §2.3: REPAIR_COST as a cost ({ pits: n }), on top of the Double's Bough
 export let BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_EGG_INTERVAL, GRIM_BROOD_HATCH_COUNT, BROOD_EGG_MIN_DIST, BROOD_EGG_SPACING; // M6b §5.1–§5.2
 export let ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR; // M6b §6
+export let REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL; // M6c
 export let HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED; // M6b §5.3
 export let SHAMAN_SHIELD_INTERVAL, SHAMAN_SHIELD_TARGETS, SHAMAN_SHIELD_RANGE, SHAMAN_SHIELD_AMOUNT, SHAMAN_SHIELD_DURATION,
   GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT; // M6b §4.3
@@ -649,7 +662,8 @@ export let RECIPES;
 // stats: stat → description (labels; the stats themselves are in js/stats.js)
 export let STATS;
 // regions (M3a §1.1): id → { name, order, deathLossPct, traders, tinkers, tinkerMinRow, risingDead,
-// sinkingDrops, mireGround, introTitle, introText, finalLine }; REGION_ORDER: ids in order
+// sinkingDrops, mireGround, hiddenSpots, camouflage, hiddenShareNear, hiddenShareFar (M6c),
+// introTitle, introText, finalLine }; REGION_ORDER: ids in order
 export let REGIONS, REGION_ORDER;
 // villages (M6a §2.2): id → { name, description, region, row, trader (a TRADER_PROFILES id) }
 export let VILLAGES;
@@ -708,6 +722,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_EGG_INTERVAL, GRIM_BROOD_HATCH_COUNT, BROOD_EGG_MIN_DIST, BROOD_EGG_SPACING,
     HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED,
     ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR,
+    REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL,
   } = keyed(t.globals));
   REPAIR_COST = { pits: REPAIR_COST };
   ITEM_PRICE = [ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3];
@@ -798,6 +813,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
   REGIONS = byId(t.regions, (r) => ({
     name: r.name, order: r.order, deathLossPct: r.deathLossPct, traders: r.traders, tinkers: r.tinkers, tinkerMinRow: r.tinkerMinRow,
     risingDead: r.risingDead ?? false, sinkingDrops: r.sinkingDrops ?? false, mireGround: r.mireGround ?? false,
+    hiddenSpots: r.hiddenSpots ?? false, camouflage: r.camouflage ?? false, hiddenShareNear: r.hiddenShareNear ?? 0, hiddenShareFar: r.hiddenShareFar ?? 0, // M6c
     introTitle: r.introTitle ?? r.name, introText: r.introText ?? '', finalLine: r.finalLine ?? null,
   }));
   REGION_ORDER = [...t.regions].sort((a, b) => a.order - b.order).map((r) => r.id);
@@ -809,7 +825,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     // from its map file; the numbers about play from the levels tab.
     const level = { ...levelFromMap(maps[r.id]), name: r.name, description: r.description, region: r.region, row: r.row, nodeType: r.nodeType, stepBudget: r.stepBudget };
     level.background = backgrounds[r.id] ?? null;
-    for (const k of ['enemyHpMult', 'stuckTime']) opt(level, k, r[k]);
+    for (const k of ['enemyHpMult', 'stuckTime', 'hiddenShareNear', 'hiddenShareFar']) opt(level, k, r[k]); // M6c §1.1: blank = the region's share
     level.featureMix = Object.fromEntries(featureIds.map((f) => [f, r[`mix_${f}`] ?? 0]));
     level.zoneQuotas = { near: { turret: ZONE_NEAR_TURRET, feature: ZONE_NEAR_FEATURE }, far: { turret: ZONE_FAR_TURRET, feature: ZONE_FAR_FEATURE } };
     const wavesOf = PLACEHOLDER_LEVELS[r.id] ?? r.id; // M6a §2.1: a placeholder's borrowed waves

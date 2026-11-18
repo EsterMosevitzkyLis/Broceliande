@@ -8,7 +8,7 @@ import { drawDruid, DRUID_REST_POSE, drawTurretSlot, drawFeature, featureBase } 
 import { laneEntrance, COLORS } from '../js/renderer.js';
 import { drawLane, drawZones } from '../js/debug/debugOverlay.js';
 import { geometricZone } from '../js/zones.js';
-import { spotPin } from '../js/levelSettings.js';
+import { spotPin, spotHide } from '../js/levelSettings.js';
 import { entryMark } from './lanePanels.js';
 import { sectorHandlePos } from './geometry.js';
 
@@ -19,6 +19,7 @@ const SPOT = 'rgba(120, 220, 255, 0.95)';
 const PROBLEM = 'rgba(255, 70, 60, 0.95)';
 const WARN = 'rgba(255, 170, 40, 0.95)';
 const SELECT = 'rgba(255, 235, 90, 1)';
+const HIDDEN = 'rgba(150, 240, 120, 1)'; // M6c: spots under ferns
 const AREA = 'rgba(255, 255, 255, 0.6)';
 const NO_GROUND = '#2a2a2a';
 
@@ -190,7 +191,8 @@ export function drawView(ctx, scene, view) {
 }
 
 // Candidate spots: footprint, footprint + its jitter (dashed), index and zone (* for a manual zone),
-// and a pinned role's badge (M4b §1.4): T, R, R:<type>, ≠∅ or ∅.
+// and a pinned role's badge (M4b §1.4): T, R, R:<type>, ≠∅ or ∅; M6c §1.1: a hide setting's badge,
+// "ferns" (always hidden) or "no ferns" (never).
 const PIN_BADGE = { turret: 'T', feature: 'R', notVacant: '≠∅', vacant: '∅' };
 function drawSpots(ctx, scene) {
   const level = scene.level;
@@ -207,6 +209,8 @@ function drawSpots(ctx, scene) {
       tag(ctx, text, c.x + C.LOCATION_RADIUS * 0.5, c.y - C.LOCATION_RADIUS * 0.6, 'rgba(255, 225, 120, 1)');
       ctx.font = '13px monospace';
     }
+    const hide = spotHide(loc);
+    if (hide !== 'auto') tag(ctx, hide === 'always' ? 'ferns' : 'no ferns', c.x - C.LOCATION_RADIUS, c.y - C.LOCATION_RADIUS - 6, HIDDEN);
   }
 }
 
@@ -263,7 +267,13 @@ function drawCheckMarks(ctx, scene, view) {
 }
 
 // Preview a run: each resource spot's type under it, and the empty spots as faint dashed rings.
+// M6c §1.1: the spots hidden under ferns, a green dashed ring and "ferns".
 function drawPreviewTags(ctx, scene, preview) {
+  for (const i of preview.hidden ?? []) {
+    const c = scene.candidates[i];
+    ring(ctx, c.x, c.y, C.LOCATION_RADIUS + 6, HIDDEN, 2.5, [6, 4]);
+    tag(ctx, 'ferns', c.x + C.LOCATION_RADIUS * 0.3, c.y - C.LOCATION_RADIUS - 6, HIDDEN);
+  }
   for (const i of preview.vacant) {
     const c = scene.candidates[i];
     ring(ctx, c.x, c.y, C.LOCATION_RADIUS, 'rgba(255, 255, 255, 0.45)', 1.5, [4, 6]);

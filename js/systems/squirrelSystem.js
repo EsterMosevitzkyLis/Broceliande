@@ -8,6 +8,7 @@ import { addFloatingText, addResourceFloaters } from '../effects.js';
 import { isLanded } from './dropSystem.js';
 import { events } from '../events.js';
 import { damageEnemy } from './combatSystem.js';
+import { canTarget } from './camouflageSystem.js';
 
 const TIMER_EPSILON = 1e-9; // s, so 2.1 s of 1/60 s steps strikes on time
 
@@ -79,7 +80,7 @@ export function updateSquirrels(game, dt) {
 // timer counts only while it is being attacked and resets to zero when it is not.
 export function updateSquirrelStrikes(game, dt) {
   for (const s of game.squirrels) {
-    const attackers = game.enemies.filter((e) => e.blockedBy === s.id);
+    const attackers = game.enemies.filter((e) => e.blockedBy === s.id && canTarget(e)); // M6c §2.1: not a camouflaged hunter
     if (attackers.length === 0) {
       s.strikeTimer = 0;
       s.strikeTargetId = null;

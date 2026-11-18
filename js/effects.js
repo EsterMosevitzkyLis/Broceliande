@@ -4,6 +4,7 @@
 import * as C from './config.js';
 import { updateAshes } from './systems/riseSystem.js';
 import { RESOURCE_KEYS } from './resources.js';
+import { ageFerns } from './systems/hiddenSpotSystem.js';
 
 // small: drawn at a smaller size (damage numbers on enemies). muted: small grey text ("Nothing found").
 export function addFloatingText(game, text, x, y, small = false, muted = false) {
@@ -27,6 +28,7 @@ export function addResourceFloaters(game, gained, x, y) {
 }
 
 export function updateEffects(game, dt) {
+  ageFerns(game, dt); // M6c §1.3–§1.4: ferns parting and clearing
   for (const f of game.floaters) f.age += dt;
   if (game.itemMessage) {
     game.itemMessage.age += dt;

@@ -44,9 +44,22 @@ export function stuckTime(level) {
   return level.stuckTime ?? C.STUCK_TIME;
 }
 
-// M3b §3–§4: whether the level's region has a twist ('risingDead', 'sinkingDrops', 'mireGround').
+// M3b §3–§4: whether the level's region has a twist ('risingDead', 'sinkingDrops', 'mireGround';
+// M6c: 'hiddenSpots', 'camouflage').
 export function regionTwist(level, twist) {
   return !!C.REGIONS[level.region]?.[twist];
+}
+
+// M6c §1.1: the share of a zone's spots hidden under ferns: the level's own (levels tab), else its
+// region's.
+export function hiddenShare(level, near) {
+  const k = near ? 'hiddenShareNear' : 'hiddenShareFar';
+  return level[k] ?? C.REGIONS[level.region]?.[k] ?? 0;
+}
+
+// M6c §1.1: a candidate's hide setting: 'auto', 'always' or 'never'.
+export function spotHide(c) {
+  return c.hide || 'auto';
 }
 
 // M2i §2: the level's waves, each { gapAfter, spawns: [{ t, lane, type, count }], tolls? }.

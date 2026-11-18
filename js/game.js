@@ -4,6 +4,8 @@ import { updateRanged, updateSpears } from './systems/rangedSystem.js';
 import { updateShamans } from './systems/shamanSystem.js';
 import { updateValeBosses } from './systems/valeBossSystem.js';
 import { updateOracle, createPylons } from './systems/oracleSystem.js';
+import { createHiddenSpots, revealNear, clearFerns } from './systems/hiddenSpotSystem.js';
+import { updateCamouflage } from './systems/camouflageSystem.js';
 import * as C from './config.js';
 import { createRng, makeRandomSeed } from './rng.js';
 import { buildWavePlans, updateSpawning, queueDebugEnemy } from './systems/spawnSystem.js';
@@ -201,6 +203,7 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.druidStrike = null;
   game.resources = resources ? { ...emptyResources(), ...resources } : emptyResources();
   game.features = createFeatures(game.layout);
+  game.hiddenSpots = createHiddenSpots(game); // M6c §1.1: rolled right after the layout, from the same RNG
   game.hiddenFind = hideFind(game); // M2p §3.1 (was M2e §3.1): chosen from the encounter's seed, after its layout
   game.itemMessage = null;          // M2e §3.2: { slot, pattern, age } of the "You found a …!" message (pattern: M2p §3.2)
   game.turrets = [];
@@ -257,6 +260,7 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.tolls = []; // M2f §4.10: this wave's bell tolls still to ring (s, wave time)
   game.enemyCounts = emptyEnemyCounts();
   setState(game, GameState.PREP);
+  revealNear(game); // M6c §1.3: the ferns around where the Druid starts
   events.emit('prepStart', { run: game.run, levelId: game.levelId }); // M5a §2.1: its dialogue shows before anything else
 }
 
@@ -270,6 +274,7 @@ export function startCombat(game) {
   game.druidMeleeTimer = 0; // M1e §2.2: the melee timer starts from zero when Combat begins
   game.druidStrike = null;
   game.druidWasBusy = false;
+  clearFerns(game); // M6c §1.4: every fern clump clears
   setState(game, GameState.COMBAT);
   startWaves(game); // M2i §3: the countdown to wave 1
   enforceActionAllowed(game); // a search, build or travel in progress is cancelled (§9.3)
@@ -650,6 +655,7 @@ export function updateGame(game, dt) {
       updateSquirrelStrikes(game, dt); // M1h §3: a Squirrel being attacked strikes back
       updateRanged(game, dt);        // M6b §4.2: hunters stop and throw spears at what is in range
       updateEnemyMovement(game, dt);
+      updateCamouflage(game, dt);    // M6c §2: camouflaged hunters revealed or hidden, before anything targets them
       updateTurrets(game, dt);
       updateProjectiles(game, dt);
       updateSpears(game, dt);

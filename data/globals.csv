@@ -133,3 +133,8 @@ ORACLE_CALL_SHIELD_DURATION,8,TUNING - s an Iron Call shield lasts unless used u
 ORACLE_CALL_SPAWNS,2,TUNING - lizardmen an Iron Call brings at his lane entrance
 PYLON_HP,250,TUNING - HP of a relic pylon (not scaled by the level enemyHpMult)
 PYLON_ARMOR,0,TUNING - armor of a relic pylon (each hit loses this but never below 1)
+# Vale twists (M6c),,
+REVEAL_RADIUS,180,"TUNING - px around the Druid in which hidden spots are revealed, at Prep start and after every move (about 7 steps)"
+REVEAL_LINGER,2,"TUNING - s a camouflaged hunter stays revealed after its reveal (turret range, cloud, burning) ends"
+THROW_REVEAL,1,TUNING - s a camouflaged hunter shows each time it throws a spear
+WISP_REVEAL,4,TUNING - s a Slow Wisp burst reveals a camouflaged hunter it hits

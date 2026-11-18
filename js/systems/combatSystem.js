@@ -15,6 +15,7 @@ import { events } from '../events.js';
 import { willRise, layBody, burnToAsh } from './riseSystem.js';
 import { sinkAtHalf } from './bogKingSystem.js';
 import { pylonFell, pylonsInRange, targetById } from './oracleSystem.js';
+import { canTarget } from './camouflageSystem.js';
 
 const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
 
@@ -26,11 +27,12 @@ const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
 // (enemies already at the Druid count as 0), whatever its type (M1e §3.4). Ties go to the nearer
 // one. The Sprinkler aims at the first; Twin shot (M2m §2.3) at the first two.
 // M6b §6: never the bound Iron Oracle; relic pylons (nearest first) only when no enemy is in range.
+// M6c §2.1: never a camouflaged hunter (though its range reveals one, camouflageSystem.js).
 function selectTargets(game, turret, count) {
   const range = turretRange(turret);
   const inRange = [];
   for (const enemy of game.enemies) {
-    if (enemy.bound) continue;
+    if (!canTarget(enemy)) continue;
     const dist = Math.hypot(enemy.x - turret.x, enemy.y - turret.y);
     if (dist <= range) inRange.push({ enemy, dist, remaining: remainingDistance(enemy) });
   }
@@ -125,7 +127,7 @@ function selectCloudTarget(game, turret) {
     const dist = Math.hypot(enemy.x - turret.x, enemy.y - turret.y);
     if (dist > range) continue;
     if (enemy.flying && !C.CLOUDS_HIT_FLYERS) continue; // M2h §3.4: Toaders don't target flyers
-    if (enemy.bound) continue;
+    if (!canTarget(enemy)) continue; // M6b §6, M6c §2.1
     const key = [isInsideCloud(game, enemy) ? 1 : 0, remainingDistance(enemy), dist];
     if (!best || key[0] < bestKey[0] || (key[0] === bestKey[0] && (key[1] < bestKey[1] || (key[1] === bestKey[1] && key[2] < bestKey[2])))) {
       best = enemy;

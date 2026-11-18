@@ -128,6 +128,8 @@ function subscribe() {
   events.on('eggHatched', (e) => play('eggHatch', e));
   for (const name of ['ironCall', 'pylonHum', 'oracleReleased']) events.on(name, (e) => play(name, e)); // M6b §6
   events.on('pylonBroken', (e) => play('pylonBreaks', e));
+  for (const name of ['fernsCleared', 'onlyFerns', 'hunterRevealed']) events.on(name, (e) => play(name === 'fernsCleared' ? 'fernsClear' : name, e)); // M6c
+  events.on('fernsParted', (e) => play('fernsPart', e));
   events.on('resourcesGained', (e) => { // M2k §2.1: Shells have their own chime (and sounds row)
     const resources = e.resources ?? [];
     const others = resources.filter((r) => !OWN_CHIME[r]);
@@ -819,6 +821,34 @@ const RECIPES = {
     [523, 659, 784, 1046].forEach((f, i) => bell(t, out, f * p, 0.1 + i * 0.06, 0.8, 0.15));
     noise(t, out, { freq: 3000 * p, to: 6000 * p, q: 3, dur: 0.7, attack: 0.15, gain: 0.15 });
     return 0.9;
+  },
+
+  // M6c §1.3: ferns parting: a soft, leafy swish.
+  fernsPart(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 2600 * p, to: 1800 * p, q: 0.8, dur: 0.35, attack: 0.08, gain: 0.5 });
+    let end = 0.4;
+    for (let i = 0; i < 4; i++) end = noise(t, out, { freq: rng.range(3200, 4800) * p, q: 1, dur: rng.range(0.04, 0.07), gain: rng.range(0.2, 0.45), delay: 0.05 + i * 0.07 });
+    return Math.max(end, 0.45);
+  },
+
+  // M6c §1.4: every clump clearing at Combat start: a longer sweep of leaves.
+  fernsClear(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 1800 * p, to: 3400 * p, q: 0.7, dur: 0.8, attack: 0.15, gain: 0.55 });
+    noise(t, out, { filter: 'highpass', freq: 4200 * p, dur: 0.6, attack: 0.2, gain: 0.18, delay: 0.1 });
+    return 0.9;
+  },
+
+  // M6c §1.3: an empty fern clump: a short, soft rustle falling away.
+  onlyFerns(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 2200 * p, to: 1200 * p, q: 1, dur: 0.22, attack: 0.03, gain: 0.35 });
+    return 0.25;
+  },
+
+  // M6c §2.3: a hunter revealed: a quiet rustle with a faint scaly shiver.
+  hunterRevealed(t, out, p) {
+    noise(t, out, { filter: 'bandpass', freq: 3000 * p, to: 2000 * p, q: 1.2, dur: 0.2, attack: 0.02, gain: 0.35 });
+    noise(t, out, { filter: 'bandpass', freq: 6000 * p, q: 6, dur: 0.12, gain: 0.15, delay: 0.08 });
+    return 0.25;
   },
 
   // M6b §6: the Iron Oracle on his perch: a resonant, voice-like drone and a ring of metal.
