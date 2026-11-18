@@ -1,129 +1,129 @@
-key,value,notes
-# Timing,,
-PREP_DURATION,28,s (build and upgrade times: TURRET_TYPES levels)
-END_DELAY,1.5,s of ENDING between the last kill / Druid death and the result overlay (M1e sec. 1)
-# Step-mode Prep,,
-STEP_PX,25,TUNING - px of straight-line travel per step
-TRAVEL_TWEEN_TIME,0.35,"TUNING - s, Druid's travel animation to a marker"
-# Enemy movement,,
-ENEMY_WANDER_SPEED,10,"TUNING - px/s, slow lateral drift toward a wander target"
-ENEMY_WANDER_INTERVAL,"1.5, 4","TUNING - s between picking new wander targets [min, max]"
-ENEMY_SIDESTEP_SPEED,55,"TUNING - px/s, lateral speed when stepping round an enemy ahead"
-ENEMY_SLOT_CLAIM_DISTANCE,70,"TUNING - px before the lane end where an enemy claims melee slots (waits here if none free, keep outside DRUID_APPROACH_RADIUS + 2 x wolf radius)"
-DRUID_APPROACH_RADIUS,86,"TUNING - px, ring wolves walk round to reach a far melee slot (clears biters at DRUID_MELEE_RADIUS), larger enemies use it + their extra radius"
-ENEMY_DIRECT_APPROACH_ANGLE,0.6,"TUNING - rad, slots closer than this in angle are walked to directly"
-STUCK_TIME,0.6,TUNING - s an enemy held up by a slower walking enemy waits before passing through it (M2d sec. 3.4)
-STUCK_DECAY_RATE,0.25,"TUNING - a free step runs the stuck timer down at this x real time, so creeping behind a blocker still adds up"
-SIDE_KEEP_MARGIN,4,px a keepSide enemy stays from its corridor edge (M2d sec. 3.3)
-# Flyers (Stirges),,
-STIRGE_DRUID_RING,40,"TUNING - px, ring over the Druid it hovers on to bite (no melee slots)"
-STIRGE_WANDER_SPEED,34,TUNING - px/s lateral flutter (a wolf's wander is ENEMY_WANDER_SPEED)
-STIRGE_WANDER_INTERVAL,"0.3, 0.9",TUNING - s between new flutter targets
-STIRGE_SEPARATION,16,TUNING - px Stirges ease apart below (they may overlap a little)
-STIRGE_SEPARATION_SPEED,40,TUNING - px/s of that easing
-CLOUDS_HIT_FLYERS,FALSE,true: Toaders target flyers and their clouds damage them
-# Waves,,
-BURST_STAGGER,0.6,TUNING - s between enemies in one burst
-FIRST_WAVE_DELAY,3,TUNING - s of countdown before wave 1 (M2i sec. 3.1)
-WAVE_GAP_AFTER_LAST_SPAWN,10,TUNING - s after a wave's last spawn when its gap starts even with enemies alive (not after the last wave)
-# Layout generation,,
-CORRIDOR_WIDTH,110,"TUNING - px, the default for levels without their own corridorWidth (M2b sec. 2)"
-RANDOMISE_LAYOUT,TRUE,"false = the same zone-based layout every run, from FIXED_LAYOUT_SEED (M1j sec. 4.2)"
-FIXED_LAYOUT_SEED,1001,the layout seed used when RANDOMISE_LAYOUT is false
-LOCATION_RADIUS,38,"TUNING - px, footprint of every candidate, all feature/turret visuals are scaled to fit inside (drawn for 45), also the click area"
-LOCATION_JITTER,20,"TUNING - px, max random offset of a chosen location"
-LOCATION_GAP,20,"TUNING - px, extra spacing between candidates"
-LANE_MIN_TURRET_SLOTS,3,TUNING - turret slots that must cover each lane
-FEATURE_ROUTE_MIN_FACTOR,0.75,TUNING - greedy all-feature route >= this x the level's stepBudget
-FEATURE_ROUTE_MAX_FACTOR,1.1,TUNING - ... and <= this x the level's stepBudget
-MAX_LAYOUT_ATTEMPTS,200,"layouts tried per encounter until one passes the fairness checks, if none passes the best one is used (with a warning)"
-# Zone quotas,,
-ZONE_NEAR_TURRET,2,turret slots per near zone (levels may override single zones in code)
-ZONE_NEAR_FEATURE,1,resource spots per near zone
-ZONE_FAR_TURRET,3,turret slots per far zone
-ZONE_FAR_FEATURE,2,resource spots per far zone
-# Drops,,
-DROP_SPACING,16,TUNING - px between items dropped by one wolf
-DROP_POP_HEIGHT,70,TUNING - px the arc rises above the straight line from death point to resting spot
-DROP_POP_TIME,0.35,"TUNING - s in the air, Squirrels can only target an item once it has landed"
-DROP_POP_STAGGER,0.2,TUNING - s between the launches of one enemy's items
-DROP_SINGLE_OFFSET,"6, 12","px along the lane a lone item lands from the death point, so it still arcs"
-# Resource floaters,,
-FLOATER_RISE_PX,45,"TUNING - px risen over FLOATER_TIME, easing out"
-FLOATER_TIME,1,"TUNING - s, fades during the last 40%"
-FLOATER_STAGGER,0.12,"TUNING - s between floaters of one gain, in resource order"
-FLOATER_STACK_PX,30,TUNING - px each further floater of one gain starts higher (no overlap)
-# Victory field sweep,,
-SWEEP_FLIGHT_TIME,0.5,TUNING - s per item
-SWEEP_STAGGER,0.04,"TUNING - s between launches, nearest the HUD first, shortened if needed"
-SWEEP_END_MARGIN,0.1,s before the Victory overlay by which the last item must land
-SWEEP_END_SCALE,0.65,"item size on arrival, relative to its size on the ground"
-SWEEP_PULSE_TIME,0.3,s a HUD counter pulses after an item lands on it
-# Run and equipment bases,,
-CARRY_DRUID_HP,FALSE,TUNING - true: the Druid starts the next encounter with the HP he won with (M2a sec. 3)
-ITEMS_PER_BATTLE,1,0 turns hidden items off
-RARITY_WEIGHT_1,6,TUNING - weight of a Common (rarity 1) item when picking the hidden find (M2p sec. 3.1)
-RARITY_WEIGHT_2,3,TUNING - weight of an Uncommon (rarity 2) item
-RARITY_WEIGHT_3,1,"TUNING - weight of a Rare (rarity 3) item, Crafted (rarity 0) items are never hidden"
-FIND_PATTERN_CHANCE,0.4,TUNING - chance the battle's hidden find is a pattern instead of an item (M2p sec. 3.1)
-WORK_SPEED,1,build / upgrade speed multiplier: job time / this (Wright's Belt)
-SEARCH_MAIN_BONUS,0,extra units of a spot's mainResource per search (Forager's Belt)
-BOUGH_REFUND_CHANCE,0,chance a Bough Double's Bough is refunded when its job starts (Mossheart Ferrule)
-# Sound,,
-MASTER_VOLUME,0.5,TUNING - 0..1
-SOUND_PITCH_JITTER,0.05,TUNING - each play is pitched up or down by up to this fraction
-# Trader,,
-GOLD_PER_VALUE,2,TUNING - gold per unit of a resource's baseValue (trade tab): a trader sells a resource for ceil(baseValue x this x their price multiplier)
-RESOURCE_SELL_FRACTION,0.25,"TUNING - what a trader pays for a resource, as a fraction of their selling price (sold in whole-gold bundles)"
-ITEM_PRICE_R0,80,"TUNING - base price of a Crafted item (never sold by traders, only what they pay for one is based on it)"
-ITEM_PRICE_R1,20,"TUNING - item selling price by rarity (Common), used where an item has no price"
-ITEM_PRICE_R2,40,TUNING - Uncommon
-ITEM_PRICE_R3,80,TUNING - Rare
-PATTERN_PRICE_R0,150,"TUNING - pattern selling price by rarity (Crafted), used where a recipe has no patternPrice"
-PATTERN_PRICE_R1,30,TUNING - Common
-PATTERN_PRICE_R2,60,TUNING - Uncommon
-PATTERN_PRICE_R3,120,TUNING - Rare
-ITEM_SELL_FRACTION,0.4,"TUNING - what a trader pays for the player's item, as a fraction of its price (x the trader's itemBuyMult, rounded down to 5)"
-SHOP_PRICE_JITTER,0.1,"TUNING - per-visit variation on item and pattern prices, 1 +/- this"
-TRADE_TAG_CHEAP,0.85,TUNING - a trader's price multiplier at or below this: tagged cheap (shop and map tooltip)
-TRADE_TAG_PRICEY,1.15,TUNING - a trader's price multiplier at or above this: tagged pricey
-# Hag's Causeway twists,,
-RISE_DELAY,1.5,TUNING - s a risen-dead body lies where it fell before it stands up again (M3b sec. 3.1)
-RISE_HP_FRAC,0.5,TUNING - fraction of its max HP a body rises with
-DROP_SINK_TIME,12,TUNING - s a landed drop lasts before the mire swallows it (M3b sec. 4)
-BOG_KING_SUMMON_INTERVAL,10,TUNING - s between the Bog King raising Drowned Thralls (M3b sec. 5.2)
-BOG_KING_SUMMON_COUNT,3,TUNING - Thralls he raises each time
-BOG_KING_SUMMON_MAX,12,TUNING - most of his raised Thralls alive at once
-BOG_KING_SINK_TIME,3,"TUNING - s he stays sunk in the bog at half HP, then he resurfaces at the start of another lane"
-# Peat and mire,,
-MIRE_STEP_MULT,2,TUNING - each px of travel inside mire ground costs this many px of steps (M3c sec. 3.2)
-ITEM_BURN_TICK,1.2,"TUNING - s between ticks of a burn set by an item (Peatsmoke Crown, Ashen Censer, M3c sec. 5)"
-ITEM_BURN_DAMAGE,1,TUNING - damage per tick of that burn
-# Dialogue,,
-DIALOGUE_TYPE_SPEED,45,TUNING - characters per second of the dialogue box typewriter text (M5a sec. 3.3)
-DIALOGUE_HOP_HEIGHT,10,TUNING - px the speaking portrait hops up on each new line (M5a sec. 3.2)
-DIALOGUE_HOP_TIME,0.22,"TUNING - s of that hop, up and back (also the speaker light-up and listener dim)"
-DIALOGUE_DIM_BRIGHTNESS,0.45,TUNING - brightness of the listening portrait (1 = fully lit)
-"# Vale enemies, turret HP and repair (M6b)",,
-REPAIR_COST,2,"TUNING - Pits a Bough Double's Repair job costs, on top of its own Bough (M6b sec. 2.3)"
-REPAIR_TIME,2.5,TUNING - s of a Repair job (divided by the Double work speed). It restores full HP
-SHAMAN_SHIELD_INTERVAL,6,TUNING - s between a Lizard Shaman shield casts (M6b sec. 4.3)
-SHAMAN_SHIELD_TARGETS,3,"TUNING - nearest lizardfolk shielded per cast, the shaman included"
-SHAMAN_SHIELD_RANGE,180,TUNING - px from the shaman
-SHAMAN_SHIELD_AMOUNT,12,TUNING - shield per target (x the level enemyHpMult)
-SHAMAN_SHIELD_DURATION,8,TUNING - s a shield lasts unless used up first
-GRIM_SHAMAN_SHIELD_INTERVAL,5,TUNING - the Grim Lizard Shaman cast interval (s)
-GRIM_SHAMAN_SHIELD_AMOUNT,18,TUNING - the Grim Lizard Shaman shield per target
-BROOD_EGG_INTERVAL,6,TUNING - s between the Broodmother egg sacs (M6b sec. 5.1)
-BROOD_HATCH_TIME,5,TUNING - s an egg sac takes to hatch unless destroyed first
-BROOD_HATCH_COUNT,4,TUNING - spiders from one egg sac
-GRIM_BROOD_EGG_INTERVAL,5,"TUNING - the Grim Broodmother egg interval (s), her sacs are grimBroodEgg (M6b sec. 5.2)"
-GRIM_BROOD_HATCH_COUNT,5,TUNING - spiders from one of her egg sacs
-BROOD_EGG_MIN_DIST,120,TUNING - px a Broodmother (or Grim) must be into her lane before she lays egg sacs
-BROOD_EGG_SPACING,30,TUNING - px a new egg sac must be from every other egg sac, or she waits
-HIGH_SHAMAN_PULSE_INTERVAL,8,TUNING - s between the High-Shaman relic pulses (M6b sec. 5.3)
-HIGH_SHAMAN_RANGE,260,TUNING - px reach of his pulse and of his speed aura
-HIGH_SHAMAN_PULSE_SHIELD,20,TUNING - shield on every lizardfolk in range (x the level enemyHpMult)
-HIGH_SHAMAN_SELF_SHIELD,60,TUNING - his own shield from a pulse
-HIGH_SHAMAN_SHIELD_DURATION,8,TUNING - s those shields last
-HIGH_SHAMAN_AURA_SPEED,1.15,TUNING - speed multiplier of lizardfolk within his range (not himself)
+key,value,notes,
+# Timing,,,
+PREP_DURATION,28,s (build and upgrade times: TURRET_TYPES levels),
+END_DELAY,1.5,s of ENDING between the last kill / Druid death and the result overlay (M1e sec. 1),
+# Step-mode Prep,,,
+STEP_PX,25,TUNING - px of straight-line travel per step,
+TRAVEL_TWEEN_TIME,0.35,"TUNING - s, Druid's travel animation to a marker",
+# Enemy movement,,,
+ENEMY_WANDER_SPEED,10,"TUNING - px/s, slow lateral drift toward a wander target",
+ENEMY_WANDER_INTERVAL,"1.5, 4","TUNING - s between picking new wander targets [min, max]",
+ENEMY_SIDESTEP_SPEED,55,"TUNING - px/s, lateral speed when stepping round an enemy ahead",
+ENEMY_SLOT_CLAIM_DISTANCE,70,"TUNING - px before the lane end where an enemy claims melee slots (waits here if none free, keep outside DRUID_APPROACH_RADIUS + 2 x wolf radius)",
+DRUID_APPROACH_RADIUS,86,"TUNING - px, ring wolves walk round to reach a far melee slot (clears biters at DRUID_MELEE_RADIUS), larger enemies use it + their extra radius",
+ENEMY_DIRECT_APPROACH_ANGLE,0.6,"TUNING - rad, slots closer than this in angle are walked to directly",
+STUCK_TIME,0.6,TUNING - s an enemy held up by a slower walking enemy waits before passing through it (M2d sec. 3.4),
+STUCK_DECAY_RATE,0.25,"TUNING - a free step runs the stuck timer down at this x real time, so creeping behind a blocker still adds up",
+SIDE_KEEP_MARGIN,4,px a keepSide enemy stays from its corridor edge (M2d sec. 3.3),
+# Flyers (Stirges),,,
+STIRGE_DRUID_RING,40,"TUNING - px, ring over the Druid it hovers on to bite (no melee slots)",
+STIRGE_WANDER_SPEED,34,TUNING - px/s lateral flutter (a wolf's wander is ENEMY_WANDER_SPEED),
+STIRGE_WANDER_INTERVAL,"0.3, 0.9",TUNING - s between new flutter targets,
+STIRGE_SEPARATION,16,TUNING - px Stirges ease apart below (they may overlap a little),
+STIRGE_SEPARATION_SPEED,40,TUNING - px/s of that easing,
+CLOUDS_HIT_FLYERS,FALSE,true: Toaders target flyers and their clouds damage them,
+# Waves,,,
+BURST_STAGGER,0.6,TUNING - s between enemies in one burst,
+FIRST_WAVE_DELAY,3,TUNING - s of countdown before wave 1 (M2i sec. 3.1),
+WAVE_GAP_AFTER_LAST_SPAWN,10,TUNING - s after a wave's last spawn when its gap starts even with enemies alive (not after the last wave),
+# Layout generation,,,
+CORRIDOR_WIDTH,110,"TUNING - px, the default for levels without their own corridorWidth (M2b sec. 2)",
+RANDOMISE_LAYOUT,TRUE,"false = the same zone-based layout every run, from FIXED_LAYOUT_SEED (M1j sec. 4.2)",
+FIXED_LAYOUT_SEED,1001,the layout seed used when RANDOMISE_LAYOUT is false,
+LOCATION_RADIUS,38,"TUNING - px, footprint of every candidate, all feature/turret visuals are scaled to fit inside (drawn for 45), also the click area",
+LOCATION_JITTER,20,"TUNING - px, max random offset of a chosen location",
+LOCATION_GAP,20,"TUNING - px, extra spacing between candidates",
+LANE_MIN_TURRET_SLOTS,3,TUNING - turret slots that must cover each lane,
+FEATURE_ROUTE_MIN_FACTOR,0.75,TUNING - greedy all-feature route >= this x the level's stepBudget,
+FEATURE_ROUTE_MAX_FACTOR,1.1,TUNING - ... and <= this x the level's stepBudget,
+MAX_LAYOUT_ATTEMPTS,200,"layouts tried per encounter until one passes the fairness checks, if none passes the best one is used (with a warning)",
+# Zone quotas,,,
+ZONE_NEAR_TURRET,2,turret slots per near zone (levels may override single zones in code),
+ZONE_NEAR_FEATURE,1,resource spots per near zone,
+ZONE_FAR_TURRET,3,turret slots per far zone,
+ZONE_FAR_FEATURE,2,resource spots per far zone,
+# Drops,,,
+DROP_SPACING,16,TUNING - px between items dropped by one wolf,
+DROP_POP_HEIGHT,70,TUNING - px the arc rises above the straight line from death point to resting spot,
+DROP_POP_TIME,0.35,"TUNING - s in the air, Squirrels can only target an item once it has landed",
+DROP_POP_STAGGER,0.2,TUNING - s between the launches of one enemy's items,
+DROP_SINGLE_OFFSET,"6, 12","px along the lane a lone item lands from the death point, so it still arcs",
+# Resource floaters,,,
+FLOATER_RISE_PX,45,"TUNING - px risen over FLOATER_TIME, easing out",
+FLOATER_TIME,1,"TUNING - s, fades during the last 40%",
+FLOATER_STAGGER,0.12,"TUNING - s between floaters of one gain, in resource order",
+FLOATER_STACK_PX,30,TUNING - px each further floater of one gain starts higher (no overlap),
+# Victory field sweep,,,
+SWEEP_FLIGHT_TIME,0.5,TUNING - s per item,
+SWEEP_STAGGER,0.04,"TUNING - s between launches, nearest the HUD first, shortened if needed",
+SWEEP_END_MARGIN,0.1,s before the Victory overlay by which the last item must land,
+SWEEP_END_SCALE,0.65,"item size on arrival, relative to its size on the ground",
+SWEEP_PULSE_TIME,0.3,s a HUD counter pulses after an item lands on it,
+# Run and equipment bases,,,
+CARRY_DRUID_HP,FALSE,TUNING - true: the Druid starts the next encounter with the HP he won with (M2a sec. 3),
+ITEMS_PER_BATTLE,1,0 turns hidden items off,
+RARITY_WEIGHT_1,6,TUNING - weight of a Common (rarity 1) item when picking the hidden find (M2p sec. 3.1),
+RARITY_WEIGHT_2,3,TUNING - weight of an Uncommon (rarity 2) item,
+RARITY_WEIGHT_3,1,"TUNING - weight of a Rare (rarity 3) item, Crafted (rarity 0) items are never hidden",
+FIND_PATTERN_CHANCE,0.4,TUNING - chance the battle's hidden find is a pattern instead of an item (M2p sec. 3.1),
+WORK_SPEED,1,build / upgrade speed multiplier: job time / this (Wright's Belt),
+SEARCH_MAIN_BONUS,0,extra units of a spot's mainResource per search (Forager's Belt),
+BOUGH_REFUND_CHANCE,0,chance a Bough Double's Bough is refunded when its job starts (Mossheart Ferrule),
+# Sound,,,
+MASTER_VOLUME,0.5,TUNING - 0..1,
+SOUND_PITCH_JITTER,0.05,TUNING - each play is pitched up or down by up to this fraction,
+# Trader,,,
+GOLD_PER_VALUE,2,TUNING - gold per unit of a resource's baseValue (trade tab): a trader sells a resource for ceil(baseValue x this x their price multiplier),
+RESOURCE_SELL_FRACTION,0.25,"TUNING - what a trader pays for a resource, as a fraction of their selling price (sold in whole-gold bundles)",
+ITEM_PRICE_R0,80,"TUNING - base price of a Crafted item (never sold by traders, only what they pay for one is based on it)",
+ITEM_PRICE_R1,20,"TUNING - item selling price by rarity (Common), used where an item has no price",
+ITEM_PRICE_R2,40,TUNING - Uncommon,
+ITEM_PRICE_R3,80,TUNING - Rare,
+PATTERN_PRICE_R0,150,"TUNING - pattern selling price by rarity (Crafted), used where a recipe has no patternPrice",
+PATTERN_PRICE_R1,30,TUNING - Common,
+PATTERN_PRICE_R2,60,TUNING - Uncommon,
+PATTERN_PRICE_R3,120,TUNING - Rare,
+ITEM_SELL_FRACTION,0.4,"TUNING - what a trader pays for the player's item, as a fraction of its price (x the trader's itemBuyMult, rounded down to 5)",
+SHOP_PRICE_JITTER,0.1,"TUNING - per-visit variation on item and pattern prices, 1 +/- this",
+TRADE_TAG_CHEAP,0.85,TUNING - a trader's price multiplier at or below this: tagged cheap (shop and map tooltip),
+TRADE_TAG_PRICEY,1.15,TUNING - a trader's price multiplier at or above this: tagged pricey,
+# Hag's Causeway twists,,,
+RISE_DELAY,1.5,TUNING - s a risen-dead body lies where it fell before it stands up again (M3b sec. 3.1),
+RISE_HP_FRAC,0.5,TUNING - fraction of its max HP a body rises with,
+DROP_SINK_TIME,12,TUNING - s a landed drop lasts before the mire swallows it (M3b sec. 4),
+BOG_KING_SUMMON_INTERVAL,10,TUNING - s between the Bog King raising Drowned Thralls (M3b sec. 5.2),
+BOG_KING_SUMMON_COUNT,3,TUNING - Thralls he raises each time,
+BOG_KING_SUMMON_MAX,12,TUNING - most of his raised Thralls alive at once,
+BOG_KING_SINK_TIME,3,"TUNING - s he stays sunk in the bog at half HP, then he resurfaces at the start of another lane",
+# Peat and mire,,,
+MIRE_STEP_MULT,2,TUNING - each px of travel inside mire ground costs this many px of steps (M3c sec. 3.2),
+ITEM_BURN_TICK,1.2,"TUNING - s between ticks of a burn set by an item (Peatsmoke Crown, Ashen Censer, M3c sec. 5)",
+ITEM_BURN_DAMAGE,1,TUNING - damage per tick of that burn,
+# Dialogue,,,
+DIALOGUE_TYPE_SPEED,45,TUNING - characters per second of the dialogue box typewriter text (M5a sec. 3.3),
+DIALOGUE_HOP_HEIGHT,10,TUNING - px the speaking portrait hops up on each new line (M5a sec. 3.2),
+DIALOGUE_HOP_TIME,0.22,"TUNING - s of that hop, up and back (also the speaker light-up and listener dim)",
+DIALOGUE_DIM_BRIGHTNESS,0.45,TUNING - brightness of the listening portrait (1 = fully lit),
+"# Vale enemies, turret HP and repair (M6b)",,,
+REPAIR_COST,2,"TUNING - Pits a Bough Double's Repair job costs, on top of its own Bough (M6b sec. 2.3)",
+REPAIR_TIME,2.5,TUNING - s of a Repair job (divided by the Double work speed). It restores full HP,
+SHAMAN_SHIELD_INTERVAL,6,TUNING - s between a Lizard Shaman shield casts (M6b sec. 4.3),
+SHAMAN_SHIELD_TARGETS,3,"TUNING - nearest lizardfolk shielded per cast, the shaman included",
+SHAMAN_SHIELD_RANGE,180,TUNING - px from the shaman,
+SHAMAN_SHIELD_AMOUNT,12,TUNING - shield per target (x the level enemyHpMult),
+SHAMAN_SHIELD_DURATION,8,TUNING - s a shield lasts unless used up first,
+GRIM_SHAMAN_SHIELD_INTERVAL,5,TUNING - the Grim Lizard Shaman cast interval (s),
+GRIM_SHAMAN_SHIELD_AMOUNT,18,TUNING - the Grim Lizard Shaman shield per target,
+BROOD_EGG_INTERVAL,6,TUNING - s between the Broodmother egg sacs (M6b sec. 5.1),
+BROOD_HATCH_TIME,5,TUNING - s an egg sac takes to hatch unless destroyed first,
+BROOD_HATCH_COUNT,4,TUNING - spiders from one egg sac,
+GRIM_BROOD_EGG_INTERVAL,5,"TUNING - the Grim Broodmother egg interval (s), her sacs are grimBroodEgg (M6b sec. 5.2)",
+GRIM_BROOD_HATCH_COUNT,5,TUNING - spiders from one of her egg sacs,
+BROOD_EGG_MIN_DIST,120,TUNING - px a Broodmother (or Grim) must be into her lane before she lays egg sacs,
+BROOD_EGG_SPACING,30,TUNING - px a new egg sac must be from every other egg sac,or she waits
+HIGH_SHAMAN_PULSE_INTERVAL,8,TUNING - s between the High-Shaman relic pulses (M6b sec. 5.3),
+HIGH_SHAMAN_RANGE,260,TUNING - px reach of his pulse and of his speed aura,
+HIGH_SHAMAN_PULSE_SHIELD,20,TUNING - shield on every lizardfolk in range (x the level enemyHpMult),
+HIGH_SHAMAN_SELF_SHIELD,60,TUNING - his own shield from a pulse,
+HIGH_SHAMAN_SHIELD_DURATION,8,TUNING - s those shields last,
+HIGH_SHAMAN_AURA_SPEED,1.15,TUNING - speed multiplier of lizardfolk within his range (not himself),
