@@ -41,8 +41,8 @@
   "zoneQuotaOverrides": {},
   "candidates": [
     { "x": 1559, "y": 884, "zone": "fSE2", "zoneAuto": true },
-    { "x": 246, "y": 979, "zone": "fW", "zoneAuto": true },
-    { "x": 101, "y": 952, "zone": "fW", "zoneAuto": true },
+    { "x": 320, "y": 937, "zone": "fW", "zoneAuto": true },
+    { "x": 105, "y": 948, "zone": "fW", "zoneAuto": true },
     { "x": 217, "y": 845, "zone": "fW", "zoneAuto": true },
     { "x": 327, "y": 279, "zone": "fW", "zoneAuto": true },
     { "x": 1572, "y": 325, "zone": "fSE", "zoneAuto": true },

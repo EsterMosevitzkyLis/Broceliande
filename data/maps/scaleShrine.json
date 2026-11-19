@@ -54,7 +54,7 @@
     { "x": 688, "y": 472, "zone": "nW2", "zoneAuto": true },
     { "x": 1613, "y": 589, "zone": "fNE", "zoneAuto": true },
     { "x": 1219, "y": 201, "zone": "fNE", "zoneAuto": true },
-    { "x": 122, "y": 991, "zone": "fW", "zoneAuto": true },
+    { "x": 122, "y": 946, "zone": "fW", "zoneAuto": true },
     { "x": 356, "y": 178, "zone": "fW2", "zoneAuto": true },
     { "x": 174, "y": 399, "zone": "fW2", "zoneAuto": true },
     { "x": 750, "y": 893, "zone": "nW", "zoneAuto": true },
@@ -67,7 +67,7 @@
     { "x": 609, "y": 589, "zone": "nW2", "zoneAuto": true },
     { "x": 692, "y": 1018, "zone": "fW", "zoneAuto": true },
     { "x": 492, "y": 182, "zone": "fW2", "zoneAuto": true },
-    { "x": 259, "y": 971, "zone": "fW", "zoneAuto": true },
+    { "x": 263, "y": 969, "zone": "fW", "zoneAuto": true, "jitter": 0 },
     { "x": 554, "y": 445, "zone": "nW2", "zoneAuto": true }
   ],
   "decor": [

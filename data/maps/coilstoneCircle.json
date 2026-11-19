@@ -46,7 +46,7 @@
     { "x": 1568, "y": 319, "zone": "fE", "zoneAuto": true },
     { "x": 1511, "y": 582, "zone": "fE", "zoneAuto": true },
     { "x": 1711, "y": 967, "zone": "fSE", "zoneAuto": true },
-    { "x": 311, "y": 976, "zone": "fW", "zoneAuto": true },
+    { "x": 319, "y": 947, "zone": "fW", "zoneAuto": true },
     { "x": 818, "y": 781, "zone": "nW", "zoneAuto": true },
     { "x": 416, "y": 832, "zone": "fW", "zoneAuto": true },
     { "x": 1329, "y": 427, "zone": "nE", "zoneAuto": true },
