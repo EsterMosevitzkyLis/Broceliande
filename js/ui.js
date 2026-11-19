@@ -289,9 +289,17 @@ function runDebugLines(game, scene) {
 function placeBeside(popup, x, y, halfWidth) {
   const w = popup.offsetWidth;
   const h = popup.offsetHeight;
+  const minTop = C.HUD_STRIP_HEIGHT + 8;
+  const clampTop = (t) => Math.max(minTop, Math.min(C.STAGE_HEIGHT - h - 8, t));
   let left = x + halfWidth + POPUP_GAP;
+  let top = clampTop(y - h / 2);
   if (left + w > C.STAGE_WIDTH - 8) left = x - halfWidth - POPUP_GAP - w;
-  const top = Math.max(C.HUD_STRIP_HEIGHT + 8, Math.min(C.STAGE_HEIGHT - h - 8, y - h / 2));
+  if (left < 8) {
+    // Too wide for either side (e.g. three build cards by a central slot): centre it over or under the slot instead.
+    left = Math.max(8, Math.min(C.STAGE_WIDTH - w - 8, x - w / 2));
+    const below = y + halfWidth + POPUP_GAP;
+    top = below + h <= C.STAGE_HEIGHT - 8 ? below : clampTop(y - halfWidth - POPUP_GAP - h);
+  }
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
 }
