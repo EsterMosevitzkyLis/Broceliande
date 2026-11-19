@@ -651,3 +651,643 @@ export function drawSteppingStones(ctx, { x, y, size: s, variant }, P) {
     ellipse(ctx, x + dx - 1.5 * s, y + dy - 1 * s, 3 * s, 1.4 * s, V.stoneLight);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Rows 5-8. Two more `vale` colours: iron (the Ironspan's dark metal) and violet (the Den's glow);
+// a palette without them falls back to these.
+// ---------------------------------------------------------------------------
+
+const ironOf = (V) => V.iron ?? '#33383e';
+const violetOf = (V) => V.violet ?? '#a47ce0';
+
+// A soft round glow of colour rgb ('r, g, b') at (x, y), radius r, peak alpha a.
+function glow(ctx, x, y, r, rgb, a) {
+  const g = ctx.createRadialGradient(x, y, 1, x, y, r);
+  g.addColorStop(0, `rgba(${rgb}, ${a})`);
+  g.addColorStop(1, `rgba(${rgb}, 0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, TAU);
+  ctx.fill();
+}
+
+// ---------------------------------------------------------------------------
+// The Scale-Shrine: the relic altar, scale offerings, bone wind-chimes
+// ---------------------------------------------------------------------------
+
+// A relic altar glowing gold, built into a broken Elder wall (landmark).
+export function drawRelicAltar(ctx, { x, y, size: w }, P) {
+  const V = P.vale;
+  drawShadow(ctx, x, y, w * 1.05, w * 0.25);
+  ctx.fillStyle = V.stoneDark; // the broken wall behind it
+  ctx.beginPath();
+  ctx.moveTo(x - w, y - w * 0.2);
+  ctx.lineTo(x - w * 0.95, y - w * 1.1);
+  ctx.lineTo(x - w * 0.5, y - w * 1.25);
+  ctx.lineTo(x - w * 0.2, y - w * 1.0);
+  ctx.lineTo(x + w * 0.3, y - w * 1.3);
+  ctx.lineTo(x + w * 0.9, y - w * 0.9);
+  ctx.lineTo(x + w, y - w * 0.2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = V.stone;
+  for (let i = 0; i < 4; i++) ctx.fillRect(x - w * 0.9 + i * w * 0.46, y - w * 0.95 + (i % 2) * w * 0.12, w * 0.4, w * 0.18);
+  ellipse(ctx, x - w * 0.7, y - w * 1.08, w * 0.25, w * 0.07, V.moss);
+  ellipse(ctx, x + w * 0.4, y - w * 1.2, w * 0.2, w * 0.06, V.mossLight);
+  // The stepped altar block.
+  ctx.fillStyle = V.stoneDark;
+  ctx.fillRect(x - w * 0.6, y - w * 0.3, w * 1.2, w * 0.3);
+  ctx.fillStyle = V.stone;
+  ctx.fillRect(x - w * 0.45, y - w * 0.55, w * 0.9, w * 0.28);
+  ctx.fillStyle = V.stoneLight;
+  ctx.fillRect(x - w * 0.45, y - w * 0.55, w * 0.9, w * 0.05);
+  // The relic: a gold stone, glowing.
+  glow(ctx, x, y - w * 0.75, w * 0.75, '240, 205, 110', 0.4);
+  ellipse(ctx, x, y - w * 0.72, w * 0.16, w * 0.2, V.gold);
+  ellipse(ctx, x - w * 0.04, y - w * 0.78, w * 0.06, w * 0.08, 'rgba(255, 245, 200, 0.9)');
+  // Strings of scale offerings draped over the front.
+  for (const dx of [-0.38, -0.12, 0.14, 0.38]) {
+    for (let k = 0; k < 4; k++) ellipse(ctx, x + dx * w, y - w * 0.5 + k * w * 0.08, w * 0.03, w * 0.035, k % 2 ? V.moss : V.mossLight);
+  }
+}
+
+// Strings of shed scales hung from a crooked frame.
+export function drawScaleOffering(ctx, { x, y, size: s, variant }, P) {
+  const V = P.vale;
+  drawShadow(ctx, x, y, 12 * s, 3 * s);
+  ctx.strokeStyle = V.wood;
+  ctx.lineWidth = 2.5 * s;
+  ctx.beginPath();
+  ctx.moveTo(x - 10 * s, y);
+  ctx.lineTo(x - 8 * s, y - 30 * s);
+  ctx.lineTo(x + 9 * s, y - 32 * s);
+  ctx.lineTo(x + 10 * s, y);
+  ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    const sx = x - 5 * s + i * 4.5 * s;
+    const n = 3 + ((i + variant) % 3);
+    ctx.strokeStyle = 'rgba(200, 190, 150, 0.7)';
+    ctx.lineWidth = 0.8 * s;
+    ctx.beginPath();
+    ctx.moveTo(sx, y - 31 * s);
+    ctx.lineTo(sx, y - 31 * s + n * 4 * s);
+    ctx.stroke();
+    for (let k = 1; k <= n; k++) ellipse(ctx, sx, y - 31 * s + k * 4 * s, 1.8 * s, 2.2 * s, k % 2 ? V.moss : V.gold);
+  }
+}
+
+// Bone wind-chimes hung from a leaning stick.
+export function drawBoneChime(ctx, { x, y, size: s, variant }, P) {
+  const V = P.vale;
+  drawShadow(ctx, x, y, 7 * s, 2.5 * s);
+  const dir = variant % 2 ? -1 : 1;
+  const tx = x - dir * 6 * s;
+  ctx.strokeStyle = V.wood;
+  ctx.lineWidth = 2.2 * s;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(tx, y - 34 * s);
+  ctx.lineTo(tx + dir * 12 * s, y - 36 * s);
+  ctx.stroke();
+  const bx = tx + dir * 8 * s;
+  for (let i = 0; i < 4; i++) {
+    const cx = bx + (i - 1.5) * 3.2 * s;
+    const len = (7 + (i % 2) * 4) * s;
+    ctx.strokeStyle = 'rgba(200, 190, 150, 0.6)';
+    ctx.lineWidth = 0.6 * s;
+    ctx.beginPath();
+    ctx.moveTo(bx, y - 35.5 * s);
+    ctx.lineTo(cx, y - 30 * s);
+    ctx.stroke();
+    ctx.strokeStyle = '#e4dcc4';
+    ctx.lineWidth = 1.8 * s;
+    ctx.beginPath();
+    ctx.moveTo(cx, y - 30 * s);
+    ctx.lineTo(cx, y - 30 * s + len);
+    ctx.stroke();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The Drowned Observatory: the half-flooded dome, bronze rings, star-carved stones
+// ---------------------------------------------------------------------------
+
+// A broken Elder dome half under water, a bronze ring tilted on its rim (landmark).
+export function drawObservatoryDome(ctx, { x, y, size: w }, P) {
+  const V = P.vale;
+  ellipse(ctx, x, y - w * 0.05, w * 1.05, w * 0.32, P.water.rim);
+  ellipse(ctx, x, y - w * 0.08, w * 0.95, w * 0.26, P.water.deep);
+  // The dome: a half-shell, its right side broken open.
+  ctx.fillStyle = V.stoneDark;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.8, y - w * 0.15);
+  ctx.arc(x, y - w * 0.15, w * 0.8, Math.PI, Math.PI * 1.62);
+  ctx.lineTo(x + w * 0.05, y - w * 0.55);
+  ctx.lineTo(x + w * 0.3, y - w * 0.4);
+  ctx.lineTo(x + w * 0.45, y - w * 0.15);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = V.stone;
+  ctx.lineWidth = w * 0.06;
+  ctx.beginPath();
+  ctx.arc(x, y - w * 0.15, w * 0.74, Math.PI * 1.02, Math.PI * 1.6);
+  ctx.stroke();
+  ctx.strokeStyle = V.stoneLight; // its ribs
+  ctx.lineWidth = w * 0.025;
+  for (const a of [1.15, 1.3, 1.45]) {
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(a * Math.PI) * w * 0.78, y - w * 0.15 + Math.sin(a * Math.PI) * w * 0.78);
+    ctx.lineTo(x + Math.cos(a * Math.PI) * w * 0.2, y - w * 0.15);
+    ctx.stroke();
+  }
+  ellipse(ctx, x - w * 0.5, y - w * 0.62, w * 0.22, w * 0.06, V.moss, -0.5);
+  // The bronze armillary ring, tilted, half sunk, green with verdigris in places.
+  ctx.strokeStyle = '#b08a46';
+  ctx.lineWidth = w * 0.045;
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.55, y - w * 0.28, w * 0.38, w * 0.16, -0.5, 0, TAU);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120, 190, 160, 0.7)';
+  ctx.lineWidth = w * 0.018;
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.55, y - w * 0.28, w * 0.38, w * 0.16, -0.5, 0.4, 1.6);
+  ctx.stroke();
+  ctx.strokeStyle = P.water.ripple;
+  ctx.lineWidth = 2;
+  for (const [dx, rw] of [[-0.4, 0.3], [0.5, 0.25]]) {
+    ctx.beginPath();
+    ctx.ellipse(x + dx * w, y + w * 0.04, rw * w, rw * w * 0.2, 0, Math.PI * 0.1, Math.PI * 0.9);
+    ctx.stroke();
+  }
+}
+
+// A fallen bronze ring, half sunk in moss.
+export function drawBronzeRing(ctx, { x, y, size: s, variant }, P) {
+  drawShadow(ctx, x, y, 20 * s, 4 * s);
+  const tilt = variant % 2 ? 0.35 : -0.35;
+  ctx.strokeStyle = '#8e6c36';
+  ctx.lineWidth = 4 * s;
+  ctx.beginPath();
+  ctx.ellipse(x, y - 12 * s, 20 * s, 14 * s, tilt, Math.PI * 0.95, Math.PI * 2.05);
+  ctx.stroke();
+  ctx.strokeStyle = '#c49a54';
+  ctx.lineWidth = 1.5 * s;
+  ctx.beginPath();
+  ctx.ellipse(x, y - 13 * s, 20 * s, 14 * s, tilt, Math.PI * 1.1, Math.PI * 1.6);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120, 190, 160, 0.7)';
+  ctx.beginPath();
+  ctx.ellipse(x, y - 12 * s, 20 * s, 14 * s, tilt, Math.PI * 1.7, Math.PI * 1.95);
+  ctx.stroke();
+  ellipse(ctx, x, y, 22 * s, 4 * s, P.vale.moss);
+}
+
+// A flat stone carved with stars and the lines between them.
+export function drawStarStone(ctx, { x, y, size: s, variant }, P) {
+  const V = P.vale;
+  ellipse(ctx, x, y + 1.5 * s, 19 * s, 8 * s, 'rgba(0, 0, 0, 0.25)');
+  ellipse(ctx, x, y, 18 * s, 7.5 * s, V.stone);
+  ellipse(ctx, x - 2 * s, y - 1.5 * s, 14 * s, 5 * s, V.stoneLight);
+  const stars = [[-9, -1], [-3, -3], [4, -1], [9, -3], [1, 2]].slice(0, 4 + (variant % 2));
+  ctx.strokeStyle = 'rgba(232, 200, 96, 0.55)';
+  ctx.lineWidth = 0.8 * s;
+  ctx.beginPath();
+  stars.forEach(([dx, dy], i) => (i ? ctx.lineTo(x + dx * s, y + dy * s) : ctx.moveTo(x + dx * s, y + dy * s)));
+  ctx.stroke();
+  for (const [dx, dy] of stars) ellipse(ctx, x + dx * s, y + dy * s, 1.3 * s, 1 * s, V.gold);
+}
+
+// ---------------------------------------------------------------------------
+// The Coilstone Circle: spiral-carved standing stones, giant lizard tracks
+// ---------------------------------------------------------------------------
+
+export function drawCoilStone(ctx, { x, y, size: s, variant }, P) {
+  const V = P.vale;
+  const h = (44 + (variant % 3) * 6) * s;
+  drawShadow(ctx, x, y, 14 * s, 4 * s);
+  ctx.fillStyle = V.stoneDark;
+  ctx.beginPath();
+  ctx.moveTo(x - 12 * s, y);
+  ctx.lineTo(x - 10 * s, y - h * 0.85);
+  ctx.quadraticCurveTo(x, y - h * 1.05, x + 10 * s, y - h * 0.88);
+  ctx.lineTo(x + 12 * s, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = V.stone;
+  ctx.fillRect(x - 8 * s, y - h * 0.82, 12 * s, h * 0.8);
+  ctx.strokeStyle = V.stoneLight; // the spiral
+  ctx.lineWidth = 1.6 * s;
+  ctx.beginPath();
+  const cx = x - 2 * s;
+  const cy = y - h * 0.55;
+  for (let k = 0; k <= 40; k++) {
+    const a = k * 0.42;
+    const r = (1 + k * 0.17) * s;
+    const px = cx + Math.cos(a) * r;
+    const py = cy + Math.sin(a) * r * 1.2;
+    if (k) ctx.lineTo(px, py);
+    else ctx.moveTo(px, py);
+  }
+  ctx.stroke();
+  ellipse(ctx, x - 3 * s, y - h * 0.9, 7 * s, 2.5 * s, V.moss);
+  ellipse(ctx, x + 4 * s, y - 3 * s, 8 * s, 3 * s, V.moss);
+}
+
+// Giant lizard tracks pressed into a patch of mud, the tail dragged between them.
+export function drawLizardTracks(ctx, { x, y, size: s, variant }, P) {
+  ellipse(ctx, x, y, 26 * s, 9 * s, 'rgba(60, 45, 28, 0.55)');
+  ellipse(ctx, x + 3 * s, y - 1 * s, 18 * s, 5 * s, 'rgba(90, 70, 44, 0.4)');
+  ctx.strokeStyle = 'rgba(24, 18, 10, 0.6)';
+  ctx.lineWidth = 1.4 * s;
+  for (let i = 0; i < 3; i++) {
+    const px = x - 16 * s + i * 15 * s;
+    const py = y + ((i + variant) % 2 ? -3 : 3) * s;
+    ellipse(ctx, px, py, 3 * s, 2 * s, 'rgba(24, 18, 10, 0.5)');
+    for (const a of [-0.6, 0, 0.6]) {
+      ctx.beginPath();
+      ctx.moveTo(px + 2 * s, py);
+      ctx.lineTo(px + 2 * s + Math.cos(a) * 5 * s, py + Math.sin(a) * 3 * s);
+      ctx.stroke();
+    }
+  }
+  ctx.beginPath();
+  ctx.moveTo(x - 20 * s, y);
+  ctx.quadraticCurveTo(x, y + 5 * s, x + 20 * s, y - 1 * s);
+  ctx.stroke();
+}
+
+// ---------------------------------------------------------------------------
+// The Fallen Colossus
+// ---------------------------------------------------------------------------
+
+// An enormous Elder statue lying on its side, overgrown, one arm flung out (landmark; its size is
+// half its length).
+export function drawFallenColossus(ctx, { x, y, size: w }, P) {
+  const V = P.vale;
+  drawShadow(ctx, x, y, w * 1.05, w * 0.16);
+  // The body, its legs broken off at the left.
+  ctx.fillStyle = V.stoneDark;
+  ctx.beginPath();
+  ctx.moveTo(x - w, y - w * 0.05);
+  ctx.lineTo(x - w * 0.95, y - w * 0.22);
+  ctx.quadraticCurveTo(x - w * 0.3, y - w * 0.34, x + w * 0.45, y - w * 0.3);
+  ctx.lineTo(x + w * 0.62, y - w * 0.08);
+  ctx.lineTo(x - w, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = V.stone;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.93, y - w * 0.18);
+  ctx.quadraticCurveTo(x - w * 0.3, y - w * 0.3, x + w * 0.42, y - w * 0.26);
+  ctx.lineTo(x + w * 0.42, y - w * 0.18);
+  ctx.quadraticCurveTo(x - w * 0.3, y - w * 0.2, x - w * 0.93, y - w * 0.1);
+  ctx.closePath();
+  ctx.fill();
+  // The head, its face turned to the sky.
+  ellipse(ctx, x + w * 0.78, y - w * 0.18, w * 0.2, w * 0.17, V.stoneDark);
+  ellipse(ctx, x + w * 0.8, y - w * 0.22, w * 0.16, w * 0.12, V.stone);
+  ctx.fillStyle = V.stoneDark;
+  ctx.fillRect(x + w * 0.74, y - w * 0.26, w * 0.04, w * 0.015);
+  ctx.fillRect(x + w * 0.83, y - w * 0.26, w * 0.04, w * 0.015);
+  ctx.fillRect(x + w * 0.77, y - w * 0.18, w * 0.08, w * 0.012);
+  // An arm flung forward, its hand pointing.
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.1, y - w * 0.12);
+  ctx.lineTo(x + w * 0.35, y + w * 0.05);
+  ctx.lineTo(x + w * 0.5, y + w * 0.06);
+  ctx.lineTo(x + w * 0.48, y + w * 0.01);
+  ctx.lineTo(x + w * 0.2, y - w * 0.14);
+  ctx.closePath();
+  ctx.fill();
+  // Moss, ferns and creepers over it.
+  for (const [dx, dy, rx] of [[-0.75, -0.2, 0.15], [-0.35, -0.29, 0.2], [0.1, -0.3, 0.14], [0.3, -0.28, 0.1], [0.85, -0.33, 0.09]]) {
+    ellipse(ctx, x + dx * w, y + dy * w, rx * w, rx * w * 0.3, V.moss);
+  }
+  for (const [dx, a] of [[-0.55, -2.0], [-0.1, -1.2], [0.35, -1.9]]) frond(ctx, x + dx * w, y - w * 0.3, a, w * 0.16, P.vegetation.light, w * 0.015);
+  ctx.strokeStyle = V.moss;
+  ctx.lineWidth = w * 0.01;
+  for (const dx of [-0.6, -0.2, 0.25]) {
+    ctx.beginPath();
+    ctx.moveTo(x + dx * w, y - w * 0.28);
+    ctx.quadraticCurveTo(x + dx * w + w * 0.04, y - w * 0.15, x + dx * w - w * 0.02, y - w * 0.02);
+    ctx.stroke();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Broodmother's Den: the cavern mouth, bones and egg-shells, violet fungus
+// ---------------------------------------------------------------------------
+
+// A deep cavern mouth in a rock face, webbed over, a faint violet glow inside (landmark).
+export function drawCaveMouth(ctx, { x, y, size: w }, P) {
+  const V = P.vale;
+  const h = w * 1.1;
+  ctx.fillStyle = V.stoneDark;
+  ctx.beginPath();
+  ctx.moveTo(x - w, y);
+  ctx.lineTo(x - w * 0.9, y - h * 0.8);
+  ctx.lineTo(x - w * 0.4, y - h);
+  ctx.lineTo(x + w * 0.3, y - h * 1.05);
+  ctx.lineTo(x + w * 0.85, y - h * 0.75);
+  ctx.lineTo(x + w, y);
+  ctx.closePath();
+  ctx.fill();
+  ellipse(ctx, x - w * 0.6, y - h * 0.85, w * 0.3, w * 0.08, V.moss, -0.3);
+  ellipse(ctx, x + w * 0.5, y - h * 0.82, w * 0.25, w * 0.07, V.moss, 0.4);
+  ctx.fillStyle = '#07090a'; // the mouth
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.55, y);
+  ctx.quadraticCurveTo(x - w * 0.55, y - h * 0.75, x, y - h * 0.72);
+  ctx.quadraticCurveTo(x + w * 0.55, y - h * 0.7, x + w * 0.55, y);
+  ctx.closePath();
+  ctx.fill();
+  glow(ctx, x, y - h * 0.25, w * 0.5, '164, 124, 224', 0.3);
+  // Webs across it.
+  ctx.strokeStyle = V.web;
+  ctx.lineWidth = 1;
+  const cx = x - w * 0.05;
+  const cy = y - h * 0.45;
+  for (let i = 0; i < 7; i++) {
+    const a = Math.PI * (1 + i / 6);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * w * 0.55, cy + Math.sin(a) * h * 0.35 + h * 0.1);
+    ctx.stroke();
+  }
+  for (const r of [0.15, 0.28, 0.42]) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + h * 0.05, r * w, r * h * 0.6, 0, Math.PI, TAU);
+    ctx.stroke();
+  }
+  // Bones at the threshold.
+  ctx.strokeStyle = '#ddd4bc';
+  ctx.lineWidth = w * 0.025;
+  for (const [dx, a] of [[-0.3, 0.3], [0.1, -0.4], [0.35, 0.2]]) {
+    ctx.beginPath();
+    ctx.moveTo(x + dx * w - Math.cos(a) * w * 0.08, y - w * 0.03 - Math.sin(a) * w * 0.03);
+    ctx.lineTo(x + dx * w + Math.cos(a) * w * 0.08, y - w * 0.03 + Math.sin(a) * w * 0.03);
+    ctx.stroke();
+  }
+  ellipse(ctx, x - w * 0.12, y - w * 0.04, w * 0.04, w * 0.035, violetOf(V));
+}
+
+// Bones and broken egg-shells.
+export function drawBoneLitter(ctx, { x, y, size: s, variant }, P) {
+  ellipse(ctx, x, y, 22 * s, 6 * s, 'rgba(0, 0, 0, 0.18)');
+  ctx.strokeStyle = '#d8cfb6';
+  ctx.lineWidth = 2 * s;
+  ctx.lineCap = 'round';
+  for (const [dx, dy, a, l] of [[-10, -1, 0.4, 7], [4, 1, -0.3, 9], [12, -2, 1.2, 5], [-3, 3, 2.4, 6]].slice(0, 3 + (variant % 2))) {
+    ctx.beginPath();
+    ctx.moveTo(x + dx * s - Math.cos(a) * l * s, y + dy * s - Math.sin(a) * l * 0.4 * s);
+    ctx.lineTo(x + dx * s + Math.cos(a) * l * s, y + dy * s + Math.sin(a) * l * 0.4 * s);
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+  ctx.fillStyle = '#efe8d8';
+  for (const [dx, dy] of [[-4, -3], [8, 3], [-14, 3]]) {
+    ctx.beginPath();
+    ctx.ellipse(x + dx * s, y + dy * s, 3.5 * s, 2.6 * s, 0, Math.PI, TAU);
+    ctx.fill();
+  }
+}
+
+// A cluster of fungus glowing faint violet.
+export function drawVioletGlow(ctx, { x, y, size: s, variant }, P) {
+  glow(ctx, x, y - 5 * s, 24 * s, '164, 124, 224', 0.28);
+  for (const [dx, h, r] of [[-6, 8, 4.5], [3, 11, 5.5], [9, 5, 3.5], [-1, 4, 3]].slice(0, 3 + (variant % 2))) {
+    ctx.fillStyle = 'rgba(215, 205, 225, 0.85)';
+    ctx.fillRect(x + dx * s - 0.9 * s, y - h * s, 1.8 * s, h * s);
+    ctx.fillStyle = violetOf(P.vale);
+    ctx.beginPath();
+    ctx.ellipse(x + dx * s, y - h * s, r * s, r * 0.55 * s, 0, Math.PI, 0);
+    ctx.fill();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The Saurian Crossing: tribal standards, hunting blinds of woven fern
+// ---------------------------------------------------------------------------
+
+// A hide banner on a pole topped with a horned skull, feathers and scales tied on.
+export function drawTribalStandard(ctx, { x, y, size: s, variant }, P) {
+  const V = P.vale;
+  const h = 56 * s;
+  drawShadow(ctx, x, y, 8 * s, 2.5 * s);
+  ctx.strokeStyle = V.wood;
+  ctx.lineWidth = 3 * s;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y - h);
+  ctx.stroke();
+  ctx.fillStyle = variant % 2 ? V.paint : '#8a7048';
+  ctx.beginPath();
+  ctx.moveTo(x + 1 * s, y - h + 8 * s);
+  ctx.lineTo(x + 16 * s, y - h + 9 * s);
+  ctx.lineTo(x + 14 * s, y - h + 30 * s);
+  ctx.lineTo(x + 8 * s, y - h + 26 * s);
+  ctx.lineTo(x + 1 * s, y - h + 30 * s);
+  ctx.closePath();
+  ctx.fill();
+  ellipse(ctx, x + 8 * s, y - h + 17 * s, 3 * s, 3 * s, V.gold); // a painted eye
+  ellipse(ctx, x + 8 * s, y - h + 17 * s, 1.2 * s, 1.2 * s, '#1a1410');
+  ellipse(ctx, x, y - h - 2 * s, 4.5 * s, 3.5 * s, '#ddd4bc');
+  ctx.strokeStyle = '#ddd4bc';
+  ctx.lineWidth = 1.6 * s;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(x + side * 3 * s, y - h - 4 * s);
+    ctx.quadraticCurveTo(x + side * 8 * s, y - h - 6 * s, x + side * 7 * s, y - h - 11 * s);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = V.mossLight;
+  ctx.lineWidth = 1.2 * s;
+  for (const dy of [12, 20]) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - h + dy * s);
+    ctx.lineTo(x - 5 * s, y - h + (dy + 6) * s);
+    ctx.stroke();
+  }
+}
+
+// A low dome of woven fern with a dark spy-slit.
+export function drawFernBlind(ctx, { x, y, size: s, variant }, P) {
+  const V = P.vale;
+  drawShadow(ctx, x, y, 28 * s, 6 * s);
+  ctx.fillStyle = V.wood;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 26 * s, 22 * s, 0, Math.PI, TAU);
+  ctx.fill();
+  ctx.strokeStyle = P.vegetation.base; // the weave
+  ctx.lineWidth = 2 * s;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, (26 - i * 4) * s, (22 - i * 3.5) * s, 0, Math.PI, TAU);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#0c120c';
+  ctx.fillRect(x - 8 * s, y - 13 * s, 16 * s, 3 * s);
+  for (const [dx, a] of [[-18, -2.4], [-8, -1.8], [4, -1.3], [16, -0.7], [0, -1.57]].slice(0, 4 + (variant % 2))) {
+    frond(ctx, x + dx * s, y - 14 * s, a, 14 * s, P.vegetation.light, 1.4 * s);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The Hollow Ziggurat
+// ---------------------------------------------------------------------------
+
+// A stepped Elder pyramid, its top broken open, green-gold relic light rising from inside (landmark).
+export function drawZiggurat(ctx, { x, y, size: w }, P) {
+  const V = P.vale;
+  drawShadow(ctx, x, y, w * 1.05, w * 0.22);
+  const steps = 5;
+  const stepH = w * 0.2;
+  for (let i = 0; i < steps; i++) {
+    const half = w * (1 - i * 0.16);
+    const top = y - (i + 1) * stepH;
+    ctx.fillStyle = V.stoneDark;
+    ctx.fillRect(x - half, top, half * 2, stepH);
+    ctx.fillStyle = V.stone;
+    ctx.fillRect(x - half, top, half * 2, stepH * 0.3);
+    ellipse(ctx, x - half * 0.7 + (i % 2) * half * 0.9, top + stepH * 0.15, half * 0.18, stepH * 0.2, V.moss);
+  }
+  ctx.fillStyle = V.stoneLight; // the central stair
+  for (let i = 0; i < steps * 2; i++) ctx.fillRect(x - w * 0.12, y - (i + 1) * stepH * 0.5, w * 0.24, stepH * 0.12);
+  const topY = y - steps * stepH;
+  ctx.fillStyle = V.stoneDark; // the broken crown
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.3, topY);
+  ctx.lineTo(x - w * 0.24, topY - w * 0.16);
+  ctx.lineTo(x - w * 0.08, topY - w * 0.08);
+  ctx.lineTo(x + w * 0.02, topY - w * 0.2);
+  ctx.lineTo(x + w * 0.18, topY - w * 0.06);
+  ctx.lineTo(x + w * 0.3, topY);
+  ctx.closePath();
+  ctx.fill();
+  glow(ctx, x, topY - w * 0.08, w * 0.55, '200, 225, 120', 0.45);
+  const g = ctx.createLinearGradient(0, topY - w * 0.6, 0, topY);
+  g.addColorStop(0, 'rgba(220, 230, 140, 0)');
+  g.addColorStop(1, 'rgba(220, 230, 140, 0.35)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - w * 0.14, topY - w * 0.6, w * 0.28, w * 0.6);
+}
+
+// ---------------------------------------------------------------------------
+// The Ironspan and The Shaman's Perch: the iron bridge, iron stakes, the gorge, the Oracle's perch
+// ---------------------------------------------------------------------------
+
+// The near end of a great dark-metal bridge, running back over a misty gorge (landmark).
+export function drawIronBridge(ctx, { x, y, size: w }, P) {
+  const V = P.vale;
+  const iron = ironOf(V);
+  ctx.fillStyle = '#060908'; // the gorge below the span
+  ctx.beginPath();
+  ctx.moveTo(x - w, y - w * 0.05);
+  ctx.quadraticCurveTo(x, y + w * 0.12, x + w, y - w * 0.05);
+  ctx.lineTo(x + w * 0.9, y - w * 0.5);
+  ctx.quadraticCurveTo(x, y - w * 0.62, x - w * 0.9, y - w * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = V.stoneDark; // its rims
+  ctx.fillRect(x - w, y - w * 0.56, w * 2, w * 0.08);
+  ctx.fillRect(x - w, y - w * 0.1, w * 2, w * 0.08);
+  glow(ctx, x, y - w * 0.3, w * 0.7, '210, 220, 200', 0.18); // mist rising
+  ctx.strokeStyle = iron; // two girders with cross-bracing
+  ctx.lineWidth = w * 0.06;
+  for (const dy of [-0.62, -0.02]) {
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.25, y + dy * w);
+    ctx.lineTo(x + w * 0.25, y + dy * w);
+    ctx.stroke();
+  }
+  ctx.lineWidth = w * 0.025;
+  for (let i = 0; i < 5; i++) {
+    const yy = y - w * 0.02 - i * w * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.25, yy);
+    ctx.lineTo(x + w * 0.25, yy - w * 0.12);
+    ctx.moveTo(x + w * 0.25, yy);
+    ctx.lineTo(x - w * 0.25, yy - w * 0.12);
+    ctx.stroke();
+  }
+  // Its two great towers at the near end, humming gold at the seams.
+  for (const side of [-1, 1]) {
+    const px = x + side * w * 0.3;
+    ctx.fillStyle = iron;
+    ctx.fillRect(px - w * 0.07, y - w * 0.95, w * 0.14, w * 0.95);
+    ctx.fillStyle = '#4a5058';
+    ctx.fillRect(px - w * 0.07, y - w * 0.95, w * 0.04, w * 0.95);
+    ctx.fillStyle = 'rgba(232, 200, 96, 0.5)';
+    for (const k of [0.3, 0.55, 0.8]) ctx.fillRect(px - w * 0.07, y - w * k, w * 0.14, w * 0.012);
+    ellipse(ctx, px, y - w * 0.97, w * 0.1, w * 0.04, iron);
+  }
+}
+
+// A dark iron stake driven into the ground, banded, leaning.
+export function drawIronStake(ctx, { x, y, size: s, variant }, P) {
+  const iron = ironOf(P.vale);
+  drawShadow(ctx, x, y, 7 * s, 2.5 * s);
+  const h = (30 + (variant % 3) * 5) * s;
+  const lean = (variant % 2 ? 4 : -3) * s;
+  ctx.fillStyle = iron;
+  ctx.beginPath();
+  ctx.moveTo(x - 4 * s, y);
+  ctx.lineTo(x - 2.5 * s + lean, y - h);
+  ctx.lineTo(x + 2.5 * s + lean, y - h - 2 * s);
+  ctx.lineTo(x + 4 * s, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(232, 200, 96, 0.45)';
+  for (const k of [0.3, 0.65]) ctx.fillRect(x - 4 * s + lean * k, y - h * k, 8 * s, 1.4 * s);
+}
+
+// The edge of the gorge: a dark drop with mist, a jagged near lip (landmark).
+export function drawGorgeEdge(ctx, { x, y, size: w }, P) {
+  const V = P.vale;
+  ctx.fillStyle = '#050807';
+  ctx.beginPath();
+  ctx.moveTo(x - w, y);
+  for (let i = 0; i <= 10; i++) ctx.lineTo(x - w + (i / 10) * w * 2, y - w * 0.12 - (i % 2) * w * 0.05);
+  ctx.lineTo(x + w, y - w * 0.55);
+  for (let i = 10; i >= 0; i--) ctx.lineTo(x - w + (i / 10) * w * 2, y - w * 0.5 - ((i + 1) % 2) * w * 0.05);
+  ctx.closePath();
+  ctx.fill();
+  glow(ctx, x - w * 0.4, y - w * 0.32, w * 0.5, '215, 225, 205', 0.2);
+  glow(ctx, x + w * 0.45, y - w * 0.3, w * 0.45, '215, 225, 205', 0.16);
+  ctx.fillStyle = V.stoneDark; // the near lip
+  for (let i = 0; i < 10; i++) ctx.fillRect(x - w + i * w * 0.2, y - w * 0.12 - (i % 2) * w * 0.05, w * 0.2, w * 0.06);
+  for (let i = 0; i < 10; i += 2) ellipse(ctx, x - w + (i + 0.5) * w * 0.2, y - w * 0.08, w * 0.06, w * 0.025, V.stoneLight);
+}
+
+// The Oracle's perch: a jutting rock spire, iron-bound, a gold light at its top (landmark).
+export function drawOraclePerch(ctx, { x, y, size: w }, P) {
+  const V = P.vale;
+  drawShadow(ctx, x, y, w * 0.9, w * 0.22);
+  ctx.fillStyle = V.stoneDark;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.8, y);
+  ctx.lineTo(x - w * 0.45, y - w * 1.3);
+  ctx.lineTo(x + w * 0.2, y - w * 1.5);
+  ctx.lineTo(x + w * 0.55, y - w * 1.15);
+  ctx.lineTo(x + w * 0.8, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = V.stone;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.5, y - w * 0.1);
+  ctx.lineTo(x - w * 0.3, y - w * 1.2);
+  ctx.lineTo(x + w * 0.05, y - w * 1.35);
+  ctx.lineTo(x - w * 0.05, y - w * 0.1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = ironOf(V); // iron bands round the crown
+  ctx.lineWidth = w * 0.06;
+  for (const k of [1.05, 1.25]) {
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.4, y - w * k);
+    ctx.lineTo(x + w * 0.45, y - w * (k + 0.05));
+    ctx.stroke();
+  }
+  glow(ctx, x, y - w * 1.45, w * 0.45, '232, 200, 96', 0.3);
+  ellipse(ctx, x - w * 0.55, y - w * 0.5, w * 0.18, w * 0.06, V.moss);
+}

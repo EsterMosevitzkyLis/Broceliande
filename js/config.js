@@ -267,6 +267,11 @@ export const DECOR = {
     elderColumn: { lift: 35, r: 14 }, lilyPads: { lift: 2, r: 18 }, totem: { lift: 32, r: 12 }, steppingStones: { lift: 2, r: 28 },
     ruinedArch: { lift: 60, r: 70 }, serpentStatue: { lift: 40, r: 60 }, dryFountain: { lift: 25, r: 52 }, giantTrunk: { lift: 70, r: 50 },
     ropeBridge: { lift: 60, r: 70 }, basaltSteps: { lift: 20, r: 72 }, mossGate: { lift: 60, r: 92 }, waterfall: { lift: 50, r: 72 },
+    scaleOffering: { lift: 18, r: 14 }, boneChime: { lift: 20, r: 12 }, bronzeRing: { lift: 12, r: 24 }, starStone: { lift: 3, r: 20 },
+    coilStone: { lift: 28, r: 16 }, lizardTracks: { lift: 1, r: 26 }, boneLitter: { lift: 2, r: 22 }, violetGlow: { lift: 6, r: 18 },
+    tribalStandard: { lift: 32, r: 14 }, fernBlind: { lift: 12, r: 30 }, ironStake: { lift: 16, r: 8 },
+    relicAltar: { lift: 50, r: 52 }, observatoryDome: { lift: 30, r: 84 }, fallenColossus: { lift: 25, r: 155 }, caveMouth: { lift: 50, r: 82 },
+    ziggurat: { lift: 50, r: 92 }, ironBridge: { lift: 45, r: 82 }, gorgeEdge: { lift: 35, r: 152 }, oraclePerch: { lift: 35, r: 46 },
   },
   clearingRadius: 120,        // px, open dirt clearing around the Druid
   groundPatches: 70,          // subtle floor colour blobs
@@ -278,6 +283,8 @@ export const DECOR = {
     relicPylon: 24, // M6b §6: half its base's width; a breakable target in battle (oracleSystem.js)
     // M6e §2: the Lost Vale's landmarks.
     ruinedArch: 60, serpentStatue: 55, dryFountain: 50, giantTrunk: 45, ropeBridge: 70, basaltSteps: 70, mossGate: 90, waterfall: 70,
+
+    relicAltar: 50, observatoryDome: 80, fallenColossus: 150, caveMouth: 80, ziggurat: 90, ironBridge: 80, gorgeEdge: 150, oraclePerch: 45,
   },
 };
 
@@ -443,26 +450,6 @@ export const NODE_TYPES = {
   // visited. Its scene has a Trade and a Craft tab (village.js).
   village: { label: 'Village', icon: 'hut', rim: '#c89a56', fill: '#2f4a26', completedMark: 'coin' },
 };
-
-// M6a §2.1: the Lost Vale's placeholder levels until M6e. Each borrows another level's map file
-// (mapFile.js loadLevelMaps) and waves (applyData); its name, row, type, HP multiplier, step budget
-// and feature mix are its own, in the levels tab. M6e: rows 1-4 are real levels now.
-export const PLACEHOLDER_LEVELS = {
-  scaleShrine: 'ashen', drownedObservatory: 'causeway', coilstoneCircle: 'widows',
-  fallenColossus: 'mossbound', fernsea: 'weeping', broodmothersDen: 'barrow',
-  saurianCrossing: 'bone', hollowZiggurat: 'bells', ironspan: 'weeping',
-  shamansPerch: 'heartwood',
-};
-
-// M6b: what a placeholder's borrowed Stirge entries become, in turn (see placeholderSpawn).
-export const PLACEHOLDER_FLYER_SWAP = ['lizardman', 'hunter', 'lizardman', 'shaman'];
-// M6b §5: the mini-boss a placeholder Fell level's borrowed Ogre becomes (others: the region's first).
-export const PLACEHOLDER_MINIBOSS = { scaleShrine: 'highShaman', broodmothersDen: 'grimBroodmother' };
-// M6b §6: until M6e, the boss a placeholder's borrowed mini-boss becomes in one wave (the Shaman's
-// Perch's wave 3 Ogre, at t 0, becomes the Iron Oracle), and the placeholders that already have a
-// map file of their own (its waves still borrowed): the Perch, for its relic pylons.
-export const PLACEHOLDER_BOSS = { shamansPerch: { wave: 3, type: 'ironOracle' } };
-export const PLACEHOLDER_OWN_MAPS = new Set(['shamansPerch']);
 
 // A levels row that is a village (M6a §2.2), not a battle level.
 export const isVillageRow = (r) => r.nodeType === 'village';
@@ -846,12 +833,9 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     for (const k of ['enemyHpMult', 'stuckTime', 'hiddenShareNear', 'hiddenShareFar']) opt(level, k, r[k]); // M6c §1.1: blank = the region's share
     level.featureMix = Object.fromEntries(featureIds.map((f) => [f, r[`mix_${f}`] ?? 0]));
     level.zoneQuotas = { near: { turret: ZONE_NEAR_TURRET, feature: ZONE_NEAR_FEATURE }, far: { turret: ZONE_FAR_TURRET, feature: ZONE_FAR_FEATURE } };
-    const wavesOf = PLACEHOLDER_LEVELS[r.id] ?? r.id; // M6a §2.1: a placeholder's borrowed waves
-    const flyerSwaps = { n: 0 };
-    level.waves = t.waves.filter((w) => w.level === wavesOf).map((w) => {
+    level.waves = t.waves.filter((w) => w.level === r.id).map((w) => {
       // M3b §1: each spawn is its region's enemy for the role (a wolf in Hag's Causeway is a Drowned Thrall).
-      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === wavesOf && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
-      if (PLACEHOLDER_LEVELS[r.id]) wave.spawns = wave.spawns.map((sp) => placeholderSpawn(sp, flyerSwaps, r.id, w.wave)); // M6b: no Stirges in the Vale
+      const wave = { gapAfter: w.gapAfter, spawns: t.spawns.filter((sp) => sp.level === r.id && sp.wave === w.wave).map((sp) => ({ t: sp.t, lane: sp.lane, type: regionalEnemy(sp.type, r.region), count: sp.count })) };
       return opt(wave, 'tolls', w.tolls);
     });
     return level;
@@ -894,19 +878,6 @@ export function regionalEnemy(type, regionId) {
   }) ?? type;
 }
 
-// M6b: a placeholder Vale level's borrowed Stirge entry (no Stirges in the Vale) becomes, in turn,
-// PLACEHOLDER_FLYER_SWAP's next enemy (the Grim one for a Grim Stirge), half as many. Goes with
-// PLACEHOLDER_LEVELS in M6e.
-function placeholderSpawn(sp, swaps, levelId, wave) {
-  const t = ENEMY_TYPES[sp.type];
-  const boss = PLACEHOLDER_BOSS[levelId];
-  if (t.role === 'miniboss' && boss?.wave === wave) return { ...sp, type: boss.type };
-  if (t.role === 'miniboss' && PLACEHOLDER_MINIBOSS[levelId]) return { ...sp, type: PLACEHOLDER_MINIBOSS[levelId] };
-  if (t.role !== 'flyer') return sp;
-  const base = PLACEHOLDER_FLYER_SWAP[swaps.n++ % PLACEHOLDER_FLYER_SWAP.length];
-  const type = t.variant ? Object.keys(ENEMY_TYPES).find((id) => ENEMY_TYPES[id].baseType === base && ENEMY_TYPES[id].variant === t.variant) ?? base : base;
-  return { ...sp, type, count: Math.max(1, Math.round(sp.count / 2)) };
-}
 
 // A palette row's flattened columns ("treeDark_canopy_0") back into nested objects and arrays.
 function unflatten(row, skip) {

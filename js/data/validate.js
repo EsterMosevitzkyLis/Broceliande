@@ -3,7 +3,7 @@
 // per-level start-up checks (candidates, corridors, zones, Ogre widths…) run later, on the applied
 // data, as before.
 
-import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES, PLACEHOLDER_LEVELS, isVillageRow } from '../config.js';
+import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES, isVillageRow } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 
 const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss', 'warrior', 'ranged', 'support', 'egg']; // M3b §1, M6b §4.1, §5.1
@@ -306,8 +306,7 @@ export function validateTables(t, problems, maps = {}) {
     }
     if (r.trader !== undefined) err('levels', r, 'trader', 'only a village row names a trader');
     if (r.stepBudget === undefined) err('levels', r, 'stepBudget', 'a value is required');
-    // M6a §2.1: a placeholder level borrows another level's waves (and map file) until M6e.
-    if (!waveCounts[PLACEHOLDER_LEVELS[r.id] ?? r.id]) err('levels', r, 'id', `${r.id} has no waves`);
+    if (!waveCounts[r.id]) err('levels', r, 'id', `${r.id} has no waves`);
     if (maps[r.id] && !maps[r.id].candidates.length) err('levels', r, 'id', `${r.id} has no candidates in its map file`);
   }
   return problems;

@@ -49,21 +49,10 @@ export async function loadMaps(levelIds, problems) {
   return { maps, backgrounds };
 }
 
-// The map files of the levels tab's battle levels (M6a §2.2: not its village rows). A placeholder
-// level (C.PLACEHOLDER_LEVELS, M6a §2.1) gets a copy of the file of the level it borrows from, with
-// its own id, and that level's background. Returns what loadMaps returns.
+// The map files of the levels tab's battle levels (M6a §2.2: not its village rows). Returns what
+// loadMaps returns.
 export async function loadLevelMaps(rows, problems) {
-  const ids = rows.filter((r) => r.id && !C.isVillageRow(r)).map((r) => r.id);
-  const borrowed = ids.filter((id) => C.PLACEHOLDER_LEVELS[id] && !C.PLACEHOLDER_OWN_MAPS.has(id)); // M6b §6: the Perch has its own
-  const files = [...new Set([...ids.filter((id) => !borrowed.includes(id)), ...borrowed.map((id) => C.PLACEHOLDER_LEVELS[id])])];
-  const { maps, backgrounds } = await loadMaps(files, problems);
-  for (const id of borrowed) {
-    const src = C.PLACEHOLDER_LEVELS[id];
-    if (!maps[src]) continue;
-    maps[id] = { ...JSON.parse(JSON.stringify(maps[src])), level: id };
-    if (backgrounds[src]) backgrounds[id] = backgrounds[src];
-  }
-  return { maps, backgrounds };
+  return loadMaps(rows.filter((r) => r.id && !C.isVillageRow(r)).map((r) => r.id), problems);
 }
 
 function loadImage(src) {

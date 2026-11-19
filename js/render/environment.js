@@ -230,6 +230,11 @@ const THEMED = {
   ropeBridge: VD.drawRopeBridge, basaltSteps: VD.drawBasaltSteps, glyphStone: VD.drawGlyphStone, cocoons: VD.drawCocoons,
   web: VD.drawWeb, glowFungus: VD.drawGlowFungus, elderColumn: VD.drawElderColumn, lilyPads: VD.drawLilyPads,
   mossGate: VD.drawMossGate, totem: VD.drawTotem, waterfall: VD.drawWaterfall, steppingStones: VD.drawSteppingStones,
+  relicAltar: VD.drawRelicAltar, scaleOffering: VD.drawScaleOffering, boneChime: VD.drawBoneChime, observatoryDome: VD.drawObservatoryDome,
+  bronzeRing: VD.drawBronzeRing, starStone: VD.drawStarStone, coilStone: VD.drawCoilStone, lizardTracks: VD.drawLizardTracks,
+  fallenColossus: VD.drawFallenColossus, caveMouth: VD.drawCaveMouth, boneLitter: VD.drawBoneLitter, violetGlow: VD.drawVioletGlow,
+  tribalStandard: VD.drawTribalStandard, fernBlind: VD.drawFernBlind, ziggurat: VD.drawZiggurat, ironBridge: VD.drawIronBridge,
+  ironStake: VD.drawIronStake, gorgeEdge: VD.drawGorgeEdge, oraclePerch: VD.drawOraclePerch,
 };
 
 // M3a §2 (The Burnt Hamlet): a cottage roof fallen into its ash pit, charred black, its rafters
