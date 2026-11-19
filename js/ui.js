@@ -312,6 +312,8 @@ export function createUI(callbacks) {
   const el = {
     hud: document.getElementById('hud'),
     levelName: document.getElementById('level-name'),
+    levelNameTitle: document.getElementById('level-name-title'),
+    levelNameStage: document.getElementById('level-name-stage'),
     phase: document.getElementById('hud-phase'),
     timer: document.getElementById('hud-timer'),
     steps: document.getElementById('hud-steps'),
@@ -384,10 +386,12 @@ export function createUI(callbacks) {
 
   el.hud.style.height = `${C.HUD_STRIP_HEIGHT}px`;
   // Resource icons from the shared definition (M1d §1.3), also used for drops on the canvas.
+  // Gold keeps the full size; the materials' grid uses smaller icons.
   for (const icon of document.querySelectorAll('.res-icon')) {
     icon.innerHTML = RESOURCE_ICON_SVG[icon.dataset.resource];
-    icon.style.width = `${C.RESOURCE_ICON_SIZE}px`;
-    icon.style.height = `${C.RESOURCE_ICON_SIZE}px`;
+    const size = icon.closest('#hud-resources') ? C.HUD_MATERIAL_ICON_SIZE : C.RESOURCE_ICON_SIZE;
+    icon.style.width = `${size}px`;
+    icon.style.height = `${size}px`;
   }
   el.stepsBar.style.setProperty('--blink-period', `${1 / C.STEP_BAR_BLINK_HZ}s`);
   el.startCombat.addEventListener('click', () => {
@@ -405,11 +409,11 @@ export function createUI(callbacks) {
     callbacks.onToggleMute();
     el.mute.blur(); // so Space / Enter later don't toggle it again
   });
-  el.speed.addEventListener('click', (e) => {
-    const button = e.target.closest('button');
-    if (!button) return;
-    callbacks.onSetSpeed(Number(button.dataset.speed));
-    button.blur();
+  // One button cycling through the speeds (×1, ×2, ×4).
+  el.speed.addEventListener('click', () => {
+    const speeds = C.SIM_SPEEDS;
+    callbacks.onSetSpeed(speeds[(speeds.indexOf(chosenSpeed()) + 1) % speeds.length]);
+    el.speed.blur();
   });
   // Menu option buttons are created per menu (see updateMenu); clicks report the option index.
   // The whole option card is the click target (M1f §2), button or not.
@@ -470,7 +474,7 @@ export function createUI(callbacks) {
     const stageRect = document.getElementById('stage').getBoundingClientRect();
     const s = stageRect.width / C.STAGE_WIDTH;
     const out = {};
-    for (const icon of document.querySelectorAll('#hud-resources .res-icon')) {
+    for (const icon of document.querySelectorAll('#hud .res-icon')) {
       const r = icon.getBoundingClientRect();
       out[icon.dataset.resource] = { x: (r.left + r.width / 2 - stageRect.left) / s, y: (r.top + r.height / 2 - stageRect.top) / s };
     }
@@ -559,7 +563,10 @@ function updateMapMessage(el, game) {
 function updateLevelName(el, game, view) {
   const shown = !view.dialogueOpen && ![GameState.START, GameState.MAP, GameState.TRADER, GameState.TINKER, GameState.VILLAGE, GameState.CROSSING].includes(game.state); // not in a place scene (M2n §4.2)
   el.levelName.hidden = !shown;
-  if (shown) setText(el.levelName, game.scene.level.name);
+  if (shown) {
+    setText(el.levelNameTitle, game.scene.level.name);
+    setText(el.levelNameStage, stageLine(game.scene.level));
+  }
 }
 
 // "a Crown Charm", but "Shoes" (a plural slot label takes no article).
@@ -648,7 +655,7 @@ function updateWavePreview(el, game) {
   el.phase.hidden = shown; // the preview takes the wave label's and the clock's place in the strip
   if (shown) el.timer.hidden = true;
   if (!shown) return;
-  setText(el.wavePreviewTitle, `Wave ${w.index + 1} of ${waveCount(game)} — in ${Math.max(1, Math.ceil(w.remaining))}`);
+  setText(el.wavePreviewTitle, `Wave ${w.index + 1}/${waveCount(game)} · in ${Math.max(1, Math.ceil(w.remaining))}`);
   const key = `${game.levelId}:${w.index}`;
   if (el.wavePreviewEntries.dataset.key !== key) {
     el.wavePreviewEntries.dataset.key = key;
@@ -675,7 +682,7 @@ export function wavePreviewArea(scene) {
   const entries = document.getElementById('wave-preview-entries');
   const wasHidden = panel.hidden;
   panel.hidden = false;
-  document.getElementById('wave-preview-title').textContent = 'Wave 3 of 5 — in 6';
+  document.getElementById('wave-preview-title').textContent = 'Wave 3/5 · in 6';
   const waves = levelWaves(scene.level);
   const widest = waves.reduce((a, w) => (Object.keys(waveTotals(w)).length > Object.keys(waveTotals(a)).length ? w : a), waves[0]);
   entries.replaceChildren(wavePreviewEntries(widest));
@@ -761,6 +768,12 @@ export function bossBarProblems(scene, r = bossBarArea()) {
     .map((c) => ({ index: c.index, problem: `candidate ${c.index} at (${c.x}, ${c.y}) is under the boss HP bar` }));
 }
 
+// The name plate's second line: "<Region name> · Stage N/M", N the level's row, M the region's rows.
+function stageLine(level) {
+  const rows = Math.max(...Object.values(C.LEVELS).filter((l) => l.region === level.region).map((l) => l.row ?? 0));
+  return `${C.REGIONS[level.region].name} · Stage ${level.row}/${rows}`;
+}
+
 // Start-up check (M2a §6): the label must not cover any candidate location, in any level. The
 // label is measured with each level's name; a candidate's footprint + jitter must stay clear.
 export function checkLevelNameLabel(scenes) {
@@ -772,13 +785,16 @@ export function checkLevelNameLabel(scenes) {
 // The rectangle the level name label covers with this level's name, in stage coordinates.
 export function levelNameLabelArea(scene) {
   const label = document.getElementById('level-name');
+  const title = document.getElementById('level-name-title');
+  const stage = document.getElementById('level-name-stage');
   const wasHidden = label.hidden;
-  const text = label.textContent;
+  const text = [title.textContent, stage.textContent];
   label.hidden = false;
-  label.textContent = scene.level.name;
+  title.textContent = scene.level.name;
+  stage.textContent = stageLine(scene.level);
   // Stage coordinates: the label sits at its CSS offsets inside the unscaled 1920×1080 stage.
   const r = { left: label.offsetLeft, top: label.offsetTop, right: label.offsetLeft + label.offsetWidth, bottom: label.offsetTop + label.offsetHeight };
-  label.textContent = text;
+  [title.textContent, stage.textContent] = text;
   label.hidden = wasHidden;
   return r;
 }
@@ -1483,10 +1499,8 @@ function updateSpeedButtons(el, game) {
   el.speed.hidden = game.state !== GameState.COMBAT;
   if (el.speed.hidden) return;
   const speed = chosenSpeed();
-  for (const button of el.speed.children) {
-    const active = Number(button.dataset.speed) === speed;
-    if (button.classList.contains('active') !== active) button.classList.toggle('active', active);
-  }
+  setText(el.speed, `×${speed}`);
+  el.speed.classList.toggle('fast', speed > 1);
 }
 
 // The trader scene (M3e §8): the profile, the rolled counts and the goods with their rarities and

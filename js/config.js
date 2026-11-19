@@ -326,7 +326,8 @@ export const DOUBLE_FADE_TIME = 0.3;        // s to fade out on completion or ca
 export const DOUBLE_BOB_PX = 2;             // px of gentle bob while crafting (visual only)
 export const DOUBLE_CHIP_TIME = 0.45;       // s a wood chip flies before vanishing (visual only)
 
-export const RESOURCE_ICON_SIZE = 28;     // px, resource icons in the HUD panel
+export const RESOURCE_ICON_SIZE = 28;     // px, resource icons in the HUD panel (gold)
+export const HUD_MATERIAL_ICON_SIZE = 20; // px, material icons in the HUD's two-row grid
 export const MENU_PORTRAIT_SIZE = 40;     // px, creature / turret images in menus (M1f §2)
 export const MENU_COST_ICON_SIZE = 18;    // px, resource icons in cost rows (M1f §3)
 export const DROP_ICON_SCALE = 0.7;       // drop icons on the ground, relative to RESOURCE_ICON_SIZE

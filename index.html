@@ -13,16 +13,20 @@
     <div id="ui-layer">
       <div id="hud">
         <div class="hud-left">
-          <span class="hud-label">Druid</span>
-          <div id="hud-hp-bar"><div id="hud-hp-fill"></div></div>
-          <span id="hud-hp-text"></span>
+          <!-- The Druid's HP: a heart, a short bar and the numbers. -->
+          <div id="hud-hp" title="Druid">
+            <svg id="hud-heart" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 5.3 3.2 1.7-2 3.1-3.2 5.3-3.2 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z" /></svg>
+            <div id="hud-hp-bar"><div id="hud-hp-fill"></div></div>
+            <span id="hud-hp-text"></span>
+          </div>
+          <!-- Icons are inserted from js/icons.js, shared with the drop items on the canvas. -->
+          <!-- M3e §2.1: gold on its own, apart from the materials. -->
+          <span class="res res-currency" title="Gold">
+            <span class="res-icon" data-resource="gold"></span>
+            <span id="res-gold">0</span>
+          </span>
+          <!-- Materials in a compact grid of two rows, up to four per row. -->
           <div id="hud-resources">
-            <!-- Icons are inserted from js/icons.js, shared with the drop items on the canvas. -->
-            <!-- M3e §2.1: gold first, set a little apart from the materials. -->
-            <span class="res res-currency" title="Gold">
-              <span class="res-icon" data-resource="gold"></span>
-              <span id="res-gold">0</span>
-            </span>
             <span class="res" title="Peach Pits">
               <span class="res-icon" data-resource="pits"></span>
               <span id="res-pits">0</span>
@@ -69,19 +73,17 @@
                label and clock (below the strip it would cover candidate locations), with Call next wave
                (also Space). -->
           <div id="wave-preview" hidden>
-            <span id="wave-preview-title"></span>
-            <span id="wave-preview-entries"></span>
-            <button id="btn-next-wave" type="button">Call next wave <span class="key-hint">(Space)</span></button>
+            <div id="wave-preview-info">
+              <span id="wave-preview-title"></span>
+              <span id="wave-preview-entries"></span>
+            </div>
+            <button id="btn-next-wave" type="button" title="Call the next wave (Space)">Next wave</button>
           </div>
         </div>
         <div class="hud-right">
           <button id="btn-start-combat" type="button">Start Combat</button>
-          <!-- Game speed (M2k §1), Combat only; also keys 1 / 2 / 4. -->
-          <div id="hud-speed" hidden>
-            <button type="button" data-speed="1" title="Normal speed (1)">×1</button>
-            <button type="button" data-speed="2" title="Double speed (2)">×2</button>
-            <button type="button" data-speed="4" title="Quadruple speed (4)">×4</button>
-          </div>
+          <!-- Game speed (M2k §1), Combat only: one button cycling ×1, ×2, ×4; also keys 1 / 2 / 4. -->
+          <button id="hud-speed" type="button" title="Game speed (click to change, or keys 1 / 2 / 4)" hidden>×1</button>
           <!-- Mute toggle (M1g §3.6); also the V key. -->
           <button id="btn-mute" type="button" title="Sound on (V to mute)">
             <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
@@ -95,7 +97,7 @@
 
       <!-- Current Wilds name, bottom-left (M2a §6); never blocks clicks. Before the end overlay, so
            it stays visible under it. -->
-      <div id="level-name" hidden></div>
+      <div id="level-name" hidden><div id="level-name-title"></div><div id="level-name-stage"></div></div>
 
       <div id="end-overlay" hidden>
         <div class="end-panel">
