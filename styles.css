@@ -696,9 +696,98 @@ html, body {
   color: #ee7a62;
 }
 
+/* Compact menu (build, Bough Double build, turret): a palette of tiles, up to four per row (the
+   columns are set from MENU_TILES_PER_ROW / MENU_TILE_WIDTH in js/ui.js), then the detail area. */
+#menu {
+  padding: 10px 12px;
+  width: 290px;
+}
 #menu-options {
+  display: grid;
+  gap: 8px 6px;
+  justify-content: center;
+}
+.menu-tile {
+  position: relative; /* for the key badge */
   display: flex;
-  gap: 18px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 2px 4px;
+  border: 1px solid #4a5e36;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.menu-tile.clickable { cursor: pointer; }
+.menu-tile.clickable:hover,
+.menu-tile.selected {
+  background: rgba(127, 165, 90, 0.22);
+  border-color: #9fbf78;
+}
+.menu-tile.disabled { cursor: not-allowed; }
+.menu-tile.disabled .menu-portrait {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+.menu-tile.disabled .tile-name { color: #8f8b78; }
+.tile-name {
+  font-size: 13px;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-cost {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1px 5px;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.1;
+  color: #d8d2b8;
+}
+.tile-cost-item {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.tile-cost-item.short { color: #ee7a62; }
+.tile-key {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font: bold 11px/1 'Consolas', monospace;
+  color: #a9b88c;
+}
+/* A tile that can't be chosen shakes when clicked (MENU_SHAKE_MS). */
+.menu-tile.shake { animation: tile-shake 0.3s ease-in-out; }
+@keyframes tile-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+/* The detail area under the tiles: kept a steady height so the menu doesn't jump on hover. */
+#menu-info {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #4a5e36;
+  min-height: 150px;
+  font-size: 17px;
+  line-height: 1.3;
+}
+#menu-info .menu-title { font-size: 18px; }
+#menu-info .cost-rows { margin: 3px 0 5px; font-size: 16px; }
+#menu-info .menu-detail { margin: 0; font-size: 15px; }
+#menu-info .menu-reason { margin-top: 4px; font-size: 15px; }
+.menu-cost-text { margin: 2px 0 4px; font-size: 15px; color: #d8d2b8; }
+.menu-hint {
+  font-size: 15px;
+  font-style: italic;
+  color: #9a967f;
 }
 
 /* Each option is a card, clickable as a whole (M1f §2); an image, when it has one, sits left. */

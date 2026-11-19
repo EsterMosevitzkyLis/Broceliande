@@ -239,7 +239,10 @@ const input = createInput(stage, canvas, () => scale, {
       case 'p': // P: pause; Shift+P on the map (M2p §6): learn a random unknown pattern
         if (e.shiftKey) { if (game.state === GameState.MAP) debugLearnPattern(); } else clock.paused = !clock.paused;
         break;
-      case '1': case '2': case '4': setSpeed(Number(key)); break; // M2k §1: game speed (Combat only)
+      // Keys 1-6 pick a build menu's tiles while it is open; otherwise 1 / 2 / 4 set the game speed (M2k §1, Combat only).
+      case '1': case '2': case '3': case '4': case '5': case '6':
+        if (!ui.pickMenuTile(view, Number(key) - 1) && C.SIM_SPEEDS.includes(Number(key))) setSpeed(Number(key));
+        break;
       case 'n': // N: start Combat from Prep; Shift+N (M2i §7): kill all and skip the rest of this wave
         if (e.shiftKey) skipWave(game);
         else if (game.state === GameState.PREP) startCombat(game);

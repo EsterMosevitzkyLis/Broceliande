@@ -11,7 +11,7 @@ import { corridorWidth, featureMix, stuckTime, levelWaves, waveTotals, levelTota
 import { waveCount, waveEnemiesLeft } from './systems/waveSystem.js';
 import { createRng } from './rng.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
-import { costRowsElement, costRowsKey } from './costRows.js';
+import { costRowsElement, costRowsKey, costRowData } from './costRows.js';
 import { portraitCanvas } from './render/portraits.js';
 import { canAfford, RESOURCE_KEYS, MATERIAL_KEYS, resourceName, formatCost } from './resources.js';
 import { canStartBuild, summonAvailability, summonMax, isTravelling, SUMMONS } from './systems/actionSystem.js';
@@ -358,6 +358,7 @@ export function createUI(callbacks) {
     menu: document.getElementById('menu'),
     menuHeader: document.getElementById('menu-header'),
     menuOptions: document.getElementById('menu-options'),
+    menuInfo: document.getElementById('menu-info'),
     summonPanel: document.getElementById('summon-panel'),
     modeBanner: document.getElementById('mode-banner'),
     uiLayer: document.getElementById('ui-layer'),
@@ -417,22 +418,31 @@ export function createUI(callbacks) {
   });
   // Menu option buttons are created per menu (see updateMenu); clicks report the option index.
   // The whole option card is the click target (M1f §2), button or not.
+  // A tile that can't be chosen (unaffordable, no steps, or info only) just shakes.
   el.menu.addEventListener('click', (e) => {
-    const card = e.target.closest('.menu-option');
-    if (card && !card.classList.contains('disabled')) callbacks.onMenuAction(Number(card.dataset.option));
+    const tile = e.target.closest('.menu-tile');
+    if (tile) chooseTile(Number(tile.dataset.option));
   });
+  function chooseTile(index) {
+    const o = shownOptions[index];
+    if (!o) return;
+    if (o.disabled) shakeTile(el.menuOptions.children[index]);
+    else callbacks.onMenuAction(index);
+  }
   // Summon panel (M2q): a card does what its shortcut does, greyed out or not (a denied summon says why).
   el.summonPanel.addEventListener('click', (e) => {
     const card = e.target.closest('.menu-option');
     if (card) callbacks.onSummonCard(Object.keys(SUMMONS)[Number(card.dataset.option)]);
   });
-  // Which option card the pointer is over (build menu range preview, M1f §5.2).
-  let menuHoverIndex = null;
+  // Which tile the pointer is over (its details, and the build menu's range preview, M1f §5.2), and
+  // the one last picked by key (1-6), shown when nothing is hovered.
+  const menuPick = { hover: null, key: null };
   el.menu.addEventListener('mouseover', (e) => {
-    const card = e.target.closest('.menu-option');
-    menuHoverIndex = card ? Number(card.dataset.option) : null;
+    const tile = e.target.closest('.menu-tile');
+    menuPick.hover = tile ? Number(tile.dataset.option) : null;
   });
-  el.menu.addEventListener('mouseleave', () => { menuHoverIndex = null; });
+  el.menu.addEventListener('mouseleave', () => { menuPick.hover = null; });
+  let shownOptions = []; // the open menu's options, as last drawn
 
   let lastState = null;
   let tooltipKey = null;
@@ -449,7 +459,7 @@ export function createUI(callbacks) {
     updateSpeedButtons(el, game);
     updateStepBar(el, game, view);
     tooltipKey = updateTooltip(el, game, view, tooltipKey);
-    menuKey = updateMenu(el, game, view, menuKey, menuHoverIndex);
+    ({ key: menuKey, options: shownOptions } = updateMenu(el, game, view, menuKey, menuPick));
     updateSummonPanel(el, game, view);
     const placing = game.action.state === ActionState.SUMMON_PLACEMENT;
     el.modeBanner.hidden = !placing;
@@ -545,7 +555,16 @@ export function createUI(callbacks) {
     for (const lane of scene.lanes) option(laneSelect, lane.id, lane.name);
   }
 
-  return { update, resourceTargets };
+  // Keys 1-6 (main.js): pick that tile of an open build menu, as a click would. False when no build
+  // menu is open or it has no such tile (the key then does its usual job).
+  function pickMenuTile(view, index) {
+    if (!view.menu || (view.menu.kind !== 'build' && view.menu.kind !== 'doubleBuild') || !shownOptions[index]) return false;
+    menuPick.key = index;
+    chooseTile(index);
+    return true;
+  }
+
+  return { update, resourceTargets, pickMenuTile };
 }
 
 // M2p §3.3: the map's short message ("Pattern learned: …"), fading over its last third.
@@ -1017,7 +1036,8 @@ function villageTooltip(run, node, anchor) {
 }
 
 function updateTooltip(el, game, view, prevKey) {
-  const content = game.state === GameState.MAP ? mapTooltip(game.run, view.mapHover) : tooltipContent(game, view.hover);
+  // No hover tooltip while a menu is open: it showed beside the same slot, like an older menu behind it.
+  const content = game.state === GameState.MAP ? mapTooltip(game.run, view.mapHover) : view.menu ? null : tooltipContent(game, view.hover);
   const key = content ? JSON.stringify(content) + (content.cost ? costRowsKey(content.cost, game.resources) : '') : null;
   if (key === prevKey) return key;
 
@@ -1223,14 +1243,14 @@ function turretMenuOptions(game, menu) {
     const what = d.job === 'build' ? `building ${turretType(d.turretType).name}` : d.job === 'repair' ? 'repairing' : `upgrading to ${levelLabel(d.turretType, d.toLevel, 'level')}`;
     const left = d.state === DoubleState.WISP ? 'arriving' : `${Math.max(0, d.duration - d.elapsed).toFixed(1)} s left`;
     options.push({
-      title: `Bough Double: ${what}`, portrait: 'double', cost: null, costText: `Refund: ${formatCost(d.paid)}`,
+      title: `Bough Double: ${what}`, portrait: 'double', cost: null, costText: `Refund: ${formatCost(d.paid)}`, tileName: 'Cancel', tileText: 'job',
       detail: left, action: 'Cancel job', disabled: false, reason: '',
     });
   }
   const turret = turretOnSlot(game, menu.index);
   if (turret) {
     options.push({
-      title: `${turretType(turret.type).name} · ${levelLabel(turret.type, turret.level, 'level')}`, portrait: turret.type, cost: null,
+      title: `${turretType(turret.type).name} · ${levelLabel(turret.type, turret.level, 'level')}`, portrait: turret.type, cost: null, tileText: `Lv ${turret.level}`,
       // "No upgrades available" stays for future single-level types (M1h §2.3).
       costText: maxLevel(turret.type) === 1 ? 'No upgrades available'
         : turret.level >= maxLevel(turret.type) ? 'Max level' : `Upgrade with a Bough Double (level ${turret.level + 1})`,
@@ -1335,36 +1355,123 @@ function updateSummonPanel(el, game, view) {
 }
 
 // Contextual menu (§9.2, §11.1, §16.2): build menu in Prep; turret menu in Combat. Each option is greyed out with its cost and a reason when it cannot be confirmed.
-function updateMenu(el, game, view, prevKey, hoverIndex) {
+// A tile's short name: the turret's last word ("Poison Toader" → "Toader").
+const shortName = (title) => title.split(' · ')[0].split(' ').pop();
+
+function createMenuTile(index, option, keyed) {
+  const tile = document.createElement('div');
+  tile.className = 'menu-tile';
+  tile.dataset.option = String(index);
+  if (option.portrait) tile.append(portraitCanvas(option.portrait, C.MENU_TILE_PORTRAIT_SIZE));
+  if (keyed) {
+    const badge = document.createElement('span');
+    badge.className = 'tile-key';
+    badge.textContent = String(index + 1);
+    tile.append(badge);
+  }
+  const name = document.createElement('div');
+  name.className = 'tile-name';
+  const cost = document.createElement('div');
+  cost.className = 'tile-cost';
+  tile.append(name, cost);
+  return tile;
+}
+
+// A tile's cost: icon and amount per resource, red where the player is short.
+function tileCostItems(cost, resources) {
+  return costRowData(cost, resources).map((row) => {
+    const item = document.createElement('span');
+    item.className = row.short ? 'tile-cost-item short' : 'tile-cost-item';
+    const icon = document.createElement('span');
+    icon.className = 'cost-icon';
+    icon.style.width = `${C.MENU_TILE_COST_ICON_SIZE}px`;
+    icon.style.height = `${C.MENU_TILE_COST_ICON_SIZE}px`;
+    icon.innerHTML = RESOURCE_ICON_SVG[row.resource];
+    item.append(icon, String(row.amount));
+    return item;
+  });
+}
+
+function updateMenuTile(node, o, game, selected) {
+  setText(node.querySelector('.tile-name'), o.tileName ?? shortName(o.title));
+  const costBox = node.querySelector('.tile-cost');
+  const costKey = o.cost ? costRowsKey(o.cost, game.resources) : `text:${o.tileText ?? ''}`;
+  if (costBox.dataset.key !== costKey) {
+    costBox.dataset.key = costKey;
+    costBox.replaceChildren(...(o.cost ? tileCostItems(o.cost, game.resources) : [document.createTextNode(o.tileText ?? '')]));
+  }
+  node.classList.toggle('disabled', o.disabled && !o.info);
+  node.classList.toggle('clickable', !o.disabled);
+  node.classList.toggle('selected', selected);
+}
+
+function shakeTile(node) {
+  if (!node) return;
+  node.classList.remove('shake');
+  void node.offsetWidth; // restart the animation
+  node.classList.add('shake');
+  setTimeout(() => node.classList.remove('shake'), C.MENU_SHAKE_MS);
+}
+
+// The detail area under the tiles: the chosen option's name, full cost, stats and reason, or a hint.
+function updateMenuInfo(box, o, game) {
+  const key = o ? `${o.title}|${o.cost ? costRowsKey(o.cost, game.resources) : o.costText}|${o.detail}|${o.reason}` : 'hint';
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  const div = (className, textContent) => Object.assign(document.createElement('div'), { className, textContent });
+  if (!o) {
+    box.replaceChildren(div('menu-hint', 'Hover a turret for details'));
+    return;
+  }
+  const parts = [div('menu-title', o.title)];
+  if (o.cost) parts.push(costRowsElement(o.cost, game.resources));
+  else if (o.costText) parts.push(div('menu-cost-text', o.costText));
+  if (o.detail) parts.push(div('menu-detail', o.detail));
+  if (o.reason) parts.push(div('menu-reason', o.reason));
+  box.replaceChildren(...parts);
+}
+
+// The compact menu: one tile per option (up to MENU_TILES_PER_ROW per row); clicking one chooses it.
+// The detail area shows the hovered tile, else the one last picked by key, else (turret menu) the
+// turret itself, else a hint. Placed beside the slot, again whenever its size changes.
+// Returns { key, options }.
+function updateMenu(el, game, view, prevKey, pick) {
   const menu = view.menu;
   el.menu.hidden = !menu;
   view.menuHoverType = null;
-  if (!menu) return null;
+  if (!menu) return { key: null, options: [] };
 
   const options = menuOptions(game, menu);
   if (options.length === 0) { // e.g. a cancelled build job's slot is empty again
     view.menu = null;
     el.menu.hidden = true;
-    return null;
+    return { key: null, options: [] };
   }
-  if ((menu.kind === 'build' || menu.kind === 'doubleBuild') && hoverIndex !== null) view.menuHoverType = options[hoverIndex]?.turretType ?? null;
   const header = menuHeader(game, menu);
   el.menuHeader.hidden = !header;
   if (header) {
     setText(el.menuHeader, header.text);
     el.menuHeader.classList.toggle('warn', header.warn);
   }
-  const key = `${menu.kind}:${menu.index}:${options.map((o) => o.portrait).join()}`; // cards change when a Double's job ends
+  const isBuild = menu.kind === 'build' || menu.kind === 'doubleBuild';
+  const key = `${menu.kind}:${menu.index}:${options.map((o) => o.portrait).join()}`; // tiles change when a Double's job ends
   if (key !== prevKey || el.menuOptions.children.length !== options.length) {
-    el.menuOptions.replaceChildren(...options.map((o, i) => createMenuOption(i, o)));
+    if (key !== prevKey) pick.key = null;
+    el.menuOptions.style.gridTemplateColumns = `repeat(${Math.min(options.length, C.MENU_TILES_PER_ROW)}, ${C.MENU_TILE_WIDTH}px)`;
+    el.menuOptions.replaceChildren(...options.map((o, i) => createMenuTile(i, o, isBuild)));
   }
-  options.forEach((o, i) => updateOptionCard(el.menuOptions.children[i], o, game));
+  const chosen = pick.hover ?? pick.key ?? (menu.kind === 'turret' ? options.length - 1 : null);
+  options.forEach((o, i) => updateMenuTile(el.menuOptions.children[i], o, game, i === chosen));
+  updateMenuInfo(el.menuInfo, options[chosen] ?? null, game);
+  if (isBuild && chosen !== null) view.menuHoverType = options[chosen]?.turretType ?? null;
 
-  if (key !== prevKey) {
+  const size = `${el.menu.offsetWidth}x${el.menu.offsetHeight}`;
+  if (key !== prevKey || el.menu.dataset.size !== size) {
+    el.menu.dataset.size = size;
     const slot = game.slots[menu.index];
     placeBeside(el.menu, slot.x, slot.y, C.LOCATION_RADIUS);
   }
-  return key;
+  return { key, options };
 }
 
 // Victory / Defeat (M2a §4.4): Victory with more nodes reachable shows what carries over and

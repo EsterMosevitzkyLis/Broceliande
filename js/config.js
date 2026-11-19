@@ -330,6 +330,11 @@ export const RESOURCE_ICON_SIZE = 28;     // px, resource icons in the HUD panel
 export const HUD_MATERIAL_ICON_SIZE = 20; // px, material icons in the HUD's two-row grid
 export const MENU_PORTRAIT_SIZE = 40;     // px, creature / turret images in menus (M1f §2)
 export const MENU_COST_ICON_SIZE = 18;    // px, resource icons in cost rows (M1f §3)
+export const MENU_TILE_WIDTH = 66;        // px, one tile of the compact build / turret menu
+export const MENU_TILES_PER_ROW = 4;      // tiles per row before the menu wraps
+export const MENU_TILE_PORTRAIT_SIZE = 34; // px, the turret image on a tile
+export const MENU_TILE_COST_ICON_SIZE = 14; // px, resource icons in a tile's cost row
+export const MENU_SHAKE_MS = 300;         // real time: the shake of a tile that can't be chosen
 export const DROP_ICON_SCALE = 0.7;       // drop icons on the ground, relative to RESOURCE_ICON_SIZE
 // M1g §1: drops pop out of the death point and arc to their resting spot (simulation time).
 export const DROP_SETTLE_TIME = 0.08;     // s of squash-and-settle on landing (visual only)
