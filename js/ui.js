@@ -511,13 +511,15 @@ export function createUI(callbacks) {
     select.append(o);
   };
   const regionSelect = document.getElementById('debug-jump-region');
+  const loadoutBox = document.getElementById('debug-jump-loadout'); // set resources to the region's debugLoadouts rows
   for (const id of C.REGION_ORDER) option(regionSelect, id, C.REGIONS[id].name);
   regionSelect.addEventListener('change', () => {
     const id = regionSelect.value;
     regionSelect.value = '';
     regionSelect.blur();
-    if (id) callbacks.onJumpToRegion(id);
+    if (id) callbacks.onJumpToRegion(id, loadoutBox.checked);
   });
+  loadoutBox.addEventListener('change', () => loadoutBox.blur());
   const typeSelect = document.getElementById('debug-spawn-type');
   const countSelect = document.getElementById('debug-spawn-count');
   const laneSelect = document.getElementById('debug-spawn-lane');

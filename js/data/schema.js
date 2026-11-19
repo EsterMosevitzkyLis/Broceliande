@@ -173,6 +173,8 @@ export const TABS = {
       stockMax: { type: 'int', required: true }, priceMin: { type: 'number', required: true }, priceMax: { type: 'number', required: true },
     },
   },
+  // Debug only: what Jump to region sets the run's resources to, one row per region and resource.
+  debugLoadouts: { columns: { region: { type: 'id', required: true }, resource: { type: 'id', required: true }, amount: { type: 'int', required: true } } },
 };
 
 // Exported from code for the sheet's lane dropdown (M2j §3.2); never loaded by the game.

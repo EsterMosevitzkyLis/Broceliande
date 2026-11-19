@@ -1,0 +1,20 @@
+region,resource,amount,notes
+cinderwood,gold,10,"Debug only - Jump to region sets the run's resources to these rows, unlisted resources go to 0. A run a few battles in."
+cinderwood,pits,10,
+cinderwood,reeds,4,
+cinderwood,feathers,4,
+cinderwood,boughs,1,
+cinderwood,shells,2,
+hags,gold,40,A decent run arriving from the Cinderwood
+hags,pits,25,
+hags,reeds,8,
+hags,feathers,10,
+hags,boughs,4,
+hags,shells,6,
+vale,gold,60,"A decent run arriving from Hag's Causeway, with some peat left"
+vale,pits,30,
+vale,reeds,10,
+vale,feathers,12,
+vale,boughs,5,
+vale,shells,8,
+vale,peat,8,

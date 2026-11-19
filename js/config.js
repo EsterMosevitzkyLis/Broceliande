@@ -686,6 +686,8 @@ export let TRADER_TEXT;
 export let TRADER_PROFILES;
 // palettes of non-combat places (PLACE_PALETTES): id → palette, like a level's
 export let PLACE_PALETTE;
+// debugLoadouts (debug only): region → { resource: amount }; regions without rows are absent
+export let DEBUG_LOADOUTS;
 
 // Builds every value above from the loaded tabs (rows as from js/data/loader.js, already checked by
 // js/data/validate.js). Leaves out blank cells so the code's defaults apply, and keeps row order.
@@ -864,6 +866,8 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     };
   });
   PLACE_PALETTE = Object.fromEntries(PLACE_PALETTES.map((id) => [id, unflatten(t.palettes.find((p) => p.level === id) ?? {}, ['level', '_row'])]));
+  DEBUG_LOADOUTS = {};
+  for (const r of t.debugLoadouts) (DEBUG_LOADOUTS[r.region] ??= {})[r.resource] = r.amount;
 }
 
 // M3b §1: the enemy a region uses in the place of `type`: the type itself if it belongs to that

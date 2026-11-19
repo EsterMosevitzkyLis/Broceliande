@@ -143,7 +143,7 @@ const ui = createUI({
   onForgetAllPatterns: forgetAllPatterns,
   onForgetDialogues: () => forgetSeenDialogues(game.run), // M5a §5
   onPlayDialogue: playDialogueNow,
-  onJumpToRegion: (id) => { if (debugJumpToRegion(game, id)) afterRestart(); }, // M6a §5
+  onJumpToRegion: (id, useLoadout) => { if (debugJumpToRegion(game, id, useLoadout)) afterRestart(); }, // M6a §5
   onSpawnEnemy: (type, count, laneId) => spawnDebugEnemy(game, type, count, laneId),
 });
 checkLevelNameLabel(LEVEL_IDS.map(sceneFor)); // M2a §6: the label must not cover a candidate in any level

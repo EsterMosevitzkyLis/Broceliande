@@ -856,6 +856,12 @@ html, body {
   padding: 3px 8px;
   cursor: pointer;
 }
+#debug-jump-loadout-label {
+  font: 13px 'Consolas', monospace;
+  color: #e8e4d0;
+  white-space: nowrap;
+  cursor: pointer;
+}
 
 /* ---------- Dialogue box (M5a §3) ---------- */
 /* --dialogue-dim and --dialogue-hop-time are set from the globals tab by js/dialogueBox.js. */

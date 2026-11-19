@@ -277,6 +277,15 @@ export function validateTables(t, problems, maps = {}) {
     if (r.stockMin < 0 || r.stockMax < r.stockMin) err('traderStock', r, 'stockMax', 'need 0 ≤ stockMin ≤ stockMax');
     if (!(r.priceMin > 0) || r.priceMax < r.priceMin) err('traderStock', r, 'priceMax', 'need 0 < priceMin ≤ priceMax');
   }
+  // debugLoadouts: known regions and resources, one row per pair, amounts of 0 or more.
+  const loadoutPairs = new Set();
+  for (const r of t.debugLoadouts) {
+    known('debugLoadouts', r, 'region', regions, 'region');
+    known('debugLoadouts', r, 'resource', resources, 'resource');
+    if (loadoutPairs.has(`${r.region}:${r.resource}`)) err('debugLoadouts', r, 'resource', `duplicate ${r.region} ${r.resource}`);
+    loadoutPairs.add(`${r.region}:${r.resource}`);
+    if (r.amount < 0) err('debugLoadouts', r, 'amount', 'amount must be 0 or more');
+  }
   // traders (M2n §4.5, M3e §7): known kinds and traders, and a generic line of each kind.
   for (const r of t.traders) {
     if (!TRADER_LINE_KINDS.includes(r.kind)) err('traders', r, 'kind', `kind must be one of ${TRADER_LINE_KINDS.join(', ')}`);

@@ -437,13 +437,16 @@ export function debugNextRegion(game) {
 }
 
 // M6a §5: the debug panel's Jump to region: that region's map, newly generated (as on arriving),
-// keeping resources and items. From the map or any encounter state; not from a place scene or the
-// crossing dialog.
-export function debugJumpToRegion(game, regionId) {
+// keeping items. From the map or any encounter state; not from a place scene or the crossing dialog.
+// useLoadout: the run's resources are set to the region's debugLoadouts rows (unlisted ones to 0);
+// a region with no rows, or useLoadout false, keeps the resources.
+export function debugJumpToRegion(game, regionId, useLoadout = false) {
   const from = [GameState.MAP, GameState.PREP, GameState.COMBAT, GameState.ENDING, GameState.VICTORY, GameState.DEFEAT];
   if (!C.REGIONS[regionId] || !from.includes(game.state) || !game.run) return false;
   if (game.state !== GameState.MAP && !setState(game, GameState.MAP)) return false;
   enterRegion(game.run, regionId);
+  const loadout = useLoadout ? C.DEBUG_LOADOUTS[regionId] : null;
+  if (loadout) game.run.inventory = { ...emptyResources(), ...loadout };
   game.encounterStart = null;
   game.deathLoss = null;
   game.mapAmbience = { at: C.MAP_AMBIENCE_GAPS[0], count: 0 };
