@@ -3,6 +3,9 @@
 // plus how dark the scene fade should be. Shown in the TINKER state, and on a village's Craft tab
 // (M6a §2.3: its title and the fade are the village's, its Undo the shared one). It reads game state and
 // calls back for every action; the art is on the canvas (render/tinker.js).
+// One of each item: an owned item's page shows a quiet Owned tag instead of Craft. On Craft its icon
+// pops out of the page in a short arc and fades, then the tag appears with a pulse (UI only, timed
+// by the wall clock).
 
 import * as C from './config.js';
 import { GameState } from './states.js';
@@ -16,6 +19,7 @@ const TABS = ['all', ...Object.keys(C.SLOT_TYPES)];
 const TAB_ICON_PX = 30;
 const ROW_ICON_PX = 26;
 const DETAIL_ICON_PX = 120;
+const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 // Rarity colours for text on the book's parchment: the rarity frame colours (C.RARITY), darkened
 // so they read on the pale page.
 const PAGE_RARITY_COLOR = { 0: '#6a3aa8', 1: '#7a4a22', 2: '#2f7a2c', 3: '#94700c' };
@@ -27,7 +31,7 @@ export function createTinkerScreen(callbacks) {
     root: $('tinker-screen'), title: $('tinker-title'), book: $('tinker-book'), tabs: $('tinker-tabs'), count: $('tinker-count'), list: $('tinker-list'),
     detail: $('tinker-detail'), empty: $('tinker-empty'), icon: $('tinker-icon'), name: $('tinker-name'),
     rarity: $('tinker-rarity'), desc: $('tinker-desc'), cost: $('tinker-cost'), craft: $('btn-craft'),
-    reason: $('tinker-reason'), undo: $('btn-craft-undo'), leave: $('btn-tinker-leave'),
+    reason: $('tinker-reason'), owned: $('tinker-owned'), undo: $('btn-craft-undo'), leave: $('btn-tinker-leave'),
   };
   const B = C.TINKER_SCENE.book;
   Object.assign(el.book.style, { left: `${B.x}px`, top: `${B.y}px`, width: `${B.w}px`, height: `${B.h}px` });
@@ -40,6 +44,36 @@ export function createTinkerScreen(callbacks) {
   let listKey = null;
   let detailKey = null;
   let costKey = null;
+  let seenCraftAt = null; // the last craft the pop was shown for (game.tinker.craftAt)
+  let popUntil = 0;       // performance.now() when the pop is over and the Owned tag shows
+
+  // The crafted item's icon rises out of the page, drifting and spinning a little as it fades; the
+  // Owned tag pulses in as it goes. Reduced motion: just the pulse.
+  function pop(itemId) {
+    const P = C.CRAFT_POP;
+    const reduced = reducedMotion?.matches || !el.icon.animate;
+    popUntil = performance.now() + (reduced ? 0 : P.time * 1000 * 0.8);
+    if (!reduced) {
+      const c = document.createElement('canvas');
+      c.className = 'tinker-pop';
+      c.width = c.height = DETAIL_ICON_PX;
+      drawFramedItemIcon(c.getContext('2d'), itemId, DETAIL_ICON_PX / 2, DETAIL_ICON_PX / 2, DETAIL_ICON_PX - 4);
+      c.style.left = `${el.icon.offsetLeft}px`;
+      c.style.top = `${el.icon.offsetTop}px`;
+      el.detail.append(c);
+      const anim = c.animate([
+        { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1, easing: 'ease-out' },
+        { transform: `translate(${P.drift * 0.5}px, ${-P.rise}px) rotate(${P.spin * 0.6}deg) scale(1.05)`, opacity: 0.85, offset: 0.55, easing: 'ease-in' },
+        { transform: `translate(${P.drift}px, ${-P.rise * 0.8}px) rotate(${P.spin}deg) scale(0.95)`, opacity: 0 },
+      ], { duration: P.time * 1000, fill: 'forwards' });
+      anim.onfinish = () => c.remove();
+    }
+    el.owned.animate?.([
+      { transform: 'scale(0.8)', opacity: 0 },
+      { transform: 'scale(1.12)', opacity: 1, offset: 0.5 },
+      { transform: 'scale(1)', opacity: 1 },
+    ], { duration: C.CRAFT_POP.pulse * 1000, delay: Math.max(0, popUntil - performance.now()), fill: 'backwards', easing: 'ease-out' });
+  }
 
   // Returns how dark the scene fade should be (0–1) for this screen.
   function update(game) {
@@ -47,7 +81,7 @@ export function createTinkerScreen(callbacks) {
     const village = game.state === GameState.VILLAGE ? game.village : null;
     el.root.hidden = !v || !(game.state === GameState.TINKER || village?.tab === 'craft');
     if (el.root.hidden) {
-      listKey = detailKey = costKey = null;
+      listKey = detailKey = costKey = seenCraftAt = null;
       return 0;
     }
     el.title.hidden = !!village; // the village screen shows the village's name
@@ -95,7 +129,18 @@ export function createTinkerScreen(callbacks) {
       costKey = ck;
       el.cost.replaceChildren(costRowsElement(cost, run.inventory));
     }
-    const blocker = craftBlocker(run, id);
+    if (v.craftAt !== seenCraftAt) {
+      if (seenCraftAt !== null && v.craftItem === id && run.items.includes(id)) pop(id);
+      seenCraftAt = v.craftAt;
+    }
+    const owned = run.items.includes(id);
+    if (!owned) {
+      popUntil = 0; // an undone craft brings Craft straight back
+      for (const c of el.detail.querySelectorAll('.tinker-pop')) c.remove();
+    }
+    el.craft.hidden = owned;
+    el.owned.hidden = !owned || performance.now() < popUntil;
+    const blocker = owned ? null : craftBlocker(run, id);
     el.craft.disabled = !!blocker || leaving || isCrafting(game);
     setText(el.reason, blocker ?? '');
     return fadeNow;

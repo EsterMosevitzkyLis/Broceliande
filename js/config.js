@@ -398,6 +398,7 @@ export const CRAFT_ANIM = {               // s from Craft (M2p §4.3): visual ti
   appear: 0.95,                           // the item appears in a burst of sparks
   end: 1.9,                               // the animation is over (Craft and Undo are back)
 };
+export const CRAFT_POP = { rise: 40, drift: 14, spin: 25, time: 0.6, pulse: 0.45 }; // the crafted item's icon pops out of the book's page: px up, px sideways, degrees, s; then the Owned tag's pulse (s)
 export const FORGE_CRACKLE_GAPS = [0.8, 1.3, 0.6, 1.1, 0.9]; // s between the forge's quiet crackles, in turn (M2p §4.4)
 export const TRADER_FADE_TIME = 0.35;     // s, the fade into and out of the trader scene (M2n §1)
 export const TRADER_LOOKS = [             // per-trader colour variation (cloak, hood lining, pack), by profile (traderProfiles order)

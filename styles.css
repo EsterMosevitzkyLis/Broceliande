@@ -1933,7 +1933,21 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
   font-style: italic;
   color: #6a5434;
 }
-#tinker-detail { text-align: center; }
+#tinker-detail { text-align: center; position: relative; }
+/* Owned (one of each item): a quiet tag in the Craft button's place, in the page's ink. */
+#tinker-owned {
+  display: inline-block;
+  margin-top: 26px;
+  padding: 10px 40px;
+  font-size: 26px;
+  font-style: italic;
+  color: #6a5434;
+  border: 2px solid rgba(106, 84, 52, 0.45);
+  border-radius: 6px;
+}
+#tinker-owned[hidden] { display: none; }
+/* The crafted item's icon, popping out of the page (js/tinkerScreen.js). */
+.tinker-pop { position: absolute; pointer-events: none; }
 #tinker-icon { display: block; margin: 20px auto 8px; }
 #tinker-name { font-size: 32px; font-weight: bold; }
 #tinker-rarity { font-size: 19px; margin-top: 4px; }
