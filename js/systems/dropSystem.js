@@ -51,21 +51,43 @@ function nextAlong(lane, offset, from, dir, spacing) {
   return null;
 }
 
-// n positions in a short row centred on the anchor, following the lane at a fixed offset so
-// every item is inside the corridor, each `spacing` from its neighbour even on bends.
-function rowPositions(lane, anchor, n, spacing) {
-  const first = { s: anchor.s, p: laneWorldPos(lane, anchor.s, anchor.offset) };
+// Up to n positions in one row centred on s, following the lane at a fixed offset so every
+// item is inside the corridor, each `spacing` from its neighbour even on bends. Fewer if the
+// lane runs out at both ends.
+function onePassRow(lane, s, offset, n, spacing) {
+  const first = { s, p: laneWorldPos(lane, s, offset) };
   const out = [first.p];
   const ends = { 1: first, [-1]: first };
   let dir = 1;
   while (out.length < n) {
-    const next = nextAlong(lane, anchor.offset, ends[dir], dir, spacing) ?? nextAlong(lane, anchor.offset, ends[-dir], -dir, spacing);
-    if (!next) break; // cannot happen on a real lane: far longer than a few items
-    const used = next.s > anchor.s ? 1 : -1;
+    const next = nextAlong(lane, offset, ends[dir], dir, spacing) ?? nextAlong(lane, offset, ends[-dir], -dir, spacing);
+    if (!next) break;
+    const used = next.s > s ? 1 : -1;
     ends[used] = next;
     out.push(next.p);
     dir = -dir;
   }
+  return out;
+}
+
+// n positions centred on the anchor. A big drop (the Bog King's ~100 items) can outrun the
+// lane, so further rows go beside the first one, `spacing` apart across the corridor and
+// alternating sides; if even those run out, the rest stack on the positions already used.
+function rowPositions(lane, anchor, n, spacing) {
+  const max = maxDropOffset(lane);
+  const offsets = [anchor.offset];
+  for (let k = 1; offsets.length < 2 * max / spacing + 1 && k < 100; k++) {
+    for (const o of [anchor.offset + k * spacing, anchor.offset - k * spacing]) {
+      if (Math.abs(o) <= max) offsets.push(o);
+    }
+  }
+  const out = [];
+  for (const offset of offsets) {
+    if (out.length >= n) break;
+    out.push(...onePassRow(lane, anchor.s, offset, n - out.length, spacing));
+  }
+  const used = out.length;
+  for (let i = used; i < n; i++) out.push(out[i % used]);
   return out;
 }
 
