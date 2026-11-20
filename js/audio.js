@@ -164,7 +164,8 @@ function subscribe() {
   });
   events.on('summonPlaced', (e) => play(e.kind === 'slowWisp' ? 'wispSummoned' : 'summon', e));
   events.on('wispBursts', (e) => play('wispBursts', e)); // M2k §3.5
-  for (const name of ['dialogueOpen', 'dialogueAdvance']) events.on(name, (e) => play(name, e)); // M5a §3.5
+  events.on('dialogueOpen', (e) => play('dialogueOpen', e)); // M5a §3.5
+  events.on('dialogueAdvance', (e) => play(e.whisper ? 'dialogueWhisper' : 'dialogueAdvance', e)); // a telepathic line whispers
 }
 
 // An enemy's sound from a per-type table (M2l §2.3): a variant (a Grim) plays its base type's,
@@ -1341,5 +1342,14 @@ const RECIPES = {
   dialogueAdvance(t, out, p) {
     noise(t, out, { freq: 3200 * p, to: 1400 * p, q: 1.2, dur: 0.07, attack: 0.01, gain: 0.5 });
     return tone(t, out, { type: 'triangle', freq: 1100 * p, to: 900 * p, dur: 0.03, attack: 0.002, gain: 0.25, delay: 0.04 });
+  },
+
+  // A telepathic line (Reeva): a soft breathy whisper, two airy swells of filtered noise, with a
+  // faint high shimmer, instead of the page-turn tick.
+  dialogueWhisper(t, out, p) {
+    noise(t, out, { freq: 2600 * p, to: 4200 * p, q: 0.7, dur: 0.22, attack: 0.08, gain: 0.35 });
+    noise(t, out, { freq: 3800 * p, to: 2400 * p, q: 0.8, dur: 0.26, attack: 0.1, gain: 0.25, delay: 0.14 });
+    tone(t, out, { freq: 1760 * p, to: 1980 * p, dur: 0.4, attack: 0.15, gain: 0.04, delay: 0.05 });
+    return 0.45;
   },
 };

@@ -1,3 +1,4 @@
-id,name,portrait,notes
-druid,You,,"The player character, an ovate (a druid in training). Blank portrait: the drawn placeholder."
-diaena,Diaena,,Blank portrait: the drawn placeholder.
+id,name,portrait,telepathic,notes
+druid,You,,,"The player character, an ovate (a druid in training). Blank portrait: the drawn placeholder."
+diaena,Diaena,,,Blank portrait: the drawn placeholder.
+reeva,Reeva,,TRUE,The Druid's raven familiar. Speaks in his mind (telepathic). Blank portrait: the drawn placeholder.

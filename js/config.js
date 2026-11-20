@@ -546,6 +546,8 @@ export const ITEM_FLOATER_SIZE = 40;      // px, the slot-type silhouette floate
 // Dialogues (M5a §3): the box's sizes (its timings are in the globals tab). Visual only.
 export const DIALOGUE_PORTRAIT_W = 380;     // px, each portrait's frame (§3.1)
 export const DIALOGUE_PORTRAIT_H = 480;
+export const DIALOGUE_TILT_ANGLE = 4;       // degrees, a telepathic speaker's head tilt as she hops (visual only)
+export const DIALOGUE_TILT_TIME_MULT = 2.2; // the tilt lasts this many hop times
 export const DIALOGUE_SEEN_KEY = 'broceliande.dialoguesSeen.v1';   // localStorage: onceEver trigger IDs already played (§2.2)
 export const DIALOGUE_COUNTS_KEY = 'broceliande.dialogueCounts.v1'; // localStorage: how often each dialogue event has fired, all runs (occurrence)
 

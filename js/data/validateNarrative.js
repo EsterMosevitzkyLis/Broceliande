@@ -47,10 +47,8 @@ export function validateNarrative(t, problems, mainTables) {
     if (r.item !== undefined && !items.has(r.item)) err('triggers', r, 'item', `unknown item "${r.item}"`);
     if (r.item !== undefined && r.event !== 'itemAcquired') warn('triggers', r, 'item', 'only itemAcquired events carry an item, so this trigger can never match');
     if (r.level !== undefined && !levels.has(r.level)) warn('triggers', r, 'level', `unknown level "${r.level}" (the trigger can never match)`);
-    // Every line's speaker must be one of the trigger's two characters.
-    for (const line of lines[r.dialogue] ?? []) {
-      if (line.speaker !== r.left && line.speaker !== r.right) err('triggers', r, 'dialogue', `dialogue ${r.dialogue} line ${line.line}: speaker "${line.speaker}" is neither left (${r.left}) nor right (${r.right})`);
-    }
+    // A speaker who is neither of the trigger's two characters steps in on the right for their
+    // lines (js/dialogueBox.js), so any known character may speak.
   }
   return problems;
 }

@@ -1000,6 +1000,7 @@ html, body {
 .dialogue-side canvas {
   width: 380px;
   height: 480px;
+  transform-origin: 50% 80%; /* a telepathic speaker's head tilt pivots low, at the shoulders */
   transition: filter var(--dialogue-hop-time, 0.22s) ease;
 }
 .dialogue-side.listening canvas {
@@ -1039,6 +1040,8 @@ html, body {
   line-height: 1.5;
   color: #dbe8df;
 }
+/* A telepathic speaker (Reeva) speaks in the Druid's mind: italic, paler and cooler. */
+#dialogue-text.telepathic { font-style: italic; color: #b7c6d4; }
 .dialogue-untyped { visibility: hidden; }
 #dialogue-continue {
   position: absolute;

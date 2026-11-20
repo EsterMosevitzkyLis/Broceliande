@@ -124,3 +124,4 @@ hunterRevealed,0.3,1,0.15,2,TRUE
 wallRise,0.6,1,0.2,2,TRUE
 wallHit,0.35,1,0.08,3,TRUE
 wallBreak,0.7,1,0.15,2,TRUE
+dialogueWhisper,0.35,1,0.05,2,TRUE

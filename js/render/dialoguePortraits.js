@@ -1,7 +1,7 @@
 // Dialogue portraits (M5a §3.4), drawn into a w × h frame (DIALOGUE_PORTRAIT_W × _H) with the
 // figure standing on its bottom edge. A character's image, when the characters tab names one that
 // loaded, is fitted to the frame keeping its proportions, anchored at the bottom. Otherwise a drawn
-// placeholder: the Druid (a large bust of his hooded drawing), Diaena, or a plain silhouette with
+// placeholder: the Druid (a large bust of his hooded drawing), Diaena, Reeva the raven, or a plain silhouette with
 // the character's name. Visual only.
 
 import { CHARACTERS } from '../narrative.js';
@@ -20,6 +20,14 @@ const DIAENA = {
   lips: '#b0675a', clasp: '#c8a45a',
 };
 
+// Reeva, the Druid's raven: glossy black with a violet-blue sheen, a dark amber-brown eye, and a
+// cool, pale mist behind her (she speaks in his mind).
+const REEVA = {
+  black: '#121318', blackSoft: '#1c1e26', edge: '#2a2d3a', sheen: 'rgba(118, 104, 196, 0.32)', sheenBlue: 'rgba(92, 132, 196, 0.26)',
+  beak: '#16171b', beakLight: '#3a3c44', eye: '#4a2c14', eyeRim: '#6b4524', pupil: '#0b0705', glint: 'rgba(255, 250, 235, 0.92)',
+  mist: 'rgba(196, 214, 230, 0.45)', mistWisp: 'rgba(226, 236, 246, 0.3)',
+};
+
 const SILHOUETTE = { body: '#596059', edge: '#6c746c', text: '#d8dcd2' };
 
 export function drawDialoguePortrait(ctx, characterId, w, h) {
@@ -28,6 +36,7 @@ export function drawDialoguePortrait(ctx, characterId, w, h) {
   if (character?.image) drawImageFitted(ctx, character.image, w, h);
   else if (characterId === 'druid') drawDruidBust(ctx, w, h);
   else if (characterId === 'diaena') drawDiaenaBust(ctx, w, h);
+  else if (characterId === 'reeva') drawReevaBust(ctx, w, h);
   else drawSilhouette(ctx, w, h, character?.name ?? characterId);
 }
 
@@ -246,6 +255,126 @@ function drawDiaenaBust(ctx, w, h) {
   ctx.beginPath();
   ctx.ellipse(cx, 214, 76, 100, 0, Math.PI * 1.04, Math.PI * 1.96);
   ctx.stroke();
+}
+
+// Reeva: a raven's head and shoulders in three-quarter view, facing left (the Druid's side), in a
+// cool, pale mist.
+function drawReevaBust(ctx, w, h) {
+  // Mist: a soft pale glow fading out before the frame's edges, with a few drifting wisps.
+  glow(ctx, w * 0.5, h * 0.5, w * 0.49, h * 0.49, REEVA.mist);
+  for (const [x, y, rx, ry] of [[130, 130, 100, 24], [250, 290, 100, 20], [170, 410, 130, 26], [270, 100, 70, 16]]) glow(ctx, x, y, rx, ry, REEVA.mistWisp);
+
+  const cx = w / 2 + 6;
+  // Body and folded wings: a rounded dark mass rising from the bottom edge, the far wing behind.
+  ellipse(ctx, cx + 70, 400, 130, 120, REEVA.black, -0.25);
+  ctx.fillStyle = REEVA.blackSoft;
+  ctx.beginPath();
+  ctx.moveTo(cx - 140, h);
+  ctx.bezierCurveTo(cx - 150, 380, cx - 90, 300, cx - 20, 290);
+  ctx.bezierCurveTo(cx + 70, 280, cx + 160, 330, cx + 170, h);
+  ctx.closePath();
+  ctx.fill();
+  // Near wing, folded along the right side, its long feathers drawn as overlapping arcs.
+  ctx.fillStyle = REEVA.black;
+  ctx.beginPath();
+  ctx.moveTo(cx - 10, 320);
+  ctx.bezierCurveTo(cx + 90, 300, cx + 170, 380, cx + 160, h);
+  ctx.lineTo(cx + 10, h);
+  ctx.bezierCurveTo(cx + 20, 420, cx - 20, 360, cx - 10, 320);
+  ctx.fill();
+  ctx.strokeStyle = REEVA.edge;
+  ctx.lineWidth = 2.5;
+  for (let i = 0; i < 6; i++) {
+    const y = 340 + i * 24;
+    ctx.beginPath();
+    ctx.moveTo(cx + 10 + i * 6, y);
+    ctx.quadraticCurveTo(cx + 90 + i * 8, y - 14, cx + 150 + i * 2, y + 24);
+    ctx.stroke();
+  }
+  // Neck, from the shoulders up to the head, with a sheen on its back.
+  ctx.fillStyle = REEVA.black;
+  ctx.beginPath();
+  ctx.moveTo(cx - 110, 330);
+  ctx.bezierCurveTo(cx - 120, 260, cx - 90, 210, cx - 40, 190);
+  ctx.bezierCurveTo(cx + 20, 170, cx + 70, 220, cx + 60, 320);
+  ctx.closePath();
+  ctx.fill();
+  glow(ctx, cx + 24, 250, 34, 80, REEVA.sheenBlue);
+  // Head, turned three-quarters to the left.
+  ellipse(ctx, cx - 40, 190, 82, 70, REEVA.black, -0.15);
+  // Sheen on the crown: violet-blue glints along the top of the head.
+  glow(ctx, cx - 30, 142, 64, 26, REEVA.sheen);
+  glow(ctx, cx + 14, 168, 36, 22, REEVA.sheenBlue);
+  ctx.strokeStyle = 'rgba(150, 140, 220, 0.35)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(cx - 40, 190, 80, 68, -0.15, Math.PI * 1.15, Math.PI * 1.7);
+  ctx.stroke();
+  // Throat hackles (the raven's "beard"): ruffled pointed feathers under the beak.
+  ctx.fillStyle = REEVA.blackSoft;
+  ctx.beginPath();
+  ctx.moveTo(cx - 118, 215);
+  const tips = [[-128, 250], [-112, 244], [-118, 280], [-98, 268], [-102, 304], [-80, 286], [-80, 318], [-58, 296]];
+  let x = cx - 112, y = 230;
+  for (const [tx, ty] of tips) {
+    ctx.lineTo(cx + tx, ty);
+    x = cx + tx + 10; y = ty - 18;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(cx - 40, 240);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = REEVA.edge;
+  ctx.lineWidth = 2;
+  for (const [tx, ty] of tips.filter((_, i) => i % 2 === 0)) {
+    ctx.beginPath();
+    ctx.moveTo(cx + tx + 18, ty - 34);
+    ctx.lineTo(cx + tx + 2, ty - 4);
+    ctx.stroke();
+  }
+  // Beak: heavy, slightly curved down to its tip, pointing left, with a lighter ridge and the
+  // bristles at its base.
+  ctx.fillStyle = REEVA.beak;
+  ctx.beginPath();
+  ctx.moveTo(cx - 92, 166);
+  ctx.bezierCurveTo(cx - 140, 160, cx - 190, 178, cx - 214, 212);
+  ctx.bezierCurveTo(cx - 190, 206, cx - 150, 216, cx - 108, 226);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = REEVA.beakLight;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx - 98, 168);
+  ctx.bezierCurveTo(cx - 140, 164, cx - 182, 180, cx - 208, 208);
+  ctx.stroke();
+  ctx.strokeStyle = '#0a0a0d';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); // the mouth line
+  ctx.moveTo(cx - 104, 206);
+  ctx.quadraticCurveTo(cx - 150, 204, cx - 196, 212);
+  ctx.stroke();
+  ellipse(ctx, cx - 100, 178, 18, 12, REEVA.blackSoft, -0.2); // nasal bristles
+  // Eye: bright and intelligent, dark amber-brown with a small highlight.
+  ellipse(ctx, cx - 62, 172, 14, 13, REEVA.eyeRim);
+  ellipse(ctx, cx - 62, 172, 11, 10.5, REEVA.eye);
+  ellipse(ctx, cx - 64, 172, 5.5, 6, REEVA.pupil);
+  ellipse(ctx, cx - 67, 168, 3, 3, REEVA.glint);
+  ellipse(ctx, cx - 57, 177, 1.4, 1.4, 'rgba(255, 240, 220, 0.5)');
+}
+
+// A soft elliptical glow: color (an rgba string) at the centre, fading to nothing at (rx, ry).
+function glow(ctx, x, y, rx, ry, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(rx, ry);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  g.addColorStop(0, color);
+  g.addColorStop(1, color.replace(/[\d.]+\)$/, '0)')); // the same colour, transparent
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, 1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 // Anyone else: a plain head-and-shoulders silhouette with the character's name across the chest.

@@ -4,6 +4,9 @@
 // the line, then advances; Skip or Esc closes. While it's open it takes every click and key, so
 // nothing reaches the game (main.js also pauses the simulation). UI only: its timings are
 // wall-clock (performance.now), never simulation time.
+// A speaker who is neither of the entry's two characters (Reeva) steps in on the right for their
+// lines, and the right character comes back when they speak again. A telepathic character's lines
+// are italic and paler, with a whisper instead of the page-turn tick.
 
 import * as C from './config.js';
 import { events } from './events.js';
@@ -45,17 +48,29 @@ export function createDialogueBox() {
     entry = next;
     lines = DIALOGUES[entry.dialogue];
     for (const side of ['left', 'right']) {
-      const s = sides[side];
-      s.character = entry[side];
-      const ctx = s.canvas.getContext('2d');
-      ctx.setTransform(RESOLUTION, 0, 0, RESOLUTION, 0, 0);
-      drawDialoguePortrait(ctx, s.character, C.DIALOGUE_PORTRAIT_W, C.DIALOGUE_PORTRAIT_H);
-      s.name.textContent = CHARACTERS[s.character]?.name ?? s.character;
-      s.el.classList.remove('speaking', 'listening');
+      showCharacter(side, entry[side]);
+      sides[side].el.classList.remove('speaking', 'listening');
     }
     root.hidden = false;
     events.emit('dialogueOpen', {});
     showLine(0);
+  }
+
+  function showCharacter(side, character) {
+    const s = sides[side];
+    s.character = character;
+    const ctx = s.canvas.getContext('2d');
+    ctx.setTransform(RESOLUTION, 0, 0, RESOLUTION, 0, 0);
+    drawDialoguePortrait(ctx, character, C.DIALOGUE_PORTRAIT_W, C.DIALOGUE_PORTRAIT_H);
+    s.name.textContent = CHARACTERS[character]?.name ?? character;
+  }
+
+  // The side a line's speaker stands on: their own, or the right for anyone else (who replaces the
+  // right character until that character speaks again).
+  function sideFor(speaker) {
+    if (speaker === entry.left) return 'left';
+    if (sides.right.character !== speaker) showCharacter('right', speaker);
+    return 'right';
   }
 
   // §3.2: the speaker lights up and hops; the other dims. The first line opens with its hop.
@@ -66,20 +81,32 @@ export function createDialogueBox() {
     complete = false;
     shown = -1;
     const speaker = lines[i].speaker;
-    const speakingSide = sides.left.character === speaker ? 'left' : 'right';
+    const speakingSide = sideFor(speaker);
+    const telepathic = CHARACTERS[speaker]?.telepathic === true;
+    text.classList.toggle('telepathic', telepathic);
     for (const side of ['left', 'right']) {
       const speaking = side === speakingSide;
       sides[side].el.classList.toggle('speaking', speaking);
       sides[side].el.classList.toggle('listening', !speaking);
     }
-    hop(sides[speakingSide].canvas);
+    hop(sides[speakingSide].canvas, telepathic);
     typed.textContent = '';
     rest.textContent = lines[i].text;
     marker.hidden = true;
   }
 
-  function hop(el) {
+  // A telepathic speaker (the raven) tilts her head as she hops, a little up and to the side.
+  function hop(el, tilt) {
     if (reducedMotion?.matches || !el.animate) return; // reduced motion: only the lighting changes
+    if (tilt) {
+      el.animate([
+        { transform: 'translateY(0) rotate(0deg)', easing: 'ease-out' },
+        { transform: `translateY(${-C.DIALOGUE_HOP_HEIGHT * 0.6}px) rotate(${-C.DIALOGUE_TILT_ANGLE}deg)`, easing: 'ease-in-out', offset: 0.35 },
+        { transform: `translateY(0) rotate(${C.DIALOGUE_TILT_ANGLE * 0.4}deg)`, easing: 'ease-in', offset: 0.7 },
+        { transform: 'translateY(0) rotate(0deg)' },
+      ], { duration: C.DIALOGUE_HOP_TIME * 1000 * C.DIALOGUE_TILT_TIME_MULT });
+      return;
+    }
     el.animate([
       { transform: 'translateY(0)', easing: 'ease-out' },
       { transform: `translateY(${-C.DIALOGUE_HOP_HEIGHT}px)`, easing: 'ease-in', offset: 0.5 },
@@ -94,7 +121,8 @@ export function createDialogueBox() {
       complete = true;
       return;
     }
-    events.emit('dialogueAdvance', {});
+    const next = lines[index + 1];
+    events.emit('dialogueAdvance', { whisper: CHARACTERS[next?.speaker]?.telepathic === true });
     if (index + 1 < lines.length) showLine(index + 1);
     else close();
   }

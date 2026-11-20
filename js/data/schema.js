@@ -183,7 +183,7 @@ export const REFERENCE_TABS = ['lanes'];
 // M5a §1: the Broceliande Narrative sheet's tabs, loaded from data/narrative/<tab>.csv (or, with
 // ?live, that sheet). Checked by js/data/validateNarrative.js.
 export const NARRATIVE_TABS = {
-  characters: { columns: { id: { type: 'id', required: true }, name: { type: 'text', required: true }, portrait: { type: 'text' } } },
+  characters: { columns: { id: { type: 'id', required: true }, name: { type: 'text', required: true }, portrait: { type: 'text' }, telepathic: { type: 'bool' } } },
   dialogues: { columns: { dialogue: { type: 'id', required: true }, line: { type: 'int', required: true }, speaker: { type: 'id', required: true }, text: { type: 'text', required: true } } },
   triggers: {
     columns: {

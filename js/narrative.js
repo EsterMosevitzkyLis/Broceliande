@@ -8,7 +8,8 @@ export const REPEAT_MODES = ['onceEver', 'oncePerRun', 'always']; // §2.2
 export const DEFAULT_REPEAT = 'onceEver';
 export const PORTRAIT_FOLDER = 'data/narrative/portraits/';
 
-// characters: id → { name, image (a loaded Image, or null: the drawn placeholder) }
+// characters: id → { name, image (a loaded Image, or null: the drawn placeholder), telepathic (speaks
+// in the Druid's mind: italic, paler lines and a whisper sound) }
 export let CHARACTERS = {};
 // dialogues: id → [{ speaker, text }] in line order
 export let DIALOGUES = {};
@@ -19,7 +20,7 @@ export let TRIGGERS = [];
 // t: the narrative tables (rows as from js/data/loader.js, already checked); images: portrait file
 // name → loaded Image (missing files are left out).
 export function applyNarrative(t, images = {}) {
-  CHARACTERS = Object.fromEntries(t.characters.map((r) => [r.id, { name: r.name, image: (r.portrait && images[r.portrait]) || null }]));
+  CHARACTERS = Object.fromEntries(t.characters.map((r) => [r.id, { name: r.name, image: (r.portrait && images[r.portrait]) || null, telepathic: r.telepathic === true }]));
   DIALOGUES = {};
   for (const r of [...t.dialogues].sort((a, b) => a.line - b.line)) {
     (DIALOGUES[r.dialogue] ??= []).push({ speaker: r.speaker, text: r.text });
