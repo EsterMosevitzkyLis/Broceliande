@@ -25,7 +25,7 @@ function dropPosition(drop) {
 // before END_DELAY runs out.
 export function startSweep(game) {
   const items = game.drops
-    .map((d) => ({ resource: d.resource, ...dropPosition(d) }))
+    .map((d) => ({ resource: d.resource, amount: d.amount, ...dropPosition(d) }))
     .sort((a, b) => a.y - b.y);
   const room = Math.max(0, C.END_DELAY - C.SWEEP_END_MARGIN - C.SWEEP_FLIGHT_TIME);
   const stagger = items.length > 1 ? Math.min(C.SWEEP_STAGGER, room / (items.length - 1)) : 0;
@@ -40,8 +40,8 @@ export function startSweep(game) {
 
 function arrive(game, item) {
   item.arrived = true;
-  game.resources[item.resource]++;
-  game.sweep.gathered[item.resource]++;
+  game.resources[item.resource] += item.amount; // a merged coin counts in full
+  game.sweep.gathered[item.resource] += item.amount;
   game.hudPulses[item.resource] = game.endElapsed;
   events.emit('resourcesGained', { resources: [item.resource] }); // the chime, under its spam limits
 }

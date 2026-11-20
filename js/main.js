@@ -4,7 +4,7 @@ import * as C from './config.js';
 import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, spawnDebugBogKing, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion, debugJumpToRegion, spawnDebugEnemy } from './game.js';
 import { createInput } from './input.js';
 import { createRenderer } from './renderer.js';
-import { createUI, checkLevelNameLabel, checkBossBar, checkWavePreview } from './ui.js';
+import { createUI, checkLevelNameLabel, checkBossBar, checkWavePreview, levelNameLabelArea } from './ui.js';
 import { callNextWave, skipWave } from './systems/waveSystem.js';
 import { LEVEL_IDS, sceneFor, validateLevels, logWaveTotals } from './scene.js';
 import { createInteraction, isInteractive } from './interaction.js';
@@ -147,6 +147,7 @@ const ui = createUI({
   onSpawnEnemy: (type, count, laneId) => spawnDebugEnemy(game, type, count, laneId),
 });
 checkLevelNameLabel(LEVEL_IDS.map(sceneFor)); // M2a §6: the label must not cover a candidate in any level
+for (const id of LEVEL_IDS) sceneFor(id).labelArea = levelNameLabelArea(sceneFor(id)); // drops land clear of it (dropSystem.js)
 checkBossBar(LEVEL_IDS.map(sceneFor));        // M2c §2.7: nor may the boss HP bar
 checkWavePreview(LEVEL_IDS.map(sceneFor));    // M2i §4.2: nor the wave preview
 if (view.debug) logWaveTotals();              // M2i §2: per-wave totals, to compare with the comments

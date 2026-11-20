@@ -338,6 +338,9 @@ export const MENU_SHAKE_MS = 300;         // real time: the shake of a tile that
 export const DROP_ICON_SCALE = 0.7;       // drop icons on the ground, relative to RESOURCE_ICON_SIZE
 // M1g §1: drops pop out of the death point and arc to their resting spot (simulation time).
 export const DROP_SETTLE_TIME = 0.08;     // s of squash-and-settle on landing (visual only)
+export const DROP_VALUE_SCALE = 0.1;      // a merged item (worth more than 1) is drawn 1 + this × log2(value) times larger (visual only)
+export const DROP_VALUE_SCALE_MAX = 1.5;  // ...at most this
+export const DROP_PLACE_TRIES = 6;        // tries for a spot DROP_MIN_GAP clear of the kill's other items before one is accepted anyway
 
 // ---------------------------------------------------------------------------
 // Sound (M1g §3) — synthesised in js/audio.js, triggered by gameplay events. Never affects the simulation.
@@ -621,6 +624,7 @@ export let CORRIDOR_WIDTH, RANDOMISE_LAYOUT, FIXED_LAYOUT_SEED, LOCATION_RADIUS,
   LANE_MIN_TURRET_SLOTS, FEATURE_ROUTE_MIN_FACTOR, FEATURE_ROUTE_MAX_FACTOR, MAX_LAYOUT_ATTEMPTS;
 export let ZONE_NEAR_TURRET, ZONE_NEAR_FEATURE, ZONE_FAR_TURRET, ZONE_FAR_FEATURE;
 export let DROP_SPACING, DROP_POP_HEIGHT, DROP_POP_TIME, DROP_POP_STAGGER, DROP_SINGLE_OFFSET;
+export let DROP_SCATTER_BASE, DROP_SCATTER_PER, DROP_SCATTER_MAX, DROP_MIN_GAP, DROP_COIN_VALUES, DROP_GOLD_MAX_ITEMS, DROP_MERGE_OVER;
 export let FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX;
 export let SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME;
 export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
@@ -724,6 +728,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     LANE_MIN_TURRET_SLOTS, FEATURE_ROUTE_MIN_FACTOR, FEATURE_ROUTE_MAX_FACTOR, MAX_LAYOUT_ATTEMPTS,
     ZONE_NEAR_TURRET, ZONE_NEAR_FEATURE, ZONE_FAR_TURRET, ZONE_FAR_FEATURE,
     DROP_SPACING, DROP_POP_HEIGHT, DROP_POP_TIME, DROP_POP_STAGGER, DROP_SINGLE_OFFSET,
+    DROP_SCATTER_BASE, DROP_SCATTER_PER, DROP_SCATTER_MAX, DROP_MIN_GAP, DROP_COIN_VALUES, DROP_GOLD_MAX_ITEMS, DROP_MERGE_OVER,
     FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX,
     SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME,
     CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,

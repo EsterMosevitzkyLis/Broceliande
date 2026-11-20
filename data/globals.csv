@@ -47,7 +47,14 @@ DROP_SPACING,16,TUNING - px between items dropped by one wolf
 DROP_POP_HEIGHT,70,TUNING - px the arc rises above the straight line from death point to resting spot
 DROP_POP_TIME,0.35,"TUNING - s in the air, Squirrels can only target an item once it has landed"
 DROP_POP_STAGGER,0.2,TUNING - s between the launches of one enemy's items
-DROP_SINGLE_OFFSET,"6, 12","px along the lane a lone item lands from the death point, so it still arcs"
+DROP_SINGLE_OFFSET,"6, 12","px from the death point a lone item lands, so it still arcs"
+DROP_SCATTER_BASE,12,"TUNING - a kill's items land within a circle of radius min(BASE + PER x sqrt(items), MAX) px around the death point"
+DROP_SCATTER_PER,6,TUNING - see DROP_SCATTER_BASE
+DROP_SCATTER_MAX,48,TUNING - see DROP_SCATTER_BASE
+DROP_MIN_GAP,10,"TUNING - px kept between one kill's items where possible (a few tries, then accepted)"
+DROP_COIN_VALUES,"25, 10, 5, 1","TUNING - a kill's gold is merged into coins of these values, largest first (also used for merging other resources)"
+DROP_GOLD_MAX_ITEMS,8,"TUNING - most gold coins one kill drops, the smallest coin's value is raised until they fit"
+DROP_MERGE_OVER,3,"TUNING - a kill dropping more than this many of one non-gold resource has them merged like gold"
 # Resource floaters,,
 FLOATER_RISE_PX,45,"TUNING - px risen over FLOATER_TIME, easing out"
 FLOATER_TIME,1,"TUNING - s, fades during the last 40%"

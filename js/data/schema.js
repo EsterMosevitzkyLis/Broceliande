@@ -26,6 +26,8 @@ export const GLOBAL_TYPES = {
   FEATURE_ROUTE_MIN_FACTOR: 'number', FEATURE_ROUTE_MAX_FACTOR: 'number', MAX_LAYOUT_ATTEMPTS: 'int',
   ZONE_NEAR_TURRET: 'int', ZONE_NEAR_FEATURE: 'int', ZONE_FAR_TURRET: 'int', ZONE_FAR_FEATURE: 'int',
   DROP_SPACING: 'number', DROP_POP_HEIGHT: 'number', DROP_POP_TIME: 'number', DROP_POP_STAGGER: 'number', DROP_SINGLE_OFFSET: 'list',
+  DROP_SCATTER_BASE: 'number', DROP_SCATTER_PER: 'number', DROP_SCATTER_MAX: 'number', DROP_MIN_GAP: 'number',
+  DROP_COIN_VALUES: 'list', DROP_GOLD_MAX_ITEMS: 'int', DROP_MERGE_OVER: 'int',
   FLOATER_RISE_PX: 'number', FLOATER_TIME: 'number', FLOATER_STAGGER: 'number', FLOATER_STACK_PX: 'number',
   SWEEP_FLIGHT_TIME: 'number', SWEEP_STAGGER: 'number', SWEEP_END_MARGIN: 'number', SWEEP_END_SCALE: 'number', SWEEP_PULSE_TIME: 'number',
   CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',

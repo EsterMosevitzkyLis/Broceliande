@@ -37,10 +37,11 @@ function retarget(game, s) {
 
 // §1.4: resource into the inventory immediately, item removed, a resource floater (M2d §1).
 // M2p (Hoarder's Grip): with squirrel.doublePickupChance it collects the item twice; the RNG is
-// only rolled when that chance is above 0, so runs without it are unchanged.
+// only rolled when that chance is above 0, so runs without it are unchanged. A merged item (a big
+// coin) gives its whole amount.
 function collect(game, s, drop) {
   const chance = game.stats['squirrel.doublePickupChance'];
-  const n = chance > 0 && game.rng.next() < chance ? 2 : 1;
+  const n = (chance > 0 && game.rng.next() < chance ? 2 : 1) * drop.amount;
   add(game.resources, { [drop.resource]: n });
   game.dropStats.collected[drop.resource] += n;
   if (drop.resource === 'boughs') game.doubleStats.boughsGained += n; // M1i §4 debug figure

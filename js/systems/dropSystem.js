@@ -1,6 +1,8 @@
 // Enemy drops (M1d §1, M1e §3.3): resource items left where enemies die, rolled from each
 // type's drop table. They stay on the field until a Squirrel collects them (squirrelSystem.js)
-// or the encounter ends.
+// or the encounter ends. A kill's gold is merged into coins (and a big pile of one resource into
+// bigger items): each item carries its `amount`, which collecting it adds in full. The items land
+// scattered in a circle round the death point; the old lane rows are only a last resort.
 
 import * as C from '../config.js';
 import { laneWorldPos, enemyType } from '../entities/enemy.js';
@@ -40,6 +42,8 @@ function laneAnchor(lane, p) {
   const max = maxDropOffset(lane);
   return { s: q.s, offset: Math.max(-max, Math.min(max, offset)) };
 }
+
+// The old lane-row placement, now only scatterPositions' last resort.
 
 // Next position along the lane (dir ±1) at the same offset that is at least `spacing` from
 // `from`, or null if the lane ends first.
@@ -91,29 +95,97 @@ function rowPositions(lane, anchor, n, spacing) {
   return out;
 }
 
-// Called when an enemy dies. Each unit becomes its own item (§1.2), in a short row along the
-// lane centred on the death point.
+// Splits a total into coins of DROP_COIN_VALUES, largest first. With maxItems, while that makes
+// too many, the smallest coin's value is raised by 1 (once it passes the others it becomes the
+// largest, and the next smallest rises, so a big total ends in a few big coins); whatever the
+// smallest coin can't make exactly is added to the last coin, so the coins always add up to the total.
+export function splitIntoCoins(total, maxItems = Infinity) {
+  const values = [...C.DROP_COIN_VALUES];
+  for (;;) {
+    values.sort((a, b) => b - a);
+    const coins = [];
+    let left = total;
+    for (const v of values) for (; left >= v; left -= v) coins.push(v);
+    if (left > 0) {
+      if (coins.length) coins[coins.length - 1] += left;
+      else coins.push(left);
+    }
+    if (coins.length <= maxItems) return coins;
+    values[values.length - 1]++;
+  }
+}
+
+// The kill's rolled units as items { resource, amount }, in the order first rolled: gold always
+// merged into at most DROP_GOLD_MAX_ITEMS coins; another resource merged the same way only past
+// DROP_MERGE_OVER units.
+function mergeUnits(units) {
+  const counts = {};
+  for (const r of units) counts[r] = (counts[r] ?? 0) + 1;
+  const items = [];
+  for (const [resource, n] of Object.entries(counts)) {
+    const amounts = resource === 'gold' ? splitIntoCoins(n, C.DROP_GOLD_MAX_ITEMS)
+      : n > C.DROP_MERGE_OVER ? splitIntoCoins(n) : Array(n).fill(1);
+    for (const amount of amounts) items.push({ resource, amount });
+  }
+  return items;
+}
+
+// Whether a drop's icon (glow included) at p would overlap the level name label (scene.labelArea,
+// stage coordinates, set by main.js at start-up from the UI's measurement).
+function underLabel(scene, p, margin) {
+  const r = scene.labelArea;
+  return !!r && p.x > r.left - margin && p.x < r.right + margin && p.y > r.top - margin && p.y < r.bottom + margin;
+}
+
+// n resting spots scattered round the death point: each at a random angle and a distance up to
+// min(DROP_SCATTER_BASE + DROP_SCATTER_PER × √n, DROP_SCATTER_MAX), √random so they spread evenly
+// over the circle (a lone item lands DROP_SINGLE_OFFSET away, so it still arcs). They may leave the
+// lane; clamped to the map, off the level name label, and DROP_MIN_GAP from the kill's other items
+// where DROP_PLACE_TRIES tries allow (then the last clear spot is accepted). A spot that can't get
+// clear of the label takes the old lane-row position instead (rowPositions).
+function scatterPositions(game, enemy, n) {
+  const radius = Math.min(C.DROP_SCATTER_BASE + C.DROP_SCATTER_PER * Math.sqrt(n), C.DROP_SCATTER_MAX);
+  const m = C.RESOURCE_ICON_SIZE * C.DROP_ICON_SCALE * 0.6; // the icon and its glow stay on the map
+  const out = [];
+  let rows = null;
+  for (let i = 0; i < n; i++) {
+    let chosen = null;
+    for (let t = 0; t < C.DROP_PLACE_TRIES; t++) {
+      const angle = game.rng.next() * Math.PI * 2;
+      const dist = n === 1 ? game.rng.range(C.DROP_SINGLE_OFFSET[0], C.DROP_SINGLE_OFFSET[1]) : radius * Math.sqrt(game.rng.next());
+      const p = {
+        x: Math.max(m, Math.min(C.STAGE_WIDTH - m, enemy.x + Math.cos(angle) * dist)),
+        y: Math.max(C.HUD_STRIP_HEIGHT + m, Math.min(C.STAGE_HEIGHT - m, enemy.y + Math.sin(angle) * dist)),
+      };
+      if (underLabel(game.scene, p, m)) continue;
+      chosen = p;
+      if (out.every((q) => Math.hypot(q.x - p.x, q.y - p.y) >= C.DROP_MIN_GAP)) break;
+    }
+    if (!chosen) {
+      // Last resort: the lane rows, DROP_SPACING apart (or the type's dropSpacing), stacking if full.
+      rows ??= rowPositions(enemy.lane, laneAnchor(enemy.lane, enemy), n, enemyType(enemy).dropSpacing ?? C.DROP_SPACING);
+      chosen = rows[i];
+    }
+    out.push(chosen);
+  }
+  return out;
+}
+
+// Called when an enemy dies: the rolled units, merged, scattered round the death point.
 // Items pop out of the death point and arc to their resting spot (M1g §1): (x, y) is where the
 // item comes to rest; (fromX, fromY) where it was launched from. They launch DROP_POP_STAGGER
-// apart in the order rolled, and only count as on the ground (for Squirrels) once landed.
+// apart, and only count as on the ground (for Squirrels) once landed.
 export function dropLoot(game, enemy) {
-  const units = rollDrops(game, enemyType(enemy).drops);
-  if (units.length === 0) return;
-  const anchor = laneAnchor(enemy.lane, enemy);
-  if (units.length === 1) {
-    // A lone item lands a few px along the lane, so it still visibly arcs (seeded).
-    const shift = game.rng.range(C.DROP_SINGLE_OFFSET[0], C.DROP_SINGLE_OFFSET[1]) * (game.rng.next() < 0.5 ? -1 : 1);
-    anchor.s = Math.max(0, Math.min(enemy.lane.path.length, anchor.s + shift));
-  }
-  // DROP_SPACING apart, or the type's own dropSpacing (the Ogre's are a little wider, M2c §2.3).
-  const positions = rowPositions(enemy.lane, anchor, units.length, enemyType(enemy).dropSpacing ?? C.DROP_SPACING);
-  units.forEach((resource, i) => {
+  const items = mergeUnits(rollDrops(game, enemyType(enemy).drops));
+  if (items.length === 0) return;
+  const positions = scatterPositions(game, enemy, items.length);
+  items.forEach(({ resource, amount }, i) => {
     const p = positions[i];
     game.drops.push({
-      id: game.nextEntityId++, resource, x: p.x, y: p.y, lane: enemy.lane.id, claimedBy: null,
+      id: game.nextEntityId++, resource, amount, x: p.x, y: p.y, lane: enemy.lane.id, claimedBy: null,
       fromX: enemy.x, fromY: enemy.y, delay: i * C.DROP_POP_STAGGER, age: 0,
     });
-    game.dropStats.dropped[resource]++;
+    game.dropStats.dropped[resource] += amount;
   });
 }
 
@@ -138,7 +210,7 @@ export function updateDrops(game, dt) {
   if (!sinking) return;
   const lost = game.drops.filter((d) => d.sunk >= sinkTime(game));
   if (!lost.length) return;
-  for (const d of lost) game.dropStats.lost[d.resource]++;
+  for (const d of lost) game.dropStats.lost[d.resource] += d.amount;
   game.drops = game.drops.filter((d) => !lost.includes(d)); // a Squirrel heading for one picks another
 }
 

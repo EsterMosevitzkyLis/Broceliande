@@ -129,7 +129,8 @@ const DROP_GLOW_ALPHA = [0.16, 0.34];
 // shrinks as it rises; on landing it squashes and settles, then rests with the idle bob and glow.
 // t: seconds (wall clock, for the idle effect only); the flight uses the drop's simulation age.
 export function drawDrop(ctx, drop, t) {
-  const size = C.RESOURCE_ICON_SIZE * C.DROP_ICON_SCALE;
+  // A merged item (a big coin) is drawn a little larger by its value.
+  const size = C.RESOURCE_ICON_SIZE * C.DROP_ICON_SCALE * Math.min(C.DROP_VALUE_SCALE_MAX, 1 + C.DROP_VALUE_SCALE * Math.log2(drop.amount ?? 1));
   const img = resourceIconImage(drop.resource);
   const flight = drop.age - drop.delay;
   if (flight < 0) return; // not launched yet
