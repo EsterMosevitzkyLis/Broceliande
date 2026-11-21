@@ -87,6 +87,48 @@ export function drawDecor(ctx, item, level) {
   ctx.restore();
 }
 
+// A static decoration drawn once into its own small canvas, cropped to what it drew, so a battle
+// pastes one image per item each frame instead of redrawing hundreds of shapes (a Lost Vale fern
+// is ~100 strokes). It is drawn at its true position, shifted by whole pixels, so the pasted copy
+// matches a live drawing pixel for pixel. Returns { canvas, x, y } (the stage position of its top
+// left), or null if it reaches the edge of the biggest window (then it is drawn live).
+let spriteScratch = null;
+const SPRITE_WINDOWS = [256, 768]; // px: tried in turn, the small one first (most items are small)
+export function decorSprite(item, level) {
+  for (const win of SPRITE_WINDOWS) {
+    if (!spriteScratch || spriteScratch.width !== win) {
+      spriteScratch = Object.assign(document.createElement('canvas'), { width: win, height: win });
+    }
+    const g = spriteScratch.getContext('2d', { willReadFrequently: true });
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, win, win);
+    const ox = Math.round(win / 2 - item.x); // the item's base sits low in the window: things grow upwards
+    const oy = Math.round(win * 0.7 - item.y);
+    g.setTransform(1, 0, 0, 1, ox, oy);
+    drawDecor(g, item, level);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    const { data } = g.getImageData(0, 0, win, win);
+    let left = win, top = win, right = -1, bottom = -1;
+    for (let py = 0; py < win; py++) {
+      for (let px = 0; px < win; px++) {
+        if (data[(py * win + px) * 4 + 3] === 0) continue;
+        if (px < left) left = px;
+        if (px > right) right = px;
+        if (py < top) top = py;
+        bottom = py;
+      }
+    }
+    if (right < 0) return { canvas: null, x: 0, y: 0 }; // draws nothing
+    if (left === 0 || top === 0 || right === win - 1 || bottom === win - 1) continue; // cut off: a bigger window
+    const w = right - left + 1;
+    const h = bottom - top + 1;
+    const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
+    canvas.getContext('2d').drawImage(spriteScratch, left, top, w, h, 0, 0, w, h);
+    return { canvas, x: left - ox, y: top - oy };
+  }
+  return null;
+}
+
 // Whether the map file has a drawing for this decoration kind (start-up check, M4a §1.3).
 export const isDecorKind = (kind) => !!(DECOR_DRAW[kind] ?? THEMED[kind]);
 

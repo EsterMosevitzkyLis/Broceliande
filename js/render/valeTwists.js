@@ -27,24 +27,28 @@ function frond(ctx, x, y, angle, len, bend, color) {
   ctx.moveTo(x, y);
   ctx.quadraticCurveTo(cx, cy, ex, ey);
   ctx.stroke();
+  // The leaflets in two strokes (body colour, then the lighter tip), not one per leaflet.
   ctx.lineWidth = 1.6;
   const n = 7;
-  for (let i = 1; i < n; i++) {
-    const k = i / n;
-    // a point on the curve and its direction
-    const px = (1 - k) * (1 - k) * x + 2 * (1 - k) * k * cx + k * k * ex;
-    const py = (1 - k) * (1 - k) * y + 2 * (1 - k) * k * cy + k * k * ey;
-    const dx = 2 * (1 - k) * (cx - x) + 2 * k * (ex - cx);
-    const dy = 2 * (1 - k) * (cy - y) + 2 * k * (ey - cy);
-    const d = Math.hypot(dx, dy) || 1;
-    const leaf = len * 0.2 * (1 - k * 0.7);
-    ctx.strokeStyle = k > 0.7 ? FERN.tip : color;
-    for (const side of [-1, 1]) {
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px + (-dy / d * side + dx / d * 0.5) * leaf, py + (dx / d * side + dy / d * 0.5) * leaf);
-      ctx.stroke();
+  for (const tip of [false, true]) {
+    ctx.strokeStyle = tip ? FERN.tip : color;
+    ctx.beginPath();
+    for (let i = 1; i < n; i++) {
+      const k = i / n;
+      if ((k > 0.7) !== tip) continue;
+      // a point on the curve and its direction
+      const px = (1 - k) * (1 - k) * x + 2 * (1 - k) * k * cx + k * k * ex;
+      const py = (1 - k) * (1 - k) * y + 2 * (1 - k) * k * cy + k * k * ey;
+      const dx = 2 * (1 - k) * (cx - x) + 2 * k * (ex - cx);
+      const dy = 2 * (1 - k) * (cy - y) + 2 * k * (ey - cy);
+      const d = Math.hypot(dx, dy) || 1;
+      const leaf = len * 0.2 * (1 - k * 0.7);
+      for (const side of [-1, 1]) {
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + (-dy / d * side + dx / d * 0.5) * leaf, py + (dx / d * side + dy / d * 0.5) * leaf);
+      }
     }
+    ctx.stroke();
   }
 }
 

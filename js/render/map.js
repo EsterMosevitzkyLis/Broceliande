@@ -79,17 +79,41 @@ function mapBackground(map) {
   return bg;
 }
 
+// The background in two layers: the still one (ground, pools, stones, tree clusters, reeds,
+// willows, the Vale's river body and ruins) is drawn once per map into its own canvas and pasted
+// each frame; the moving one (embers, ash, mist, the Vale's glint, falls, ferns, light shafts and
+// the Ironspan) is drawn live on top.
+let stillLayer = { bg: null, canvas: null };
 function drawMapBackground(ctx, map, t) {
+  const bg = mapBackground(map);
+  if (stillLayer.bg !== bg) {
+    const canvas = Object.assign(document.createElement('canvas'), { width: C.STAGE_WIDTH, height: C.STAGE_HEIGHT });
+    drawMapLayer(canvas.getContext('2d'), map, 0, true);
+    stillLayer = { bg, canvas };
+  }
+  ctx.drawImage(stillLayer.canvas, 0, 0);
+  drawMapLayer(ctx, map, t, false);
+}
+
+function drawMapLayer(ctx, map, t, still) {
   const P = mapPalette(map.regionId);
   const bg = mapBackground(map);
-  const mx = C.STAGE_WIDTH / 2; // the ground runs across the whole screen (M2e, revised)
-  const g = ctx.createRadialGradient(mx, C.STAGE_HEIGHT * 0.6, 100, mx, C.STAGE_HEIGHT * 0.6, C.STAGE_WIDTH * 0.6);
-  g.addColorStop(0, P.floorAccent.light);
-  g.addColorStop(1, P.floor);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
+  if (still) {
+    const mx = C.STAGE_WIDTH / 2; // the ground runs across the whole screen (M2e, revised)
+    const g = ctx.createRadialGradient(mx, C.STAGE_HEIGHT * 0.6, 100, mx, C.STAGE_HEIGHT * 0.6, C.STAGE_WIDTH * 0.6);
+    g.addColorStop(0, P.floorAccent.light);
+    g.addColorStop(1, P.floor);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
+  }
   ctx.save();
-  if (bg.river || bg.ferns.length) drawValeBackground(ctx, bg, P, t); // M6a §3: the Lost Vale
+  if (bg.river || bg.ferns.length) drawValeBackground(ctx, bg, P, t, still); // M6a §3: the Lost Vale
+  if (still) drawStillShapes(ctx, bg, P);
+  else drawMovingShapes(ctx, bg, P, t);
+  ctx.restore();
+}
+
+function drawStillShapes(ctx, bg, P) {
   // The Hag's Causeway marsh: still black pools with a faint sheen, broken causeway stones.
   for (const pl of bg.pools) {
     ctx.fillStyle = P.water.rim;
@@ -139,18 +163,6 @@ function drawMapBackground(ctx, map, t) {
       }
     }
   }
-  for (const e of bg.embers) {
-    const flicker = 0.55 + 0.45 * Math.sin(t * 2.3 + e.phase) * Math.sin(t * 0.9 + e.phase * 2);
-    const glow = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r * 3);
-    glow.addColorStop(0, P.ember);
-    glow.addColorStop(1, 'rgba(255, 120, 40, 0)');
-    ctx.globalAlpha = Math.max(0.15, flicker);
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.r * 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
   // Hag's Causeway: reed clumps and dead, drooping willows.
   for (const r of bg.reeds) {
     ctx.lineCap = 'round';
@@ -184,6 +196,21 @@ function drawMapBackground(ctx, map, t) {
       ctx.stroke();
     }
   }
+}
+
+function drawMovingShapes(ctx, bg, P, t) {
+  for (const e of bg.embers) {
+    const flicker = 0.55 + 0.45 * Math.sin(t * 2.3 + e.phase) * Math.sin(t * 0.9 + e.phase * 2);
+    const glow = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r * 3);
+    glow.addColorStop(0, P.ember);
+    glow.addColorStop(1, 'rgba(255, 120, 40, 0)');
+    ctx.globalAlpha = Math.max(0.15, flicker);
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r * 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
   // Drifting: ash motes falling over the Cinderwood, mist wisps over the marsh.
   if (bg.ash.length) {
     ctx.fillStyle = P.ash;
@@ -214,7 +241,6 @@ function drawMapBackground(ctx, map, t) {
     ctx.fill();
     ctx.restore();
   }
-  ctx.restore();
 }
 
 // M6a §3: the Lost Vale's river, winding from the top of the map area to the bottom: its centre-line
@@ -232,7 +258,8 @@ function riverX(r, y) {
 
 // The river, its falls (pale foamy steps across it), tree-fern crowns seen from above, moss-grown
 // ruin fragments, soft shafts of gold light, and the Ironspan near the top (the boss end).
-function drawValeBackground(ctx, bg, P, t) {
+// still: the river's body and the ruins (the still layer); otherwise the rest, drawn live.
+function drawValeBackground(ctx, bg, P, t, still) {
   const r = bg.river;
   const W = C.MAP_VALE_RIVER.width;
   if (r) {
@@ -246,11 +273,15 @@ function drawValeBackground(ctx, bg, P, t) {
     };
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    for (const [color, width] of [[P.water.rim, W * 2 + 14], [P.water.deep, W * 2]]) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      course(0);
-      ctx.stroke();
+    if (still) {
+      for (const [color, width] of [[P.water.rim, W * 2 + 14], [P.water.deep, W * 2]]) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        course(0);
+        ctx.stroke();
+      }
+      drawValeRuins(ctx, bg, P);
+      return;
     }
     ctx.strokeStyle = P.water.ripple; // a glint drifting down the river
     ctx.lineWidth = 2;
@@ -270,35 +301,25 @@ function drawValeBackground(ctx, bg, P, t) {
         ctx.fill();
       }
     }
+  } else if (still) {
+    drawValeRuins(ctx, bg, P);
+    return;
   }
-  for (const ru of bg.ruins) {
-    for (let i = 0; i < ru.n; i++) {
-      ctx.save();
-      ctx.translate(ru.x + i * ru.w * 1.1 * Math.cos(ru.rot), ru.y + i * ru.w * 1.1 * Math.sin(ru.rot));
-      ctx.rotate(ru.rot + (i % 2 ? 0.12 : -0.08));
-      ctx.fillStyle = P.rock.base;
-      ctx.fillRect(-ru.w / 2, -ru.w * 0.35, ru.w, ru.w * 0.7);
-      ctx.fillStyle = P.rock.light;
-      ctx.fillRect(-ru.w / 2, -ru.w * 0.35, ru.w, ru.w * 0.2);
-      ctx.fillStyle = P.moss;
-      ctx.beginPath();
-      ctx.ellipse(-ru.w * 0.15, -ru.w * 0.3, ru.w * 0.35, ru.w * 0.16, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
+  // Fern crowns, swaying a little: each one's fronds in two strokes, one per colour.
   for (const f of bg.ferns) {
     ctx.save();
     ctx.translate(f.x, f.y);
     ctx.rotate(f.rot + Math.sin(t * 0.5 + f.rot) * 0.03);
-    for (let i = 0; i < f.n; i++) {
-      const a = (i / f.n) * Math.PI * 2;
-      const len = 30 * f.s * (0.8 + 0.2 * Math.sin(i * 2.1));
-      ctx.strokeStyle = i % 2 ? P.vegetation.light : P.vegetation.base;
-      ctx.lineWidth = 3.2 * f.s;
+    ctx.lineWidth = 3.2 * f.s;
+    for (const odd of [0, 1]) {
+      ctx.strokeStyle = odd ? P.vegetation.light : P.vegetation.base;
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(Math.cos(a + 0.3) * len * 0.6, Math.sin(a + 0.3) * len * 0.6, Math.cos(a) * len, Math.sin(a) * len);
+      for (let i = odd; i < f.n; i += 2) {
+        const a = (i / f.n) * Math.PI * 2;
+        const len = 30 * f.s * (0.8 + 0.2 * Math.sin(i * 2.1));
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(Math.cos(a + 0.3) * len * 0.6, Math.sin(a + 0.3) * len * 0.6, Math.cos(a) * len, Math.sin(a) * len);
+      }
       ctx.stroke();
     }
     ctx.fillStyle = P.treeDark.trunk;
@@ -327,6 +348,26 @@ function drawValeBackground(ctx, bg, P, t) {
   if (bg.ironspan) {
     const y = C.HUD_STRIP_HEIGHT + 130;
     drawIronspan(ctx, r ? riverX(r, y) : (C.EQUIP_PANEL_WIDTH + C.STAGE_WIDTH) / 2, y, P);
+  }
+}
+
+// The Lost Vale's moss-grown ruin fragments (in the still layer).
+function drawValeRuins(ctx, bg, P) {
+  for (const ru of bg.ruins) {
+    for (let i = 0; i < ru.n; i++) {
+      ctx.save();
+      ctx.translate(ru.x + i * ru.w * 1.1 * Math.cos(ru.rot), ru.y + i * ru.w * 1.1 * Math.sin(ru.rot));
+      ctx.rotate(ru.rot + (i % 2 ? 0.12 : -0.08));
+      ctx.fillStyle = P.rock.base;
+      ctx.fillRect(-ru.w / 2, -ru.w * 0.35, ru.w, ru.w * 0.7);
+      ctx.fillStyle = P.rock.light;
+      ctx.fillRect(-ru.w / 2, -ru.w * 0.35, ru.w, ru.w * 0.2);
+      ctx.fillStyle = P.moss;
+      ctx.beginPath();
+      ctx.ellipse(-ru.w * 0.15, -ru.w * 0.3, ru.w * 0.35, ru.w * 0.16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 }
 

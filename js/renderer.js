@@ -3,7 +3,7 @@
 import * as C from './config.js';
 import { GameState, ActionState } from './states.js';
 import { drawDebugOverlay } from './debug/debugOverlay.js';
-import { drawFloor, drawCorridors, drawFlats, drawDecor, drawStream, drawAshFlecks, drawLaneGlow, drawMire, drawRelicPylon } from './render/environment.js';
+import { drawFloor, drawCorridors, drawFlats, drawDecor, decorSprite, drawStream, drawAshFlecks, drawLaneGlow, drawMire, drawRelicPylon } from './render/environment.js';
 import {
   drawTurretSlot, drawDruid, drawFeature, drawEnemyHpBar, enemyBarY, drawArmorSpark, drawHealSparkle, drawCorrodeDrips, drawDruidHpBar, drawDustRing, drawLanePulse,
   drawTurret, drawToader, toaderMouthOpen, drawPellet, drawCloud, drawRange, drawProgressBar, drawFloatingText, drawPebble,
@@ -52,12 +52,34 @@ export function createRenderer(canvas) {
 
   // Static decor of each level's scene, built once per level; everything else is merged in
   // and y-sorted per frame. M6b §6: relic pylons are targets, drawn from game.pylons instead.
+  // Each item is pasted from its cached sprite (decorSprite), or drawn live if it has none.
   const decorByLevel = new Map();
   const decorOf = (scene) => {
     if (!decorByLevel.has(scene.levelId)) {
-      decorByLevel.set(scene.levelId, scene.decor.filter((item) => item.kind !== 'relicPylon').map((item) => ({ y: item.y, draw: () => drawDecor(ctx, item, scene.level) })));
+      decorByLevel.set(scene.levelId, scene.decor.filter((item) => item.kind !== 'relicPylon').map((item) => {
+        const sprite = decorSprite(item, scene.level);
+        const draw = !sprite ? () => drawDecor(ctx, item, scene.level)
+          : sprite.canvas ? () => ctx.drawImage(sprite.canvas, sprite.x, sprite.y) : () => {};
+        return { y: item.y, draw };
+      }));
     }
     return decorByLevel.get(scene.levelId);
+  };
+
+  // The still ground (floor, stream, corridors, flat patches) of the current scene, drawn once into
+  // its own canvas and pasted each frame. Only the current scene's is kept (each is a full screen).
+  let ground = { scene: null, canvas: null };
+  const groundOf = (scene) => {
+    if (ground.scene !== scene) {
+      const canvas = Object.assign(document.createElement('canvas'), { width: C.STAGE_WIDTH, height: C.STAGE_HEIGHT });
+      const g = canvas.getContext('2d');
+      drawFloor(g, scene);
+      drawStream(g, scene); // M2f §4.2: under the corridors, which cross it as fords
+      drawCorridors(g, scene);
+      drawFlats(g, scene);
+      ground = { scene, canvas };
+    }
+    return ground.canvas;
   };
 
   function render(game, view) {
@@ -107,10 +129,7 @@ export function createRenderer(canvas) {
     if (scene.background) {
       ctx.drawImage(scene.background, 0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
     } else {
-      drawFloor(ctx, scene);
-      drawStream(ctx, scene); // M2f §4.2: under the corridors, which cross it as fords
-      drawCorridors(ctx, scene);
-      drawFlats(ctx, scene);
+      ctx.drawImage(groundOf(scene), 0, 0); // floor, stream, corridors and flats, drawn once
     }
     drawMire(ctx, scene, animationTime(game)); // M3c §3.1: mire ground (never on a corridor), under everything upright
     // M2f §4.11: the Heartwood's sickly glow at its lane entrances.
