@@ -239,10 +239,11 @@ export function validateMap() {
 // ---------------------------------------------------------------------------
 
 // A random item the run doesn't own yet (seeded rng), or null if none is left. The hidden find
-// (M2p §3.1): never a Crafted (rarity 0) item, weighted by RARITY_WEIGHT_1/2/3. anyItem (debug
-// key I): every unowned item, Crafted ones included, with equal chances.
+// (M2p §3.1): never a crafted item, weighted by rarity (RARITY_WEIGHT_0-3). anyItem (debug
+// key I): every unowned item, crafted ones included, with equal chances.
 export function randomUnownedItem(run, rng, { anyItem = false } = {}) {
-  const weight = (id) => (anyItem ? 1 : [0, C.RARITY_WEIGHT_1, C.RARITY_WEIGHT_2, C.RARITY_WEIGHT_3][C.ITEMS[id].rarity] ?? 0);
+  const weights = [C.RARITY_WEIGHT_0, C.RARITY_WEIGHT_1, C.RARITY_WEIGHT_2, C.RARITY_WEIGHT_3];
+  const weight = (id) => (anyItem ? 1 : C.ITEMS[id].crafted ? 0 : weights[C.ITEMS[id].rarity] ?? 0);
   const left = Object.keys(C.ITEMS).filter((id) => !run.items.includes(id) && weight(id) > 0);
   const total = left.reduce((sum, id) => sum + weight(id), 0);
   if (total <= 0) return null;

@@ -470,7 +470,7 @@ function checkEndConditions(game) {
 
 // M2p §3.1 (overrides M2e §3.1): hide one find in one random resource spot, all with the
 // encounter's seeded RNG: a pattern (FIND_PATTERN_CHANCE) the player doesn't know yet, weighted by
-// patternWeight, or else an item the run doesn't own (never Crafted), weighted by rarity. If the
+// patternWeight, or else an item the run doesn't own (never a crafted one), weighted by rarity. If the
 // chosen pool is empty the other one is used. Nothing in the spot's look or tooltip shows it. Null
 // when there is no run (direct starts), no spot, or both pools are empty.
 // hiddenFind: { featureIndex, kind: 'item' | 'pattern', itemId (the item, or the item the pattern is for), found }

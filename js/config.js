@@ -532,12 +532,13 @@ export const SLOT_TYPES = {
   shoes:    { label: 'Shoes',         group: 'personal' }, // movement
 };
 
-// Item rarity (M2p §1.1): the items tab's `rarity` → its label and icon frame colour.
+// Item rarity (M2p §1.1): the items tab's `rarity` → its label and icon frame colour. Whether an
+// item is craft-only is its own `crafted` column, not a rarity.
 export const RARITY = {
-  0: { label: 'Crafted',  frame: '#a070d8' }, // purple, craft-only
-  1: { label: 'Common',   frame: '#b07a4a' }, // bronze
-  2: { label: 'Uncommon', frame: '#5fae5a' }, // green
-  3: { label: 'Rare',     frame: '#e0b83a' }, // gold
+  0: { label: 'Common',    frame: '#b07a4a' }, // bronze
+  1: { label: 'Uncommon',  frame: '#5fae5a' }, // green
+  2: { label: 'Rare',      frame: '#e0b83a' }, // gold
+  3: { label: 'Very Rare', frame: '#4fb8e8' }, // sky blue
 };
 export const RARITY_FRAME_WIDTH = 2.5;   // px, the frame round an item icon (at a 64 px icon; scales with it)
 
@@ -627,7 +628,7 @@ export let DROP_SPACING, DROP_POP_HEIGHT, DROP_POP_TIME, DROP_POP_STAGGER, DROP_
 export let DROP_SCATTER_BASE, DROP_SCATTER_PER, DROP_SCATTER_MAX, DROP_MIN_GAP, DROP_COIN_VALUES, DROP_GOLD_MAX_ITEMS, DROP_MERGE_OVER;
 export let FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX;
 export let SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME;
-export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
+export let CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_0, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE;
 export let MASTER_VOLUME, SOUND_PITCH_JITTER;
 export let TRADE_TAG_CHEAP, TRADE_TAG_PRICEY, GOLD_PER_VALUE, RESOURCE_SELL_FRACTION, ITEM_SELL_FRACTION, SHOP_PRICE_JITTER;
 export let ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3;
@@ -670,7 +671,7 @@ export let SQUIRREL_COST, SQUIRREL_HP, SQUIRREL_DURATION, SQUIRREL_SPEED, MAX_SQ
   SQUIRREL_PICKUP_RANGE, SQUIRREL_BLOCKS_WOLVES, SQUIRREL_DAMAGE, SQUIRREL_ATTACK_INTERVAL, SQUIRREL_BLOCK_RADIUS;
 export let WISP_COST, WISP_SPEED, MAX_WISPS, WISP_RADIUS, WISP_BURST_RADIUS, WISP_SLOW_MULT, WISP_SLOW_DURATION; // Slow Wisp (M2k §3)
 export let BOUGH_DOUBLE_COST, MAX_BOUGH_DOUBLES, DOUBLE_WISP_TIME;
-// items: id → { slot, rarity, price (M3e §4, or undefined: its rarity's default), name, description, effects: [{ stat, op, value }], colors: [main, accent], mark }
+// items: id → { slot, rarity, crafted (craft-only: never sold or found as an item), price (M3e §4, or undefined: its rarity's default), name, description, effects: [{ stat, op, value }], colors: [main, accent], mark }
 export let ITEMS;
 // M2p §5: item ID → { cost, patternWeight, patternPrice } (its pattern's crafting cost, find weight and,
 // M3e §4, Trader price or undefined: its rarity's default).
@@ -731,7 +732,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     DROP_SCATTER_BASE, DROP_SCATTER_PER, DROP_SCATTER_MAX, DROP_MIN_GAP, DROP_COIN_VALUES, DROP_GOLD_MAX_ITEMS, DROP_MERGE_OVER,
     FLOATER_RISE_PX, FLOATER_TIME, FLOATER_STAGGER, FLOATER_STACK_PX,
     SWEEP_FLIGHT_TIME, SWEEP_STAGGER, SWEEP_END_MARGIN, SWEEP_END_SCALE, SWEEP_PULSE_TIME,
-    CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
+    CARRY_DRUID_HP, ITEMS_PER_BATTLE, RARITY_WEIGHT_0, RARITY_WEIGHT_1, RARITY_WEIGHT_2, RARITY_WEIGHT_3, FIND_PATTERN_CHANCE, WORK_SPEED, SEARCH_MAIN_BONUS, BOUGH_REFUND_CHANCE,
     MASTER_VOLUME, SOUND_PITCH_JITTER,
     TRADE_TAG_CHEAP, TRADE_TAG_PRICEY, GOLD_PER_VALUE, RESOURCE_SELL_FRACTION, ITEM_SELL_FRACTION, SHOP_PRICE_JITTER,
     ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3, PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3,
@@ -826,7 +827,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     for (let n = 1; r[`effect${n}_stat`] !== undefined || r[`effect${n + 1}_stat`] !== undefined; n++) {
       if (r[`effect${n}_stat`] !== undefined) effects.push({ stat: r[`effect${n}_stat`], op: r[`effect${n}_op`], value: r[`effect${n}_value`] });
     }
-    return { slot: r.slot, rarity: r.rarity, price: r.price, name: r.name, description: r.description, effects, colors: [r.iconColor, r.iconAccent], mark: r.iconMark };
+    return { slot: r.slot, rarity: r.rarity, crafted: r.crafted ?? false, price: r.price, name: r.name, description: r.description, effects, colors: [r.iconColor, r.iconAccent], mark: r.iconMark };
   });
   STATS = byId(t.stats, (r) => r.description, 'stat');
   RECIPES = byId(t.recipes, (r) => ({ cost: cost(r), patternWeight: r.patternWeight, patternPrice: r.patternPrice }), 'item');

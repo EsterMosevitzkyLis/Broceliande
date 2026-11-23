@@ -75,11 +75,11 @@ export function rollTrader(rng, { profileId, regionId, ownedItems = [] }) {
     else offers.push(k);
   }
   const rolls = {};
-  // Items: rarity 1–3 only (Crafted items are never sold), not owned, not already in this shop.
+  // Items: never a crafted one (only ever sold as a pattern), not owned, not already in this shop.
   const items = rollGoods(rng, profileId, 'item', rolls,
-    (rarity, taken) => Object.keys(C.ITEMS).filter((id) => rarity > 0 && C.ITEMS[id].rarity === rarity && !ownedItems.includes(id) && !taken.includes(id)),
+    (rarity, taken) => Object.keys(C.ITEMS).filter((id) => !C.ITEMS[id].crafted && C.ITEMS[id].rarity === rarity && !ownedItems.includes(id) && !taken.includes(id)),
     (id) => shopPrice(itemBasePrice(id), profile.itemPriceMult, rng));
-  // Patterns: any rarity (Crafted ones too), not known, not already in this shop.
+  // Patterns: any rarity (crafted items' too), not known, not already in this shop.
   const patterns = rollGoods(rng, profileId, 'pattern', rolls,
     (rarity, taken) => Object.keys(C.RECIPES).filter((id) => C.ITEMS[id]?.rarity === rarity && !isPatternKnown(id) && !taken.includes(id)),
     (id) => shopPrice(patternBasePrice(id), profile.patternPriceMult, rng));
@@ -157,11 +157,11 @@ export function goodsTag(trader, k) {
   return m <= C.TRADE_TAG_CHEAP ? 'cheap' : m >= C.TRADE_TAG_PRICEY ? 'pricey' : null;
 }
 
-// The map tooltip's hints (§5.3): "1 item (Rare), 2 patterns (Common, Crafted)" and the cheap resources.
+// The map tooltip's hints (§5.3): "1 item (Rare), 2 patterns (Common, Very Rare)" and the cheap resources.
 export function shopSummary(trader) {
   const part = (goods, word) => {
     if (!goods.length) return null;
-    const rarities = [...new Set(goods.map((g) => C.ITEMS[g.id].rarity))].sort((a, b) => (a || 4) - (b || 4));
+    const rarities = [...new Set(goods.map((g) => C.ITEMS[g.id].rarity))].sort((a, b) => a - b);
     return `${goods.length} ${word}${goods.length > 1 ? 's' : ''} (${rarities.map((r) => C.RARITY[r].label).join(', ')})`;
   };
   return [part(trader.items, 'item'), part(trader.patterns, 'pattern')].filter(Boolean).join(', ') || 'resources only';

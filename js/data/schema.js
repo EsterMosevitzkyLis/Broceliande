@@ -30,7 +30,7 @@ export const GLOBAL_TYPES = {
   DROP_COIN_VALUES: 'list', DROP_GOLD_MAX_ITEMS: 'int', DROP_MERGE_OVER: 'int',
   FLOATER_RISE_PX: 'number', FLOATER_TIME: 'number', FLOATER_STAGGER: 'number', FLOATER_STACK_PX: 'number',
   SWEEP_FLIGHT_TIME: 'number', SWEEP_STAGGER: 'number', SWEEP_END_MARGIN: 'number', SWEEP_END_SCALE: 'number', SWEEP_PULSE_TIME: 'number',
-  CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
+  CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_0: 'number', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
   MASTER_VOLUME: 'number', SOUND_PITCH_JITTER: 'number',
   TRADE_TAG_CHEAP: 'number', TRADE_TAG_PRICEY: 'number',
   GOLD_PER_VALUE: 'number', RESOURCE_SELL_FRACTION: 'number', ITEM_SELL_FRACTION: 'number', SHOP_PRICE_JITTER: 'number', // M3e §4
@@ -119,7 +119,7 @@ export const TABS = {
   },
   items: {
     columns: {
-      id: { type: 'id', required: true }, slot: { type: 'id', required: true }, rarity: { type: 'int', required: true }, price: { type: 'number' }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
+      id: { type: 'id', required: true }, slot: { type: 'id', required: true }, rarity: { type: 'int', required: true }, crafted: { type: 'bool' }, price: { type: 'number' }, name: { type: 'text', required: true }, description: { type: 'text', required: true },
       iconColor: { type: 'text', required: true }, iconAccent: { type: 'text', required: true }, iconMark: { type: 'id', required: true },
     },
     pattern: [/^effect\d+_(stat|op|value)$/, { type: 'effect' }],

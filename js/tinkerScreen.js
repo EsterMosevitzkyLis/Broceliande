@@ -22,7 +22,7 @@ const DETAIL_ICON_PX = 120;
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 // Rarity colours for text on the book's parchment: the rarity frame colours (C.RARITY), darkened
 // so they read on the pale page.
-const PAGE_RARITY_COLOR = { 0: '#6a3aa8', 1: '#7a4a22', 2: '#2f7a2c', 3: '#94700c' };
+const PAGE_RARITY_COLOR = { 0: '#7a4a22', 1: '#2f7a2c', 2: '#94700c', 3: '#1f6f9a' };
 
 // callbacks: { onTab(tab), onSelect(itemId), onCraft(), onUndo(), onLeave() }
 export function createTinkerScreen(callbacks) {

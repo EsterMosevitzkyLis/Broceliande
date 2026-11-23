@@ -148,7 +148,7 @@ export function validateTables(t, problems, maps = {}) {
   ids('items');
   for (const r of t.items) {
     if (!SLOT_TYPES[r.slot]) err('items', r, 'slot', `unknown slot "${r.slot}"`);
-    if (![0, 1, 2, 3].includes(r.rarity)) err('items', r, 'rarity', 'rarity must be 0 (Crafted), 1 (Common), 2 (Uncommon) or 3 (Rare)');
+    if (![0, 1, 2, 3].includes(r.rarity)) err('items', r, 'rarity', 'rarity must be 0 (Common), 1 (Uncommon), 2 (Rare) or 3 (Very Rare)');
     if (r.price !== undefined && !(r.price > 0)) err('items', r, 'price', 'price must be above 0 (or blank: its rarity default)');
     for (const col of Object.keys(r)) {
       const m = col.match(/^effect(\d+)_stat$/);
@@ -255,13 +255,13 @@ export function validateTables(t, problems, maps = {}) {
     const n = t.traderProfiles.filter((r) => r.id !== 'default' && !villageTraders.includes(r.id) && (!profileRegions(r).length || profileRegions(r).includes(reg.id))).length;
     if (n < (reg.traders ?? 0)) warn('traderProfiles', '', 'regions', `only ${n} profiles for ${reg.id}'s ${reg.traders} Traders: some will repeat`);
   }
-  // traderTables (M3e §3.2): known traders and tables, counts 0 or more, item rarities 1-3, pattern
+  // traderTables (M3e §3.2): known traders and tables, counts 0 or more, item and pattern
   // rarities 0-3, weights 0 or more; `default` has every table.
   for (const r of t.traderTables) {
     known('traderTables', r, 'trader', profiles, 'trader');
     if (!TRADER_TABLES.includes(r.table)) err('traderTables', r, 'table', `table must be one of ${TRADER_TABLES.join(', ')}`);
     if (r.weight < 0) err('traderTables', r, 'weight', 'weight must be 0 or more');
-    const [lo, hi] = r.table === 'itemRarity' ? [1, 3] : r.table === 'patternRarity' ? [0, 3] : [0, Infinity];
+    const [lo, hi] = r.table === 'itemRarity' || r.table === 'patternRarity' ? [0, 3] : [0, Infinity];
     if (r.value < lo || r.value > hi) err('traderTables', r, 'value', `${r.table} values must be ${hi === Infinity ? '0 or more' : `${lo}-${hi}`}`);
   }
   for (const table of TRADER_TABLES) {
