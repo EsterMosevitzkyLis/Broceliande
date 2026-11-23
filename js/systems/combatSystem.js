@@ -17,6 +17,7 @@ import { sinkAtHalf } from './bogKingSystem.js';
 import { pylonFell, pylonsInRange, targetById } from './oracleSystem.js';
 import { canTarget } from './camouflageSystem.js';
 import { wallById, damageWall } from './wallSystem.js';
+import { applyVenom } from './venomSystem.js';
 
 const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
 
@@ -266,9 +267,12 @@ function recordDamage(game, source, amount) {
 // ---------------------------------------------------------------------------
 // Enemies attacking the Druid (§12.5), each with its type's damage and interval
 // ---------------------------------------------------------------------------
-// An enemy's blow lands on the Druid: its damage × druid.damageTakenMult (M2p, Ward Torc).
+// An enemy's blow (or a venom tick) lands on the Druid: its damage × druid.damageTakenMult (M2p,
+// Ward Torc). Returns the HP actually lost.
 export function hurtDruid(game, damage) {
-  game.druidHp = Math.max(0, game.druidHp - damage * game.stats['druid.damageTakenMult']);
+  const lost = Math.min(game.druidHp, damage * game.stats['druid.damageTakenMult']);
+  game.druidHp -= lost;
+  return lost;
 }
 
 export function updateMelee(game, dt) {
@@ -283,6 +287,7 @@ export function updateMelee(game, dt) {
       enemy.bites++;
       enemy.lastBiteTime = game.combatTime;
       hurtDruid(game, t.damage);
+      applyVenom(game, enemy); // spiders' bites poison him (venomSystem.js)
       game.druidLastHitTime = game.combatTime;
       lifestealOnBite(game, enemy);
       events.emit('enemyAttacked', { type: enemy.type, target: 'druid' });
@@ -343,6 +348,7 @@ function blow(game, enemy, t) {
   let landed = false;
   if (same && aim.kind === 'druid') {
     hurtDruid(game, t.damage);
+    applyVenom(game, enemy); // the Broodmother's bite poisons him (venomSystem.js)
     game.druidLastHitTime = game.combatTime;
     at = { ...game.scene.level.druidPos };
     landed = true;

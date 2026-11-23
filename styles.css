@@ -185,6 +185,7 @@ html, body {
 
 #hud-hp-fill[data-level="mid"] { background: #e0c04a; }
 #hud-hp-fill[data-level="low"] { background: #e0553a; }
+#hud-hp-fill.venom { background: #b6ec3c; } /* poisoned: C.VENOM_COLOR */
 
 #hud-hp-text {
   font-family: 'Consolas', monospace;

@@ -87,6 +87,7 @@ export const TABS = {
       // M6b §2.1, §4.2: it can damage turrets; a ranged enemy's range; camouflage (M6c §2).
       attacksTurrets: { type: 'bool' }, attackRange: { type: 'number' }, camouflage: { type: 'bool' },
       stationary: { type: 'bool' }, // M6b §5.1: a stationary target (an egg sac): never moves, blocks or attacks
+      venomDps: { type: 'number' }, venomDuration: { type: 'number' }, // its bite poisons the Druid (venomSystem.js)
     },
   },
   drops: { columns: { enemy: { type: 'id', required: true }, resource: { type: 'id', required: true }, chance: { type: 'number', required: true }, min: { type: 'int', required: true }, max: { type: 'int', required: true } } },

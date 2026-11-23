@@ -26,3 +26,4 @@ druid.strikeBurnDuration,Druid strike burns for (s)
 features.peatBonus,Peat Bog bonus Peat
 drops.sinkTimeMult,Drop sink time x
 mire.stepMult,Mire extra step cost x
+druid.venomTakenMult,Venom damage taken x

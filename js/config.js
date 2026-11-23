@@ -417,6 +417,10 @@ export const TRADER_LOOKS = [             // per-trader colour variation (cloak,
 // ---------------------------------------------------------------------------
 export const DEBUG_SEED = null;          // null = new random seed each restart; integer = fixed seed
 export const DEBUG_START_ENABLED = false;
+// Venom on the Druid (venomSystem.js): it ticks once a second (venomDps is damage per second).
+export const VENOM_TICK_INTERVAL = 1;   // s
+export const VENOM_COLOR = '#b6ec3c';    // his HP bars while poisoned (an acid lime, apart from the healthy green)
+export const VENOM_TEXT_COLOR = '#c4f25a'; // the small damage number each venom tick shows on him
 export const DEBUG_GRANT_GOLD = 50; // M3e §8: debug G also grants this much gold
 export const DEBUG_GRANT_AMOUNT = 10;   // G key: +this many of each resource
 export const DEBUG_DROP_MULT = 10;      // X key toggles wolf drop chances between ×1 and ×this (M1d §3)
@@ -780,6 +784,8 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     opt(e, 'banner', r.banner);
     // Traits (M2l §1.3) and look; absent = none / ×1.
     for (const k of ['slowResist', 'armor', 'splashRatio', 'splashRadius', 'lifesteal', 'drawScale', 'soundPitch']) opt(e, k, r[k]);
+    // Venom (venomSystem.js): its bite poisons the Druid for venomDps per second over venomDuration s.
+    for (const k of ['venomDps', 'venomDuration']) opt(e, k, r[k]);
     // M6b §2.1, §4.2: whether it can damage turrets, a ranged enemy's range, camouflage (M6c).
     e.attacksTurrets = r.attacksTurrets ?? false;
     opt(e, 'attackRange', r.attackRange);

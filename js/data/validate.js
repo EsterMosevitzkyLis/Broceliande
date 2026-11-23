@@ -90,6 +90,8 @@ export function validateTables(t, problems, maps = {}) {
     if (m.flying && m.flyHeight === undefined) err('enemies', r, 'flyHeight', 'a flying enemy needs flyHeight');
     if ((m.splashRatio === undefined) !== (m.splashRadius === undefined)) err('enemies', r, 'splashRatio', 'splashRatio and splashRadius must both be set or both blank');
     if (m.role === 'ranged' && !(m.attackRange > 0)) err('enemies', r, 'attackRange', 'a ranged enemy needs an attackRange'); // M6b §4.2
+    if ((m.venomDps === undefined) !== (m.venomDuration === undefined)) err('enemies', r, 'venomDps', 'venomDps and venomDuration must both be set or both blank');
+    else if (m.venomDps !== undefined && !(m.venomDps > 0 && m.venomDuration > 0)) err('enemies', r, 'venomDps', 'venomDps and venomDuration must be above 0');
   }
 
   // turrets: levels 1, 2, 3… per turret; cloud attacks need their cloud values; corrosion (M2m §2.4) is a cloud's.

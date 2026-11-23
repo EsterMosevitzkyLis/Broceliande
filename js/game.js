@@ -13,6 +13,7 @@ import { buildWavePlans, updateSpawning, queueDebugEnemy } from './systems/spawn
 import { startWaves, updateWaveClock, checkWaveCleared } from './systems/waveSystem.js';
 import { updateEnemyMovement } from './systems/movementSystem.js';
 import { updateMelee, updateWindupAttacks, killEnemy, updateTurrets, updateProjectiles } from './systems/combatSystem.js';
+import { updateVenom, clearVenom } from './systems/venomSystem.js';
 import { fitsCorridor } from './entities/enemy.js';
 import { corridorWidth, levelTotals } from './levelSettings.js';
 import { createIdleAction, updateAction, enforceActionAllowed } from './systems/actionSystem.js';
@@ -196,6 +197,7 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.druidHp = druidHp ?? game.stats['druid.maxHp'];
   game.regenTimer = 0; // M2e: s towards the next regen tick (Sap Pendant)
   game.druidLastHitTime = -Infinity;
+  game.druidVenom = null; // venomSystem.js: { until, nextTick, dps, duration } while poisoned
   game.druidMeleeTimer = 0;
   game.druidWasBusy = false;
   game.druidMeleeTargetId = null;
@@ -294,6 +296,7 @@ export function beginEnding(game, result) {
   if (game.state !== GameState.COMBAT) return;
   setState(game, GameState.ENDING);
   game.pendingResult = result;
+  clearVenom(game); // venom ends with the fight
   game.endRemaining = C.END_DELAY;
   game.endElapsed = 0;
   game.projectiles = [];
@@ -682,6 +685,7 @@ export function updateGame(game, dt) {
       updateDoubles(game, dt);       // Bough Double jobs (M1i §2)
       updateMelee(game, dt);
       updateWindupAttacks(game, dt); // the Ogre's wind-up and blow (M2c §2.5), on the Druid or a blocker
+      updateVenom(game);             // spider venom ticks on the Druid
       expireVultures(game, dt);
       expireSquirrels(game, dt);
       updateAction(game, dt);

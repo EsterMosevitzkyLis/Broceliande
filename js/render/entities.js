@@ -805,18 +805,19 @@ export function drawWolf(ctx, wolf, hit, lunging, anim = 0) { // (enemy of type 
 }
 
 // Small world-space HP bar centred on x with its top at y.
-export function drawHpBar(ctx, x, y, width, fraction) {
+// fill: a colour in place of the usual high / mid / low one (the Druid's while poisoned).
+export function drawHpBar(ctx, x, y, width, fraction, fill = null) {
   const h = 6;
   const f = Math.max(0, Math.min(1, fraction));
   ctx.fillStyle = COLORS.hpBack;
   ctx.fillRect(x - width / 2 - 1, y - 1, width + 2, h + 2);
-  ctx.fillStyle = f > 0.5 ? COLORS.hpHigh : f > 0.25 ? COLORS.hpMid : COLORS.hpLow;
+  ctx.fillStyle = fill ?? (f > 0.5 ? COLORS.hpHigh : f > 0.25 ? COLORS.hpMid : COLORS.hpLow);
   ctx.fillRect(x - width / 2, y, width * f, h);
 }
 
-// Druid HP bar, always shown above his head.
-export function drawDruidHpBar(ctx, x, y, hp, maxHp = C.DRUID_HP) {
-  drawHpBar(ctx, x, y - C.DRUID_RADIUS * 2.55, 56, hp / maxHp);
+// Druid HP bar, always shown above his head; acid green while venom is on him.
+export function drawDruidHpBar(ctx, x, y, hp, maxHp = C.DRUID_HP, poisoned = false) {
+  drawHpBar(ctx, x, y - C.DRUID_RADIUS * 2.55, 56, hp / maxHp, poisoned ? C.VENOM_COLOR : null);
 }
 
 // Enemy HP bars (§13, M1e §3.4): hidden until first damage; sized to the sprite.
@@ -1686,7 +1687,7 @@ export function drawProgressBar(ctx, x, y, fraction) {
 // Rising, fading text such as "+2 Pits". t: 0 → 1 over its lifetime.
 // small: Squirrel pickups (M1d §1.4), which come in quick bursts and must not drown each other out.
 // muted: grey ("Nothing found", M2d §1.2).
-export function drawFloatingText(ctx, text, x, y, t, small = false, muted = false) {
+export function drawFloatingText(ctx, text, x, y, t, small = false, muted = false, color = null) {
   ctx.save();
   ctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
   ctx.font = small ? 'bold 15px Georgia, serif' : 'bold 22px Georgia, serif';
@@ -1694,7 +1695,7 @@ export function drawFloatingText(ctx, text, x, y, t, small = false, muted = fals
   ctx.lineWidth = small ? 3 : 4;
   ctx.strokeStyle = COLORS.floatOutline;
   ctx.strokeText(text, x, y);
-  ctx.fillStyle = muted ? COLORS.floatMuted : COLORS.floatText;
+  ctx.fillStyle = color ?? (muted ? COLORS.floatMuted : COLORS.floatText);
   ctx.fillText(text, x, y);
   ctx.restore();
 }

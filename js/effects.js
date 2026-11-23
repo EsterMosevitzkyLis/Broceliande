@@ -7,8 +7,9 @@ import { RESOURCE_KEYS } from './resources.js';
 import { ageFerns } from './systems/hiddenSpotSystem.js';
 
 // small: drawn at a smaller size (damage numbers on enemies). muted: small grey text ("Nothing found").
-export function addFloatingText(game, text, x, y, small = false, muted = false) {
-  game.floatingTexts.push({ text, x, y, age: 0, small, muted });
+// color: its own text colour (venom ticks on the Druid), else the usual one.
+export function addFloatingText(game, text, x, y, small = false, muted = false, color = null) {
+  game.floatingTexts.push({ text, x, y, age: 0, small, muted, color });
 }
 
 // Resource floaters (M2d §1), the one component for every resource gain: one rising icon + "×N"

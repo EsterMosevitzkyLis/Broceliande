@@ -859,6 +859,7 @@ function updateHud(el, game) {
   const hpWidth = `${hpFrac * 100}%`;
   if (el.hpFill.style.width !== hpWidth) el.hpFill.style.width = hpWidth;
   el.hpFill.dataset.level = hpFrac > 0.5 ? 'high' : hpFrac > 0.25 ? 'mid' : 'low';
+  el.hpFill.classList.toggle('venom', !!game.druidVenom); // acid green while poisoned (venomSystem.js)
   // HP may be fractional (Stirge bites, M2h §2): the text rounds up (79.5 shows 80), the bar is exact.
   setText(el.hpText, `${Math.ceil(game.druidHp)} / ${maxHp}`);
 
