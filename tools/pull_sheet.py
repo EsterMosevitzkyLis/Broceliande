@@ -25,9 +25,21 @@ URL = "https://docs.google.com/spreadsheets/d/e/{published_id}/pub?gid={gid}&sin
 RETIRED = {"candidates"}
 
 
+TRIES = 3  # Google's published CSVs sometimes time out at random: try a tab this often
+
+
+def fetch(url):
+    for attempt in range(TRIES):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as res:
+                return res.read().decode("utf-8-sig")
+        except (TimeoutError, OSError):
+            if attempt == TRIES - 1:
+                raise
+
+
 def download(url):
-    with urllib.request.urlopen(url, timeout=30) as res:
-        text = res.read().decode("utf-8-sig")
+    text = fetch(url)
     # An unpublished sheet answers with a sign-in page rather than an HTTP error.
     if text.lstrip().startswith("<"):
         raise ValueError("got a web page, not CSV")
