@@ -227,9 +227,9 @@ export function currentDruidHp(run, maxHp) {
 }
 
 // HP the Druid starts the next encounter with: his HP between battles plus HP_BETWEEN_BATTLES_PCT of
-// his max HP, up to max.
+// his max HP rounded up to a whole number, up to max.
 export function startingDruidHp(run, maxHp) {
-  return Math.min(maxHp, currentDruidHp(run, maxHp) + C.HP_BETWEEN_BATTLES_PCT * maxHp);
+  return Math.min(maxHp, currentDruidHp(run, maxHp) + Math.ceil(C.HP_BETWEEN_BATTLES_PCT * maxHp));
 }
 
 // The available node under p (for hover and clicks), or null. Locked, completed and bypassed

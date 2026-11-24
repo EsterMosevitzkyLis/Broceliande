@@ -29,5 +29,6 @@ export function createSquirrel(id, x, y, duration = C.SQUIRREL_DURATION, game = 
     strikeTargetId: null,         // attacker it would strike now (lowest HP), for the debug overlay
     facing: 1,
     stride: 0,                    // distance run, drives the hop animation
+    elder: null,                  // Potions §5: × speed of an Elder Squirrel (Burrowcall), null for a plain one
   };
 }

@@ -15,6 +15,11 @@ import { canTarget } from './camouflageSystem.js';
 import { events } from '../events.js';
 
 const TIMER_EPSILON = 1e-9; // s
+
+// s between impacts: DRUID_MELEE_INTERVAL × druid.strikeIntervalMult (Potions §5: Quickening).
+export function meleeInterval(game) {
+  return C.DRUID_MELEE_INTERVAL * game.stats['druid.strikeIntervalMult'];
+}
 export const STRIKE_LEAD = C.STRIKE_WINDUP_TIME + C.STRIKE_SWING_TIME; // s from strike start to impact
 
 // Valid targets (§2.3): enemies in a Druid melee slot actually biting him. Enemies still
@@ -51,13 +56,13 @@ function startStrike(game, target, fromReady) {
 
 // s until this strike's impact lands.
 function timeToImpact(game, strike) {
-  return strike.fromReady ? STRIKE_LEAD - strike.elapsed : C.DRUID_MELEE_INTERVAL - game.druidMeleeTimer;
+  return strike.fromReady ? STRIKE_LEAD - strike.elapsed : meleeInterval(game) - game.druidMeleeTimer;
 }
 
 function impactDue(game, strike) {
   return strike.fromReady
     ? strike.elapsed >= STRIKE_LEAD - TIMER_EPSILON
-    : game.druidMeleeTimer >= C.DRUID_MELEE_INTERVAL - TIMER_EPSILON;
+    : game.druidMeleeTimer >= meleeInterval(game) - TIMER_EPSILON;
 }
 
 // Impact: the original target if it is still attacking, otherwise the current weakest
@@ -82,9 +87,10 @@ function impact(game) {
   target.knockDir = { x: strike.dirX, y: strike.dirY };
   target.lastKnockTime = game.combatTime; // visual knock-back only; position is not touched
   events.emit('druidImpact', { x: target.x, y: target.y });
-  addFloatingText(game, `-${C.DRUID_MELEE_DAMAGE}`, target.x, target.y - target.radius * 2, true);
+  const damage = C.DRUID_MELEE_DAMAGE * game.stats['druid.strikeDamageMult']; // Potions §5: Fury
+  addFloatingText(game, `-${Number(damage.toFixed(1))}`, target.x, target.y - target.radius * 2, true);
   applyItemBurn(game, target, game.stats['druid.strikeBurnDuration']); // M3c §5: Ashen Censer (first, so a killing strike burns)
-  damageEnemy(game, target, C.DRUID_MELEE_DAMAGE);
+  damageEnemy(game, target, damage);
 }
 
 // §2.2: the timer counts only while the Druid is IDLE. Whenever an upgrade or summon placement
@@ -101,7 +107,7 @@ export function updateDruidMelee(game, dt) {
     game.druidWasBusy = false;
     game.druidMeleeTimer = 0;
   }
-  game.druidMeleeTimer = Math.min(game.druidMeleeTimer + dt, C.DRUID_MELEE_INTERVAL);
+  game.druidMeleeTimer = Math.min(game.druidMeleeTimer + dt, meleeInterval(game));
 
   const strike = game.druidStrike;
   if (strike) {
@@ -120,7 +126,7 @@ export function updateDruidMelee(game, dt) {
   game.druidMeleeTargetId = pending ? game.druidStrike.targetId : (target ? target.id : null);
   // Start the next strike so that its impact lands when the interval is up (or a full
   // wind-up and swing after an attacker arrives, if the strike has been waiting).
-  if (!game.druidStrike && target && game.druidMeleeTimer >= C.DRUID_MELEE_INTERVAL - STRIKE_LEAD - TIMER_EPSILON) {
-    startStrike(game, target, game.druidMeleeTimer >= C.DRUID_MELEE_INTERVAL - TIMER_EPSILON);
+  if (!game.druidStrike && target && game.druidMeleeTimer >= meleeInterval(game) - STRIKE_LEAD - TIMER_EPSILON) {
+    startStrike(game, target, game.druidMeleeTimer >= meleeInterval(game) - TIMER_EPSILON);
   }
 }

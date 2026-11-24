@@ -14,6 +14,7 @@ import { startWaves, updateWaveClock, checkWaveCleared } from './systems/waveSys
 import { updateEnemyMovement } from './systems/movementSystem.js';
 import { updateMelee, updateWindupAttacks, killEnemy, updateTurrets, updateProjectiles } from './systems/combatSystem.js';
 import { updateVenom, clearVenom } from './systems/venomSystem.js';
+import { startQueuedEffects, endPotionEffects } from './systems/potionSystem.js';
 import { fitsCorridor } from './entities/enemy.js';
 import { corridorWidth, levelTotals } from './levelSettings.js';
 import { createIdleAction, updateAction, enforceActionAllowed } from './systems/actionSystem.js';
@@ -200,6 +201,11 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.druidLastHitTime = -Infinity;
   game.druidVenom = null; // venomSystem.js: { until, nextTick, dps, duration } while poisoned
   game.potionCooldown = 0; // Potions §4.1: s left of the shared cooldown (Combat time)
+  game.potionEffects = {}; // Potions §5: timed effects (potionSystem.js)
+  game.foresightSteps = 0; // Potions §5: Foresight's extra steps this Prep
+  game.phoenixUsed = false; // Potions §5: one Phoenix save per battle
+  game.druidImmuneUntil = -Infinity; // combat time the Phoenix save's immunity ends
+  game.phoenixBursts = []; // { x, y, age } a Phoenix save's burst of flame (visual only)
   game.druidMeleeTimer = 0;
   game.druidWasBusy = false;
   game.druidMeleeTargetId = null;
@@ -283,6 +289,7 @@ export function startCombat(game) {
   game.druidWasBusy = false;
   clearFerns(game); // M6c §1.4: every fern clump clears
   setState(game, GameState.COMBAT);
+  startQueuedEffects(game); // Potions §4.2: effects drunk in Prep start their timers now
   startWaves(game); // M2i §3: the countdown to wave 1
   enforceActionAllowed(game); // a search, build or travel in progress is cancelled (§9.3)
 }
@@ -299,6 +306,7 @@ export function beginEnding(game, result) {
   setState(game, GameState.ENDING);
   game.pendingResult = result;
   clearVenom(game); // venom ends with the fight
+  endPotionEffects(game); // Potions §5: and so do all potion effects
   game.endRemaining = C.END_DELAY;
   game.endElapsed = 0;
   game.projectiles = [];
@@ -694,7 +702,7 @@ export function updateGame(game, dt) {
       updateMelee(game, dt);
       updateWindupAttacks(game, dt); // the Ogre's wind-up and blow (M2c §2.5), on the Druid or a blocker
       updateVenom(game);             // spider venom ticks on the Druid
-      updatePotions(game, dt);       // Potions §4.1: the shared cooldown
+      updatePotions(game, dt);       // Potions §4.1, §5: the shared cooldown, timed effects
       expireVultures(game, dt);
       expireSquirrels(game, dt);
       updateAction(game, dt);

@@ -1,16 +1,30 @@
-// Potions in battle (Potions addendum §3.3, §4): using a belt slot's potion in Prep or Combat, and the
-// shared cooldown. A used potion is gone from the run's belt at once, leaving its slot empty for the
-// rest of the battle (the inventory never refills it mid-battle). Phase 1: only Healing does
-// anything; the other potions sit in their slots, greyed.
+// Potions in battle (Potions addendum §3.3, §4, §5): using a belt slot's potion in Prep or Combat, the
+// shared cooldown, and the self potions' effects (phase 3). A used potion is gone from the run's belt
+// at once, leaving its slot empty for the rest of the battle (the inventory never refills it mid-battle).
+//
+// Timed effects are explicit state on game, one per potion (§4.3: never stacking with itself):
+//   game.potionEffects: { potionId: { key, duration, until, nextTick } }
+//     key: the potion-tier whose numbers apply (the higher tier on a repeat)
+//     until: combat time it ends; null while queued in Prep (§4.2: its timer starts with Combat)
+//     nextTick: Regeneration's next heal (combat time)
+// Self effects with a stat (Wards, Fury, Quickening) are timed stat modifiers: game.stats is resolved
+// again (equipment, then the active potions) whenever one starts or ends. All effects end with the battle.
 
 import * as C from '../config.js';
 import { GameState } from '../states.js';
 import { events } from '../events.js';
 import { addFloatingText } from '../effects.js';
+import { resolveStats } from '../stats.js';
 import { potionRow, isPotionWorking } from '../potions.js';
+import { isStepMode } from './stepSystem.js';
 
 // The states the battle belt shows in (greyed outside Prep and Combat).
 const BELT_STATES = [GameState.PREP, GameState.COMBAT, GameState.ENDING, GameState.VICTORY, GameState.DEFEAT];
+
+// Potions whose effect lasts a while (Cleansing: its venom ward, when its tier has one).
+const TIMED = ['regeneration', 'cleansing', 'wardBark', 'wardVenom', 'fury', 'quickening', 'burrowcall'];
+
+const EPS = 1e-9;
 
 export function isBeltShown(game) {
   return !!game.run?.hasPotions && BELT_STATES.includes(game.state);
@@ -27,7 +41,88 @@ export function potionUseBlocker(game, slot) {
   if (p.use === 'prepOnly' && game.state === GameState.COMBAT) return 'Only in Prep';
   if (game.state === GameState.COMBAT && game.potionCooldown > 0) return 'Wait for the cooldown';
   if (p.id === 'healing' && game.druidHp >= game.stats['druid.maxHp']) return 'Already at full HP';
+  if (p.id === 'foresight' && !isStepMode(game)) return 'Only with a step budget';
+  if (p.id === 'cleansing' && !(p.amount > 0) && !game.druidVenom) return 'You are not poisoned';
   return null;
+}
+
+// s an effect of this potion-tier lasts (Cleansing: its `amount` s of venom ward).
+function effectDuration(p) {
+  return p.id === 'cleansing' ? p.amount : p.duration;
+}
+
+// Whether a potion's timed effect is running now (not just queued in Prep).
+export function isEffectActive(game, potionId) {
+  const e = game.potionEffects?.[potionId];
+  return !!e && e.until !== null;
+}
+
+// The effect's potion-tier row while it runs, else null.
+export function activeEffectRow(game, potionId) {
+  return isEffectActive(game, potionId) ? potionRow(game.potionEffects[potionId].key) : null;
+}
+
+// The active and queued effects for the HUD icons: [{ key, left (s), queued }], in the tab's order.
+export function effectIcons(game) {
+  return Object.values(game.potionEffects ?? {})
+    .map((e) => ({ key: e.key, queued: e.until === null, left: e.until === null ? e.duration : Math.max(0, e.until - game.combatTime) }))
+    .sort((a, b) => C.POTION_IDS.indexOf(potionRow(a.key).id) - C.POTION_IDS.indexOf(potionRow(b.key).id));
+}
+
+// game.stats again: equipment (resolveStats), Foresight's extra steps, then every active self effect.
+export function refreshPotionStats(game) {
+  const s = resolveStats(game.run?.equipped, game.scene.level);
+  s['steps.budget'] += game.foresightSteps ?? 0;
+  for (const id of Object.keys(game.potionEffects ?? {})) {
+    const p = activeEffectRow(game, id);
+    if (!p) continue;
+    if (id === 'wardBark') s['druid.damageTakenMult'] *= Math.max(0, 1 - p.amount / 100);
+    if (id === 'wardVenom') s['druid.venomTakenMult'] *= Math.max(0, 1 - p.amount / 100);
+    if (id === 'fury') s['druid.strikeDamageMult'] *= p.amount;
+    if (id === 'quickening') s['druid.strikeIntervalMult'] /= p.amount;
+  }
+  game.stats = s;
+}
+
+// §4.3: drinking a potion whose effect is already on restarts its timer with the higher tier's numbers.
+function startEffect(game, key) {
+  const p = potionRow(key);
+  const old = game.potionEffects[p.id];
+  const best = old && potionRow(old.key).rank > p.rank ? old.key : key;
+  const duration = effectDuration(potionRow(best));
+  const combat = game.state === GameState.COMBAT;
+  const keepRhythm = combat && old && old.until !== null; // Regeneration keeps its tick rhythm
+  game.potionEffects[p.id] = {
+    key: best,
+    duration,
+    until: combat ? game.combatTime + duration : null,
+    nextTick: keepRhythm ? old.nextTick : combat ? game.combatTime + C.POTION_TICK_INTERVAL : null,
+  };
+  refreshPotionStats(game);
+}
+
+// §4.2: Combat starts: every effect drunk in Prep starts its timer now.
+export function startQueuedEffects(game) {
+  for (const e of Object.values(game.potionEffects)) {
+    if (e.until !== null) continue;
+    e.until = game.combatTime + e.duration;
+    e.nextTick = game.combatTime + C.POTION_TICK_INTERVAL;
+  }
+  refreshPotionStats(game);
+}
+
+// §5: all effects end when the battle ends.
+export function endPotionEffects(game) {
+  if (!Object.keys(game.potionEffects ?? {}).length) return;
+  game.potionEffects = {};
+  refreshPotionStats(game);
+}
+
+function healDruid(game, amount) {
+  const before = game.druidHp;
+  game.druidHp = Math.min(game.stats['druid.maxHp'], game.druidHp + amount);
+  const healed = game.druidHp - before;
+  if (healed > 0) addFloatingText(game, `+${Number(healed.toFixed(1))}`, game.druidPos.x, game.druidPos.y - C.DRUID_RADIUS * 2.2, false, false, C.HEAL_TEXT_COLOR);
 }
 
 // Uses the potion in a belt slot (click or keys 1-5); false if it can't be used now.
@@ -38,17 +133,61 @@ export function usePotion(game, slot) {
   game.run.belt[slot] = null;
   // §4.1: the shared cooldown, in Combat only (none in Prep); auto potions never start it.
   if (game.state === GameState.COMBAT) game.potionCooldown = C.POTION_COOLDOWN;
-  if (p.id === 'healing') {
-    const before = game.druidHp;
-    game.druidHp = Math.min(game.stats['druid.maxHp'], game.druidHp + p.amount);
-    const healed = Math.round(game.druidHp - before);
-    addFloatingText(game, `+${healed}`, game.druidPos.x, game.druidPos.y - C.DRUID_RADIUS * 2.2, false, false, C.HEAL_TEXT_COLOR);
+  if (p.id === 'healing') healDruid(game, p.amount);
+  if (p.id === 'cleansing') game.druidVenom = null; // removed at once, in Prep or Combat
+  if (p.id === 'foresight') {
+    game.foresightSteps += p.amount;
+    game.stepsRemaining += p.amount;
+    refreshPotionStats(game);
+    addFloatingText(game, `+${p.amount} ${p.amount === 1 ? 'step' : 'steps'}`, game.druidPos.x, game.druidPos.y - C.DRUID_RADIUS * 2.2, false, false, C.HEAL_TEXT_COLOR);
   }
+  if (TIMED.includes(p.id) && effectDuration(p) > 0) startEffect(game, key);
   events.emit('potionUsed', { key, slot });
   return true;
 }
 
-// The shared cooldown runs in Combat time only (fixed timestep, so game speed applies).
+// Phoenix (§5, auto): the Druid's HP would reach 0 in Combat, so the first Phoenix in a belt slot is
+// used instead: he stays at its `amount` HP and takes no damage for PHOENIX_IMMUNE_TIME s. Once per
+// battle; ignores the shared cooldown and doesn't start it. Returns whether he was saved.
+export function savedByPhoenix(game) {
+  if (game.state !== GameState.COMBAT || game.phoenixUsed || !game.run) return false;
+  const slot = game.run.belt.findIndex((k) => k && potionRow(k).id === 'phoenix');
+  if (slot < 0) return false;
+  const key = game.run.belt[slot];
+  game.run.belt[slot] = null;
+  game.phoenixUsed = true;
+  game.druidHp = Math.min(game.stats['druid.maxHp'], potionRow(key).amount);
+  game.druidImmuneUntil = game.combatTime + C.PHOENIX_IMMUNE_TIME;
+  const home = game.scene.level.druidPos;
+  game.phoenixBursts.push({ x: home.x, y: home.y, age: 0 });
+  addFloatingText(game, `+${Math.round(game.druidHp)}`, home.x, home.y - C.DRUID_RADIUS * 2.2, false, false, C.HEAL_TEXT_COLOR);
+  events.emit('potionUsed', { key, slot, auto: true });
+  return true;
+}
+
+// Whether the Druid takes no damage now (after a Phoenix save).
+export function isDruidImmune(game) {
+  return game.state === GameState.COMBAT && game.combatTime < (game.druidImmuneUntil ?? -Infinity);
+}
+
+// Combat time only (fixed timestep, so game speed applies): the shared cooldown, Regeneration's
+// ticks, and effects running out.
 export function updatePotions(game, dt) {
   if (game.potionCooldown > 0) game.potionCooldown = Math.max(0, game.potionCooldown - dt);
+  let ended = false;
+  for (const [id, e] of Object.entries(game.potionEffects)) {
+    if (e.until === null) continue;
+    if (id === 'regeneration') {
+      const p = potionRow(e.key);
+      while (e.nextTick <= e.until + EPS && game.combatTime >= e.nextTick - EPS && game.druidHp > 0) {
+        e.nextTick += C.POTION_TICK_INTERVAL;
+        healDruid(game, p.amount * C.POTION_TICK_INTERVAL);
+      }
+    }
+    if (game.combatTime >= e.until - EPS) {
+      delete game.potionEffects[id];
+      ended = true;
+    }
+  }
+  if (ended) refreshPotionStats(game);
 }

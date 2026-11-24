@@ -17,6 +17,7 @@ import { sinkAtHalf } from './bogKingSystem.js';
 import { pylonFell, pylonsInRange, targetById } from './oracleSystem.js';
 import { canTarget } from './camouflageSystem.js';
 import { wallById, damageWall } from './wallSystem.js';
+import { isDruidImmune, savedByPhoenix } from './potionSystem.js';
 import { applyVenom } from './venomSystem.js';
 
 const TIMER_EPSILON = 1e-9; // s, so timers built from 1/60 s steps fire on time
@@ -268,9 +269,12 @@ function recordDamage(game, source, amount) {
 // Enemies attacking the Druid (§12.5), each with its type's damage and interval
 // ---------------------------------------------------------------------------
 // An enemy's blow (or a venom tick) lands on the Druid: its damage × druid.damageTakenMult (M2p,
-// Ward Torc). Returns the HP actually lost.
+// Ward Torc, Ward of Bark). Returns the HP actually lost. Potions §5: none while a Phoenix save's
+// immunity lasts, and a blow that would bring him to 0 is taken by a Phoenix Draught on his belt.
 export function hurtDruid(game, damage) {
+  if (isDruidImmune(game)) return 0;
   const lost = Math.min(game.druidHp, damage * game.stats['druid.damageTakenMult']);
+  if (lost > 0 && lost >= game.druidHp && savedByPhoenix(game)) return 0;
   game.druidHp -= lost;
   return lost;
 }

@@ -51,6 +51,8 @@ export function updateEffects(game, dt) {
   game.doubleFades = game.doubleFades.filter((f) => f.age < C.DOUBLE_FADE_TIME);
   // Mini-boss feedback (M2c §2.5–2.6): dust rings, screen shake, arrival banner, lane pulses.
   for (const d of game.dustRings) d.age += dt;
+  for (const b of game.phoenixBursts) b.age += dt; // Potions §5
+  game.phoenixBursts = game.phoenixBursts.filter((b) => b.age < C.PHOENIX_BURST_TIME);
   game.dustRings = game.dustRings.filter((d) => d.age < C.OGRE_DUST_TIME);
   updateAshes(game, dt); // M3b §3.1: risers burnt to ash smoulder away
   // Grim trait feedback (M2l §2.2): armor sparks and lifesteal sparkles.

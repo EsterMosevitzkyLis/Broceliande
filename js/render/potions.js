@@ -181,3 +181,46 @@ export function drawPotionIcon(ctx, key, cx, cy, size, dim = false) {
   v.stopper(ctx, cx, cy, s);
   ctx.restore();
 }
+
+// Phoenix save (§5): a burst of flame rising round the Druid. k: 0 … 1 through PHOENIX_BURST_TIME.
+export function drawPhoenixBurst(ctx, b, k) {
+  const r = C.DRUID_RADIUS;
+  ctx.save();
+  const ring = r * (1.2 + 2.6 * k);
+  ctx.globalAlpha = 1 - k;
+  const g = ctx.createRadialGradient(b.x, b.y, ring * 0.2, b.x, b.y, ring);
+  g.addColorStop(0, 'rgba(255, 236, 160, 0.9)');
+  g.addColorStop(0.55, 'rgba(255, 138, 30, 0.55)');
+  g.addColorStop(1, 'rgba(200, 40, 10, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, ring, 0, Math.PI * 2);
+  ctx.fill();
+  // Tongues of flame licking upwards.
+  ctx.fillStyle = C.POTION_LIQUID.phoenix;
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2;
+    const fx = b.x + Math.cos(a) * r * (1 + 1.4 * k);
+    const fy = b.y + Math.sin(a) * r * 0.6 * (1 + 1.4 * k) - k * r * 2.2;
+    const h = r * (0.9 + 0.5 * Math.sin(i * 2.3)) * (1 - k);
+    ctx.beginPath();
+    ctx.moveTo(fx - h * 0.3, fy);
+    ctx.quadraticCurveTo(fx, fy - h * 1.6, fx + h * 0.3, fy);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// While a Phoenix save's immunity lasts: a flickering golden ring round the Druid. t: s (animation).
+export function drawPhoenixWard(ctx, x, y, t) {
+  const r = C.DRUID_RADIUS * 1.6;
+  ctx.save();
+  ctx.globalAlpha = 0.55 + 0.25 * Math.sin(t * 14);
+  ctx.strokeStyle = '#ffc04a';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r * 1.15, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}

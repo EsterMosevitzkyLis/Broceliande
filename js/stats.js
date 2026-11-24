@@ -25,7 +25,10 @@ const BASES = {
   'druid.regenAmount':        () => C.DRUID_REGEN_AMOUNT,
   'druid.regenInterval':      () => C.DRUID_REGEN_INTERVAL,
   'druid.damageTakenMult':    () => 1,
-  'druid.venomTakenMult':     () => 1, // × venom tick damage, after damageTakenMult (future potions and items)
+  'druid.venomTakenMult':     () => 1, // × venom tick damage, after damageTakenMult (potions and items)
+  // Potions §5: identities (×1) unless a potion changes them (Fury, Quickening).
+  'druid.strikeDamageMult':   () => 1, // × DRUID_MELEE_DAMAGE
+  'druid.strikeIntervalMult': () => 1, // × DRUID_MELEE_INTERVAL
   'drops.chanceMult':         () => 1,
   'work.speed':               () => C.WORK_SPEED,
   'search.mainBonus':         () => C.SEARCH_MAIN_BONUS,

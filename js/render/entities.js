@@ -110,6 +110,12 @@ const COLORS = {
   squirrelBelly: '#e6cfa6',
   squirrelTail: '#a0623a',
   squirrelTailTip: '#c58a5a',
+  // Potions §5: an Elder Squirrel (Burrowcall), silver-grey with a pale tail and a faint amber glow.
+  elderSquirrel: '#8e8a86',
+  elderSquirrelBelly: '#efe9dc',
+  elderSquirrelTail: '#b4b0aa',
+  elderSquirrelTailTip: '#f1ede4',
+  elderGlow: 'rgba(255, 196, 96, 0.28)',
 };
 
 // M1c §2.1: every feature and turret is drawn inside its location's footprint circle
@@ -1963,7 +1969,8 @@ const SQUIRREL_DRAW_SCALE = 1.35;
 // Running: hops (driven by distance run). Waiting: tail sways. t: seconds; hit: bitten flash.
 export function drawSquirrel(ctx, s, t, hit, ghost = false) {
   const r = C.SQUIRREL_RADIUS;
-  const k = (r / 12) * SQUIRREL_DRAW_SCALE; // drawn at radius 12, facing right
+  const elder = !!s.elder; // Potions §5: larger, silver-grey, glowing
+  const k = (r / 12) * SQUIRREL_DRAW_SCALE * (elder ? C.ELDER_SQUIRREL_SCALE : 1); // drawn at radius 12, facing right
   const moving = s.state === 'MOVING';
   const hop = moving ? Math.abs(Math.sin(s.stride * 0.12)) * 5 : 0;
   const sway = moving ? -0.15 : Math.sin(t * 3 + s.id) * 0.12;
@@ -1973,22 +1980,28 @@ export function drawSquirrel(ctx, s, t, hit, ghost = false) {
   if (ghost) ctx.globalAlpha = 0.5;
   ctx.translate(s.x, s.y + r * 0.4 - hop);
   ctx.scale(s.facing * k, k);
+  if (elder) {
+    ctx.fillStyle = COLORS.elderGlow;
+    ctx.beginPath();
+    ctx.ellipse(0, -14, 22, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // Tail behind the body: two overlapping puffs, curling up and over the back.
   ctx.save();
   ctx.translate(-8, -6);
   ctx.rotate(sway);
-  ctx.fillStyle = COLORS.squirrelTail;
+  ctx.fillStyle = elder ? COLORS.elderSquirrelTail : COLORS.squirrelTail;
   ctx.beginPath();
   ctx.ellipse(-6, -12, 8, 14, -0.35, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = COLORS.squirrelTailTip;
+  ctx.fillStyle = elder ? COLORS.elderSquirrelTailTip : COLORS.squirrelTailTip;
   ctx.beginPath();
   ctx.ellipse(-1, -27, 7.5, 6.5, 0.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  const body = hit ? COLORS.squirrelHit : COLORS.squirrel;
+  const body = hit ? COLORS.squirrelHit : elder ? COLORS.elderSquirrel : COLORS.squirrel;
   ctx.fillStyle = body;
   ctx.beginPath(); // feet
   ctx.ellipse(-4, -1, 4, 2.2, 0, 0, Math.PI * 2);
@@ -2004,7 +2017,7 @@ export function drawSquirrel(ctx, s, t, hit, ghost = false) {
   ctx.lineTo(11, -21);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = COLORS.squirrelBelly;
+  ctx.fillStyle = elder ? COLORS.elderSquirrelBelly : COLORS.squirrelBelly;
   ctx.beginPath();
   ctx.ellipse(4, -7, 4.5, 5, -0.3, 0, Math.PI * 2);
   ctx.fill();
@@ -2018,7 +2031,8 @@ export function drawSquirrel(ctx, s, t, hit, ghost = false) {
 
 export function drawSquirrelStatus(ctx, s) {
   const r = C.SQUIRREL_RADIUS;
-  drawSummonStatus(ctx, s.x, s.y, r, s.y - r * 4.2, s.remaining / s.duration, s.hp / (s.maxHp ?? C.SQUIRREL_HP));
+  const lift = s.elder ? 4.2 * C.ELDER_SQUIRREL_SCALE : 4.2; // an Elder Squirrel is drawn larger (Potions §5)
+  drawSummonStatus(ctx, s.x, s.y, r, s.y - r * lift, s.remaining / s.duration, s.hp / (s.maxHp ?? C.SQUIRREL_HP));
 }
 
 // Placement ghost (M1d §2.1): the same shape, translucent; with SQUIRREL_BLOCKS_WOLVES it also

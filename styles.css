@@ -2066,6 +2066,28 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
   pointer-events: none;
 }
 #potion-belt[hidden] { display: none; }
+/* Potions §5: the active potion effects by the HP bar, each an icon over its seconds left. */
+#potion-effects {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+#potion-effects[hidden] { display: none; }
+.potion-effect {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto; /* for its tooltip */
+}
+.potion-effect.queued { opacity: 0.55; }
+.potion-effect-time {
+  margin-top: -6px;
+  font: bold 12px/1 'Consolas', monospace;
+  color: #f1e8cc;
+  text-shadow: 0 1px 3px #000, 0 0 2px #000;
+}
 .potion-socket {
   position: relative;
   display: block;

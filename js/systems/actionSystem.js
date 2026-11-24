@@ -16,6 +16,7 @@ import { doubleAvailability } from './doubleSystem.js';
 import { events } from '../events.js';
 import { addFloatingText } from '../effects.js';
 import { resolveHiddenSpot, revealNear } from './hiddenSpotSystem.js';
+import { activeEffectRow } from './potionSystem.js';
 
 // Timed actions show a progress bar and can be cancelled. TRAVELLING is neither:
 // its steps are already spent and input is ignored until it lands (M1b §5.3).
@@ -210,7 +211,11 @@ export function placeSummon(game, p) {
   game.action = createIdleAction();
   if (s.active(game).length >= summonMax(game, s.kind) || !canAfford(game.resources, s.cost)) return false;
   deduct(game.resources, s.cost);
-  s.active(game).push(s.create(game.nextEntityId++, p.x, p.y, game.stats[`${s.kind}.duration`], game)); // effective duration (M2e)
+  const made = s.create(game.nextEntityId++, p.x, p.y, game.stats[`${s.kind}.duration`], game); // effective duration (M2e)
+  // Potions §5: a Squirrel summoned while Burrowcall lasts is an Elder Squirrel, `amount` % faster for its life.
+  const burrow = s.kind === 'squirrel' ? activeEffectRow(game, 'burrowcall') : null;
+  if (burrow) made.elder = 1 + burrow.amount / 100;
+  s.active(game).push(made);
   events.emit('summonPlaced', { kind: s.kind, x: p.x, y: p.y });
   return true;
 }

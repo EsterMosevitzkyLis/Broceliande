@@ -27,3 +27,5 @@ features.peatBonus,Peat Bog bonus Peat
 drops.sinkTimeMult,Drop sink time x
 mire.stepMult,Mire extra step cost x
 druid.venomTakenMult,Venom damage taken x
+druid.strikeDamageMult,Strike damage x
+druid.strikeIntervalMult,Strike interval x

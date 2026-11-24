@@ -62,7 +62,7 @@ export function updateSquirrels(game, dt) {
     const dist = Math.hypot(dx, dy);
     const range = game.stats['squirrel.pickupRange']; // effective (M2e)
     if (dist > range) {
-      const step = Math.min(game.stats['squirrel.speed'] * dt, dist);
+      const step = Math.min(game.stats['squirrel.speed'] * (s.elder ?? 1) * dt, dist); // Potions §5: an Elder Squirrel is faster
       s.x += (dx / dist) * step;
       s.y += (dy / dist) * step;
       s.stride += step;

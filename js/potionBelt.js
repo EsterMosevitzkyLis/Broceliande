@@ -9,13 +9,15 @@ import * as C from './config.js';
 import { GameState } from './states.js';
 import { drawPotionIcon } from './render/potions.js';
 import { potionName, potionKindLine, potionEffectText, potionRow } from './potions.js';
-import { isBeltShown, potionUseBlocker } from './systems/potionSystem.js';
+import { isBeltShown, potionUseBlocker, effectIcons } from './systems/potionSystem.js';
 
 const ICON_PAD = 0.86; // the icon's share of a socket
 
 // callbacks: { onUse(slot) }
 export function createPotionBelt(callbacks) {
   const belt = document.getElementById('potion-belt');
+  const effectsEl = document.getElementById('potion-effects');
+  let effectsKey = null;
   const tip = document.getElementById('potion-tip');
   let sockets = [];
   let key = null;
@@ -69,10 +71,39 @@ export function createPotionBelt(callbacks) {
     tip.hidden = false;
   }
 
+  // §5: the active effects by the HP bar, each with its seconds left (a queued one, drunk in Prep,
+  // shows its full time, dimmed, until Combat starts it).
+  function updateEffects(shown) {
+    const icons = shown ? effectIcons(game) : [];
+    effectsEl.hidden = icons.length === 0;
+    const k = icons.map((e) => `${e.key}${e.queued ? '?' : ''}`).join();
+    if (k !== effectsKey) {
+      effectsKey = k;
+      effectsEl.replaceChildren(...icons.map((e) => {
+        const box = document.createElement('span');
+        box.className = e.queued ? 'potion-effect queued' : 'potion-effect';
+        box.title = `${potionName(e.key)}: ${potionEffectText(e.key)}${e.queued ? ' Starts with the battle.' : ''}`;
+        const icon = document.createElement('canvas');
+        icon.width = icon.height = C.POTION_EFFECT_ICON_SIZE;
+        drawPotionIcon(icon.getContext('2d'), e.key, icon.width / 2, icon.height / 2, icon.width);
+        const time = document.createElement('span');
+        time.className = 'potion-effect-time';
+        box.append(icon, time);
+        return box;
+      }));
+    }
+    icons.forEach((e, i) => {
+      const time = effectsEl.children[i].lastChild;
+      const text = `${Math.ceil(e.left - 1e-6)}s`;
+      if (time.textContent !== text) time.textContent = text;
+    });
+  }
+
   function update(g) {
     game = g;
     const shown = isBeltShown(game);
     belt.hidden = !shown;
+    updateEffects(shown && (game.state === GameState.PREP || game.state === GameState.COMBAT));
     if (!shown) {
       tip.hidden = true;
       key = null;

@@ -158,3 +158,5 @@ BELT_SLOT_ODDS_R3,"0, 0.8, 0.2, 0","TUNING - a Very Rare belt's chances of 2, 3,
 HP_BETWEEN_BATTLES_PCT,0.1,"TUNING - the Druid's HP carries over between battles, and before each battle he regains this share of his max HP, up to max"
 POTION_RECIPES_KNOWN,healing:faint,"potion recipes (potion:tier, comma-separated) known from the start of every run"
 SOVEREIGN_RECIPE_FIND_CHANCE,0.5,"TUNING - chance a region boss battle's hidden find is a Sovereign potion recipe not known yet (Sovereign recipes are never sold)"
+PHOENIX_IMMUNE_TIME,2,TUNING - s the Druid takes no damage after a Phoenix Draught saves him
+POTION_TICK_INTERVAL,1,TUNING - s between the ticks of a potion that works over time (Regeneration)

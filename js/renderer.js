@@ -36,6 +36,8 @@ import { drawBody, drawAsh, drawBossEntrance, drawSunkRing } from './render/unde
 import { drawShowcase } from './debug/showcase.js';
 import { drawFernClump, drawCamouflaged } from './render/valeTwists.js'; // M6c
 import { isUnderFerns, fernClumps } from './systems/hiddenSpotSystem.js';
+import { isDruidImmune } from './systems/potionSystem.js';
+import { drawPhoenixBurst, drawPhoenixWard } from './render/potions.js';
 
 const HIT_FLASH_TIME = 0.15; // s of hit flash on the Druid (bite) or an enemy (pebble); visual only
 const PROGRESS_GAP = 12;     // px between the top of a location's footprint and its progress bar
@@ -247,6 +249,9 @@ export function createRenderer(canvas) {
     for (const s of game.linkSnaps ?? []) drawLinkSnap(ctx, s, s.age / C.LINK_SNAP_TIME);
     for (const s of game.swipes) drawSwipe(ctx, s, s.age / C.DRUID_SWIPE_TIME);
     for (const s of game.sparks) drawSpark(ctx, s, s.age / C.STRIKE_SPARK_TIME);
+    // Potions §5: a Phoenix save's burst of flame, and its golden ring while he takes no damage.
+    if (isDruidImmune(game)) drawPhoenixWard(ctx, druidPos.x, druidPos.y - C.DRUID_RADIUS * 0.4, anim);
+    for (const b of game.phoenixBursts ?? []) drawPhoenixBurst(ctx, b, b.age / C.PHOENIX_BURST_TIME);
     // Grim trait feedback (M2l §2.2): armor sparks; lifesteal sparkles on the biter, wherever it is now.
     // Cinderjaw breaths and Wildfire embers (M2o §4.2), over the field and the flyers.
     for (const b of game.coneBursts) drawConeBurst(ctx, b);

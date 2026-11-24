@@ -9,6 +9,7 @@ import { routeBand, generateLayout } from './layout.js';
 import { zoneIds, zoneQuota, zoneCandidates, quotaTotals } from './zones.js';
 import { corridorWidth, featureMix, stuckTime, levelWaves, waveTotals, levelTotals, regionTwist, laneMinTurretSlots, occupiedRadius } from './levelSettings.js';
 import { waveCount, waveEnemiesLeft } from './systems/waveSystem.js';
+import { meleeInterval } from './systems/druidMeleeSystem.js';
 import { createRng } from './rng.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
 import { costRowsElement, costRowsKey, costRowData } from './costRows.js';
@@ -157,14 +158,14 @@ function bossDebugLines(game) {
 
 // Druid melee timer (M1e §6): counting / ready (waiting for an attacker) / paused while busy.
 function druidMeleeLine(game) {
-  const t = `${game.druidMeleeTimer.toFixed(2)} / ${C.DRUID_MELEE_INTERVAL} s`;
+  const t = `${game.druidMeleeTimer.toFixed(2)} / ${Number(meleeInterval(game).toFixed(2))} s`;
   if (game.state !== GameState.COMBAT) return `Druid melee: ${t}  (Combat only)`;
   if (game.action.state !== ActionState.IDLE) return `Druid melee: ${t}  paused — ${game.action.state}`;
   const s = game.druidStrike;
   // M1f §4: the strike in progress (wind-up / swing / recover), else counting or ready.
   const status = s
     ? `striking: ${s.impactAt !== null ? 'recover' : s.elapsed < C.STRIKE_WINDUP_TIME ? 'wind-up' : 'swing'}`
-    : game.druidMeleeTimer >= C.DRUID_MELEE_INTERVAL ? 'READY' : 'counting';
+    : game.druidMeleeTimer >= meleeInterval(game) ? 'READY' : 'counting';
   const target = game.druidMeleeTargetId === null ? 'no attacker' : `target #${game.druidMeleeTargetId}`;
   return `Druid melee: ${t}  ${status}, ${target}`;
 }

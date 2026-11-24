@@ -9,8 +9,9 @@
 import * as C from './config.js';
 import { createRng } from './rng.js';
 
-// Potions that do something yet (phase 1: Healing only). The others sit in slots, greyed, "not yet".
-const WORKING = ['healing'];
+// Potions that do something yet (phase 3: Healing and the self potions). The others sit in slots,
+// greyed, "not yet".
+const WORKING = ['healing', 'regeneration', 'cleansing', 'phoenix', 'wardBark', 'wardVenom', 'fury', 'quickening', 'foresight', 'burrowcall'];
 
 export function potionRow(key) {
   return C.POTIONS[key] ?? null;

@@ -10,6 +10,7 @@ import { enemyType } from '../entities/enemy.js';
 import { events } from '../events.js';
 import { hurtDruid } from './combatSystem.js';
 import { addFloatingText } from '../effects.js';
+import { isEffectActive } from './potionSystem.js';
 
 export function isDruidPoisoned(game) {
   return !!game.druidVenom;
@@ -19,6 +20,7 @@ export function isDruidPoisoned(game) {
 export function applyVenom(game, enemy) {
   const t = enemyType(enemy);
   if (!(t.venomDps > 0) || !(t.venomDuration > 0)) return;
+  if (isEffectActive(game, 'cleansing')) return; // Potions §5: a Cleansing Tonic's ward
   const now = game.combatTime;
   const v = game.druidVenom;
   // The stronger venom wins; a weaker bite still restarts the stronger one's timer.
