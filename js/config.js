@@ -550,11 +550,14 @@ export const RARITY_FRAME_WIDTH = 2.5;   // px, the frame round an item icon (at
 // Potions (Potions addendum §1): the tiers (the potions tab's `tier`, in rank order), each with its
 // label and the colour its name is shown in; the `use` values; each potion's liquid colour (drawing
 // only, also its aura's colour later). The numbers are in data/potions.csv.
+// Tier colours: their own scale, pale grey through lilac and violet to a vivid magenta, so they read
+// low to high and match no item rarity colour (bronze, green, gold, sky blue). color: on dark panels
+// (belt, inventory, Trader, tooltips); page: on the Tinker book's parchment.
 export const POTION_TIERS = {
-  faint:     { rank: 1, label: 'Faint',     color: '#d8d2bc' },
-  potent:    { rank: 2, label: 'Potent',    color: '#7fcf6a' },
-  sublime:   { rank: 3, label: 'Sublime',   color: '#6ab4f0' },
-  sovereign: { rank: 4, label: 'Sovereign', color: '#f0c850' },
+  faint:     { rank: 1, label: 'Faint',     color: '#cdc7bb', page: '#5e574a' },
+  potent:    { rank: 2, label: 'Potent',    color: '#c7a9ec', page: '#7a5a9e' },
+  sublime:   { rank: 3, label: 'Sublime',   color: '#a676f4', page: '#6232b0' },
+  sovereign: { rank: 4, label: 'Sovereign', color: '#ec58f0', page: '#a0189e' },
 };
 export const POTION_USES = ['drink', 'prepOnly', 'throw', 'auto'];
 export const POTION_LIQUID = {
@@ -566,6 +569,7 @@ export const POTION_LIQUID = {
 export const POTION_MAX_SLOTS = 5;        // the most belt slots the UI lays out (§3.1: 5 is for future belts)
 export const POTION_SOCKET_SIZE = 44;     // px, a battle belt socket (in the HUD strip beside the HP bar, §3.3)
 export const POTION_MAP_SOCKET_SIZE = 30; // px, a socket on the equipment portrait's belt (§3.2)
+export const FIT_TEXT_MIN = 0.8;          // a long name in a tight row shrinks to this share of its font size before it wraps (fitText.js)
 export const POTION_EFFECT_ICON_SIZE = 30; // px, an active potion effect's icon by the HUD HP bar (§5)
 export const PHOENIX_BURST_TIME = 0.9;    // s, a Phoenix save's burst of flame (visual only)
 export const ELDER_SQUIRREL_SCALE = 1.3;  // an Elder Squirrel (Burrowcall) is drawn this much larger (drawing only)

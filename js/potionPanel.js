@@ -9,6 +9,7 @@
 import * as C from './config.js';
 import { GameState } from './states.js';
 import { drawPotionIcon } from './render/potions.js';
+import { fitText } from './fitText.js';
 import { potionName, potionKindLine, potionEffectText, potionRow, potionStacks } from './potions.js';
 import { consumeBlocker, runDruidHp } from './run.js';
 
@@ -100,6 +101,7 @@ export function createPotionPanel(callbacks) {
       const name = div('potion-inv-name', potionName(k));
       name.style.color = C.POTION_TIERS[potionRow(k).tier].color;
       row.append(icon, name, div('potion-inv-count', `x${count}`));
+      fitText(name); // fitted once the panel is laid out
       row.addEventListener('click', (e) => {
         e.stopPropagation();
         callbacks.onEquip(k);

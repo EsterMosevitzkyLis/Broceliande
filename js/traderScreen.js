@@ -9,6 +9,7 @@
 import * as C from './config.js';
 import { beltSlotsLine, potionRow, potionName, potionKindLine, potionEffectText } from './potions.js';
 import { drawPotionIcon } from './render/potions.js';
+import { fitText } from './fitText.js';
 import { GameState } from './states.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
 import { MATERIAL_KEYS, resourceName } from './resources.js';
@@ -277,6 +278,7 @@ function wareCard(kind, good, state, affordable, selected, onClick) {
   words.firstChild.style.color = kind === 'pattern' ? '' : C.RARITY[item.rarity].frame;
   words.lastChild.textContent = `${kind === 'pattern' ? 'Pattern · ' : ''}${C.RARITY[item.rarity].label} · ${C.SLOT_TYPES[item.slot].label}`;
   head.append(icon, words);
+  fitText(words.firstChild); // fitted once the card is laid out
   const desc = document.createElement('div');
   desc.className = 'shop-card-desc';
   desc.textContent = withBeltSlots(good.id, item.description);
@@ -316,6 +318,7 @@ function potionCard(kind, good, state, affordable, selected, onClick) {
   words.firstChild.style.color = recipe ? '' : C.POTION_TIERS[potionRow(good.id).tier].color;
   words.lastChild.textContent = `${recipe ? 'Recipe · ' : ''}${potionKindLine(good.id)}${recipe ? '' : ` · ${good.stock} in stock`}`;
   head.append(icon, words);
+  fitText(words.firstChild); // fitted once the card is laid out
   const desc = document.createElement('div');
   desc.className = 'shop-card-desc';
   desc.textContent = potionEffectText(good.id);

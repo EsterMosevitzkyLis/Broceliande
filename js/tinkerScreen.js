@@ -11,6 +11,7 @@
 
 import * as C from './config.js';
 import { beltSlotsLine, potionRow, potionName, potionKindLine, potionEffectText } from './potions.js';
+import { fitText } from './fitText.js';
 import { drawPotionIcon } from './render/potions.js';
 import { GameState } from './states.js';
 import { drawSlotIcon, drawFramedItemIcon } from './render/items.js';
@@ -29,8 +30,7 @@ const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 // so they read on the pale page.
 const PAGE_RARITY_COLOR = { 0: '#7a4a22', 1: '#2f7a2c', 2: '#94700c', 3: '#1f6f9a' };
 // Potion tiers the same way (Faint is a plain dark grey on the page).
-const PAGE_TIER_COLOR = { faint: '#4e4a40', potent: '#2f7a2c', sublime: '#1f6f9a', sovereign: '#94700c' };
-const pageColor = (id) => (isPotionRecipe(id) ? PAGE_TIER_COLOR[potionRow(id).tier] : PAGE_RARITY_COLOR[C.ITEMS[id].rarity]);
+const pageColor = (id) => (isPotionRecipe(id) ? C.POTION_TIERS[potionRow(id).tier].page : PAGE_RARITY_COLOR[C.ITEMS[id].rarity]);
 // A recipe's icon: the potion's flask or the item's framed icon.
 function drawRecipeIcon(ctx, id, cx, cy, size) {
   if (isPotionRecipe(id)) drawPotionIcon(ctx, id, cx, cy, size);
@@ -239,10 +239,13 @@ function renderList(list, ids, selected, run, callbacks, tab) {
     if (known) row.addEventListener('click', () => callbacks.onSelect(id));
     list.append(row);
   }
-  if (tab !== 'all' && tab !== 'potions') return;
-  if (tab === 'all' && !potionIds.length) list.append(sectionHead('Potions'));
-  const left = totalPotionRecipes() - knownPotionRecipes().length;
-  if (left > 0) list.append(sectionHead(`${left} potion ${left === 1 ? 'recipe' : 'recipes'} still to find`, true));
+  if (tab === 'all' || tab === 'potions') {
+    if (tab === 'all' && !potionIds.length) list.append(sectionHead('Potions'));
+    const left = totalPotionRecipes() - knownPotionRecipes().length;
+    if (left > 0) list.append(sectionHead(`${left} potion ${left === 1 ? 'recipe' : 'recipes'} still to find`, true));
+  }
+  // Long names shrink to fit (or wrap), once the whole list is in, so its scrollbar is already there.
+  for (const name of list.querySelectorAll('.tinker-row-name')) fitText(name);
 }
 
 // Potions §7: a known potion recipe's row: flask, name in its tier colour, ✓ if it can be crafted

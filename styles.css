@@ -1776,7 +1776,8 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
 .shop-card.pattern.selected { border-color: #ffd98a; }
 .shop-card-head { display: flex; align-items: center; gap: 6px; }
 .shop-card-head canvas { flex: none; }
-.shop-card-name { font-size: 17px; font-weight: bold; line-height: 1.1; }
+.shop-card-head > div { flex: 1; min-width: 0; }
+.shop-card-name { font-size: 17px; font-weight: bold; line-height: 1.1; white-space: nowrap; }
 .shop-card-sub { font-size: 13px; opacity: 0.85; }
 .shop-card-desc { font-size: 14px; line-height: 1.2; margin-top: 3px; flex: 1; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .shop-card.pattern .shop-card-desc { -webkit-line-clamp: 2; }
@@ -1913,7 +1914,7 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 29px;
+  min-height: 29px; /* a name that wraps (fitText.js) makes its row taller */
   padding: 0 6px;
   border-radius: 5px;
   font-size: 19px;
@@ -1923,7 +1924,7 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
 .tinker-row.unknown { cursor: default; color: #9a8c70; font-style: italic; }
 .tinker-row.unknown:hover { background: none; }
 .tinker-row canvas { flex: none; }
-.tinker-row-name { flex: 1; font-weight: bold; }
+.tinker-row-name { flex: 1; min-width: 0; font-weight: bold; white-space: nowrap; line-height: 1.1; }
 .tinker-row.unknown .tinker-row-name { font-weight: normal; }
 .tinker-row-mark { font-size: 15px; color: #7a6a4c; font-style: italic; }
 .tinker-row-mark.tick { font-size: 22px; color: #2f7a2c; font-style: normal; font-weight: bold; }
@@ -2190,7 +2191,7 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
 }
 .potion-inv-item:hover { background: rgba(255, 236, 170, 0.12); }
 .potion-inv-item.full { cursor: default; }
-.potion-inv-name { flex: 1; font-size: 16px; }
+.potion-inv-name { flex: 1; min-width: 0; font-size: 16px; white-space: nowrap; line-height: 1.15; }
 .potion-inv-count { font: 17px 'Consolas', monospace; color: #e4dcc0; }
 #potion-menu {
   position: absolute;
