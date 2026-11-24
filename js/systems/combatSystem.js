@@ -8,7 +8,7 @@ import { turretType, turretRange, turretDamage, turretFireInterval, turretMuzzle
 import { createProjectile } from '../entities/projectile.js';
 import { dropLoot } from './dropSystem.js';
 import { createCloud, isInsideCloud } from './cloudSystem.js';
-import { corrodeMult, applyBurn } from './statusSystem.js';
+import { corrodeMult, applyBurn, isConfused } from './statusSystem.js';
 import { spreadWildfire } from './burnSystem.js';
 import { isBeingUpgraded } from './doubleSystem.js';
 import { events } from '../events.js';
@@ -321,6 +321,10 @@ export function updateWindupAttacks(game, dt) {
   for (const enemy of game.enemies) {
     const t = enemyType(enemy);
     if (!t.windupTime) continue;
+    if (isConfused(enemy)) { // Potions §5: attacks nothing while confused (applyConfuse dropped any wind-up)
+      enemy.attack = AttackState.READY;
+      continue;
+    }
     if (enemy.attack === AttackState.READY) {
       // Counts up to the moment it may wind up, then waits there for a target.
       enemy.sinceBlow = Math.min(enemy.sinceBlow + dt, t.attackInterval - t.windupTime);

@@ -1,8 +1,9 @@
-// Potion icons (Potions addendum §1): the tier sets the vessel, the potion the liquid's colour.
-//   Faint      a small clear vial with a cork
-//   Potent     a round green flask
-//   Sublime    a tall blue bottle
-//   Sovereign  an ornate gold decanter with a faceted stopper
+// Potion icons (Potions addendum §1): the tier sets the vessel and its glass (the tier colours), the
+// potion the liquid's colour.
+//   Faint      a small pale grey vial with a cork
+//   Potent     a round lilac flask
+//   Sublime    a tall violet bottle
+//   Sovereign  an ornate magenta decanter with a faceted stopper
 // Drawn centred on (cx, cy), fitting a size × size box.
 
 import * as C from '../config.js';
@@ -10,14 +11,14 @@ import { potionRow } from '../potions.js';
 
 const CORK = '#a87c4e';
 const CORK_DARK = '#7a5432';
-const GOLD = '#e2b84a';
-const GOLD_DARK = '#9a7424';
+const TRIM = '#e070e4';      // the Sovereign decanter's foot, band, collar and stopper (magenta)
+const TRIM_DARK = '#8a1c8c';
 
 // Each tier's vessel: body(ctx, cx, cy, s) traces the glass's outline (neck included); liquid: the
 // liquid's top as a fraction of s below cy; glass: the glass's tint; rim: its outline colour.
 const VESSELS = {
   faint: {
-    glass: 'rgba(230, 240, 245, 0.22)', rim: 'rgba(235, 245, 250, 0.85)', liquid: -0.06,
+    glass: 'rgba(205, 199, 187, 0.24)', rim: '#d8d2c6', liquid: -0.06,
     body(ctx, cx, cy, s) {
       const w = s * 0.13;
       const top = cy - s * 0.24;
@@ -33,7 +34,7 @@ const VESSELS = {
     },
   },
   potent: {
-    glass: 'rgba(110, 190, 110, 0.32)', rim: '#9fdc8c', liquid: 0.0,
+    glass: 'rgba(199, 169, 236, 0.32)', rim: '#cdb2f0', liquid: 0.0,
     body(ctx, cx, cy, s) {
       const r = s * 0.3;
       const by = cy + s * 0.14;
@@ -50,7 +51,7 @@ const VESSELS = {
     },
   },
   sublime: {
-    glass: 'rgba(90, 150, 230, 0.34)', rim: '#8cc4f4', liquid: -0.12,
+    glass: 'rgba(166, 118, 244, 0.34)', rim: '#b48cf6', liquid: -0.12,
     body(ctx, cx, cy, s) {
       const w = s * 0.17;
       const neck = s * 0.065;
@@ -73,7 +74,7 @@ const VESSELS = {
     },
   },
   sovereign: {
-    glass: 'rgba(240, 210, 140, 0.26)', rim: GOLD, liquid: 0.02,
+    glass: 'rgba(236, 88, 240, 0.26)', rim: TRIM, liquid: 0.02,
     body(ctx, cx, cy, s) {
       const rx = s * 0.29;
       const ry = s * 0.24;
@@ -90,8 +91,8 @@ const VESSELS = {
     stopper(ctx, cx, cy, s) {
       // A gold foot, a band round the belly and the neck's collar, then a faceted stopper.
       const by = cy + s * 0.13;
-      ctx.fillStyle = GOLD;
-      ctx.strokeStyle = GOLD_DARK;
+      ctx.fillStyle = TRIM;
+      ctx.strokeStyle = TRIM_DARK;
       ctx.lineWidth = Math.max(1, s * 0.02);
       ctx.beginPath();
       ctx.moveTo(cx - s * 0.16, by + s * 0.3);
@@ -103,10 +104,10 @@ const VESSELS = {
       ctx.stroke();
       ctx.beginPath();
       ctx.ellipse(cx, by + s * 0.02, s * 0.33, s * 0.05, 0, 0.15, Math.PI - 0.15);
-      ctx.strokeStyle = GOLD;
+      ctx.strokeStyle = TRIM;
       ctx.lineWidth = Math.max(1, s * 0.035);
       ctx.stroke();
-      ctx.fillStyle = GOLD;
+      ctx.fillStyle = TRIM;
       ctx.fillRect(cx - s * 0.085, cy - s * 0.27, s * 0.17, s * 0.05);
       ctx.beginPath();
       ctx.moveTo(cx, cy - s * 0.47);
@@ -115,7 +116,7 @@ const VESSELS = {
       ctx.lineTo(cx - s * 0.09, cy - s * 0.36);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = GOLD_DARK;
+      ctx.strokeStyle = TRIM_DARK;
       ctx.lineWidth = Math.max(1, s * 0.02);
       ctx.stroke();
       ctx.fillStyle = 'rgba(255, 250, 220, 0.7)';
@@ -222,5 +223,65 @@ export function drawPhoenixWard(ctx, x, y, t) {
   ctx.beginPath();
   ctx.ellipse(x, y, r, r * 1.15, 0, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.restore();
+}
+
+// An aura round the Druid (§5): a soft ring of its radius in the potion's colour, fading out over its
+// last AURA_FADE_TIME s (fade 1 … 0). t: s (animation), for a slow shimmer.
+export function drawAuraRing(ctx, x, y, a, t) {
+  ctx.save();
+  const k = a.fade * (0.85 + 0.15 * Math.sin(t * 2.2 + a.radius));
+  const g = ctx.createRadialGradient(x, y, a.radius * 0.55, x, y, a.radius);
+  g.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  g.addColorStop(1, a.color);
+  ctx.globalAlpha = 0.22 * k;
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(x, y, a.radius, a.radius, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.55 * k;
+  ctx.strokeStyle = a.color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 7]);
+  ctx.lineDashOffset = -t * 12;
+  ctx.beginPath();
+  ctx.ellipse(x, y, a.radius, a.radius, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// A Rootgrip pulse: a ring of vines spreading from the Druid to the aura's edge. k: 0 … 1.
+export function drawAuraPulse(ctx, p, k) {
+  ctx.save();
+  ctx.globalAlpha = 0.7 * (1 - k);
+  ctx.strokeStyle = p.color;
+  ctx.lineWidth = 4 * (1 - k) + 1;
+  const r = p.radius * (0.3 + 0.7 * k);
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, r, r, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Confused (§5): three little stars circling above the enemy's head. t: s (animation).
+export function drawConfusedStars(ctx, x, y, t) {
+  ctx.save();
+  ctx.fillStyle = C.POTION_LIQUID.bewilderAura;
+  ctx.strokeStyle = 'rgba(40, 10, 40, 0.7)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const a = t * 4 + (i * Math.PI * 2) / 3;
+    const sx = x + Math.cos(a) * 9;
+    const sy = y + Math.sin(a) * 3;
+    ctx.beginPath();
+    for (let j = 0; j < 10; j++) {
+      const r = j % 2 ? 1.6 : 4;
+      const b = (j / 10) * Math.PI * 2 - Math.PI / 2;
+      ctx.lineTo(sx + Math.cos(b) * r, sy + Math.sin(b) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
   ctx.restore();
 }

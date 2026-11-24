@@ -46,7 +46,7 @@ export const GLOBAL_TYPES = {
   ORACLE_CALL_INTERVAL: 'number', ORACLE_CALL_SHIELD: 'number', ORACLE_CALL_SHIELD_DURATION: 'number', ORACLE_CALL_SPAWNS: 'int', PYLON_HP: 'number', PYLON_ARMOR: 'number', // M6b §6
   REVEAL_RADIUS: 'number', REVEAL_LINGER: 'number', THROW_REVEAL: 'number', WISP_REVEAL: 'number', // M6c
   WALL_MIN_GAP: 'number', WALL_DRUID_CLEARANCE: 'number', // M6d §2.4
-  HP_BETWEEN_BATTLES_PCT: 'number', POTION_RECIPES_KNOWN: 'string', SOVEREIGN_RECIPE_FIND_CHANCE: 'number', PHOENIX_IMMUNE_TIME: 'number', POTION_TICK_INTERVAL: 'number', POTION_COOLDOWN: 'number', POTION_SLOTS_BASE: 'int', // Potions §3.1, §4.1
+  HP_BETWEEN_BATTLES_PCT: 'number', POTION_RECIPES_KNOWN: 'string', SOVEREIGN_RECIPE_FIND_CHANCE: 'number', PHOENIX_IMMUNE_TIME: 'number', POTION_TICK_INTERVAL: 'number', ROOTGRIP_INTERVAL: 'number', BEWILDER_REPEAT: 'number', POTION_COOLDOWN: 'number', POTION_SLOTS_BASE: 'int', // Potions §3.1, §4.1
   BELT_SLOT_ODDS_R0: 'list', BELT_SLOT_ODDS_R1: 'list', BELT_SLOT_ODDS_R2: 'list', BELT_SLOT_ODDS_R3: 'list', // chances of 2, 3, 4, 5 potion slots
 };
 

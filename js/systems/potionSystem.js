@@ -6,9 +6,10 @@
 //   game.potionEffects: { potionId: { key, duration, until, nextTick } }
 //     key: the potion-tier whose numbers apply (the higher tier on a repeat)
 //     until: combat time it ends; null while queued in Prep (§4.2: its timer starts with Combat)
-//     nextTick: Regeneration's next heal (combat time)
+//     nextTick: Regeneration's next heal, Thorn Aura's next damage, Rootgrip's next pulse (combat time)
 // Self effects with a stat (Wards, Fury, Quickening) are timed stat modifiers: game.stats is resolved
-// again (equipment, then the active potions) whenever one starts or ends. All effects end with the battle.
+// again (equipment, then the active potions) whenever one starts or ends. Auras (phase 4) work on every
+// enemy within their radius of the Druid's home. All effects end with the battle.
 
 import * as C from '../config.js';
 import { GameState } from '../states.js';
@@ -17,12 +18,18 @@ import { addFloatingText } from '../effects.js';
 import { resolveStats } from '../stats.js';
 import { potionRow, isPotionWorking } from '../potions.js';
 import { isStepMode } from './stepSystem.js';
+import { damageEnemy } from './combatSystem.js';
+import { applySlowAtLeast, applyRoot, applyConfuse, isConfused } from './statusSystem.js';
 
 // The states the battle belt shows in (greyed outside Prep and Combat).
 const BELT_STATES = [GameState.PREP, GameState.COMBAT, GameState.ENDING, GameState.VICTORY, GameState.DEFEAT];
 
 // Potions whose effect lasts a while (Cleansing: its venom ward, when its tier has one).
-const TIMED = ['regeneration', 'cleansing', 'wardBark', 'wardVenom', 'fury', 'quickening', 'burrowcall'];
+const TIMED = ['regeneration', 'cleansing', 'wardBark', 'wardVenom', 'fury', 'quickening', 'burrowcall', 'mireAura', 'rootgripAura', 'bewilderAura', 'thornAura'];
+export const AURAS = ['mireAura', 'rootgripAura', 'bewilderAura', 'thornAura'];
+
+// s after an effect starts that its first tick comes (Rootgrip pulses at once, then every ROOTGRIP_INTERVAL).
+const firstTick = (id) => (id === 'rootgripAura' ? 0 : C.POTION_TICK_INTERVAL);
 
 const EPS = 1e-9;
 
@@ -96,17 +103,17 @@ function startEffect(game, key) {
     key: best,
     duration,
     until: combat ? game.combatTime + duration : null,
-    nextTick: keepRhythm ? old.nextTick : combat ? game.combatTime + C.POTION_TICK_INTERVAL : null,
+    nextTick: keepRhythm ? old.nextTick : combat ? game.combatTime + firstTick(p.id) : null,
   };
   refreshPotionStats(game);
 }
 
 // §4.2: Combat starts: every effect drunk in Prep starts its timer now.
 export function startQueuedEffects(game) {
-  for (const e of Object.values(game.potionEffects)) {
+  for (const [id, e] of Object.entries(game.potionEffects)) {
     if (e.until !== null) continue;
     e.until = game.combatTime + e.duration;
-    e.nextTick = game.combatTime + C.POTION_TICK_INTERVAL;
+    e.nextTick = game.combatTime + firstTick(id);
   }
   refreshPotionStats(game);
 }
@@ -184,10 +191,61 @@ export function updatePotions(game, dt) {
         healDruid(game, p.amount * C.POTION_TICK_INTERVAL);
       }
     }
+    if (AURAS.includes(id)) updateAura(game, id, e);
     if (game.combatTime >= e.until - EPS) {
       delete game.potionEffects[id];
       ended = true;
     }
   }
   if (ended) refreshPotionStats(game);
+}
+
+// The enemies an aura reaches: every one whose body is within its radius of the Druid's home.
+function enemiesInAura(game, radius) {
+  const home = game.scene.level.druidPos;
+  return game.enemies.filter((en) => Math.hypot(en.x - home.x, en.y - home.y) <= radius + en.radius);
+}
+
+// §5 auras, each Combat step while it lasts:
+//   Mire: every enemy inside is Slowed by `amount` % while inside (never weakening a stronger slow)
+//   Rootgrip: a pulse at once and every ROOTGRIP_INTERVAL s roots every enemy inside for `amount` s
+//   Bewildering: an enemy inside is Confused for `amount` s, each at most once per BEWILDER_REPEAT s
+//   Thorn: every enemy inside takes `amount` damage a second, in POTION_TICK_INTERVAL ticks
+function updateAura(game, id, e) {
+  const p = potionRow(e.key);
+  const now = game.combatTime;
+  if (id === 'mireAura') {
+    for (const en of enemiesInAura(game, p.radius)) applySlowAtLeast(game, en, 1 - p.amount / 100, C.SIM_STEP * 2);
+  }
+  if (id === 'rootgripAura') {
+    while (e.nextTick <= e.until + EPS && now >= e.nextTick - EPS) {
+      e.nextTick += C.ROOTGRIP_INTERVAL;
+      for (const en of enemiesInAura(game, p.radius)) applyRoot(game, en, p.amount);
+      const home = game.scene.level.druidPos;
+      game.auraPulses.push({ x: home.x, y: home.y, radius: p.radius, color: C.POTION_LIQUID[p.id], age: 0 });
+    }
+  }
+  if (id === 'bewilderAura') {
+    for (const en of enemiesInAura(game, p.radius)) {
+      if (isConfused(en) || now - (en.bewilderedAt ?? -Infinity) < C.BEWILDER_REPEAT - EPS) continue;
+      if (applyConfuse(game, en, p.amount)) en.bewilderedAt = now;
+    }
+  }
+  if (id === 'thornAura') {
+    while (e.nextTick <= e.until + EPS && now >= e.nextTick - EPS) {
+      e.nextTick += C.POTION_TICK_INTERVAL;
+      for (const en of enemiesInAura(game, p.radius)) {
+        if (game.enemies.includes(en)) damageEnemy(game, en, p.amount * C.POTION_TICK_INTERVAL, `potion:${p.id}`);
+      }
+    }
+  }
+}
+
+// The auras round the Druid now, for drawing: [{ id, radius, color, fade (1, falling to 0 over its last AURA_FADE_TIME s) }].
+export function activeAuras(game) {
+  return AURAS.filter((id) => isEffectActive(game, id)).map((id) => {
+    const e = game.potionEffects[id];
+    const p = potionRow(e.key);
+    return { id, radius: p.radius, color: C.POTION_LIQUID[id], fade: Math.min(1, Math.max(0, (e.until - game.combatTime) / C.AURA_FADE_TIME)) };
+  });
 }

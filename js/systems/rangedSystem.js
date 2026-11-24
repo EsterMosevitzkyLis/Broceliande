@@ -12,6 +12,7 @@ import { hurtDruid } from './combatSystem.js';
 import { damageTurret } from './buildSystem.js';
 import { events } from '../events.js';
 import { wallById, damageWall } from './wallSystem.js';
+import { isConfused } from './statusSystem.js';
 
 const TIMER_EPSILON = 1e-9;
 const SPEAR_HAND_HEIGHT = 1.6;  // × radius above its feet: where a spear leaves the hand
@@ -63,9 +64,9 @@ export function updateRanged(game, dt) {
     const t = enemyType(enemy);
     if (!t.attackRange) continue;
     enemy.sinceThrow = Math.min((enemy.sinceThrow ?? t.attackInterval) + dt, t.attackInterval);
-    const free = enemy.state === EnemyState.WALKING && enemy.blockedBy === null;
+    const free = enemy.state === EnemyState.WALKING && enemy.blockedBy === null && !isConfused(enemy); // Potions §5: confused, it throws nothing
     // M6d §2.5: held up at a Scale Bulwark wall, it throws its spears at the wall.
-    const wall = enemy.blockedBy !== null ? wallById(game, enemy.blockedBy) : null;
+    const wall = enemy.blockedBy !== null && !isConfused(enemy) ? wallById(game, enemy.blockedBy) : null;
     const target = wall ? { kind: 'wall', id: wall.id, across: (enemy.x - wall.x) * -wall.ty + (enemy.y - wall.y) * wall.tx } : free ? rangedTarget(game, enemy) : null;
     enemy.throwing = !!target;
     enemy.throwTarget = target;

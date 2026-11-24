@@ -8,6 +8,7 @@ import { EnemyState, AttackState, enemyType, enemySpeed, moveMult, maxOffset, la
 import { findBlocker } from './collisionSystem.js';
 import { events } from '../events.js';
 import { stuckTime } from '../levelSettings.js';
+import { isConfused } from './statusSystem.js';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const clampOffset = (enemy, o) => clamp(o, -maxOffset(enemy.type, enemy.lane), maxOffset(enemy.type, enemy.lane));
@@ -28,6 +29,13 @@ export function updateEnemyMovement(game, dt) {
   for (const enemy of order) {
     if (enemy.blockedBy !== null) continue; // held up by a landed Vulture (§15.4)
     if (enemy.attack === AttackState.WINDUP) continue; // finishes its swing where it stands (M2c §2.5)
+    if (isConfused(enemy)) {
+      const before = { x: enemy.x, y: enemy.y };
+      walkBack(game, enemy, dt); // Potions §5
+      footsteps(enemy, before, dt);
+      continue;
+    }
+    if (enemy.offLane) resume(game, enemy); // its confusion just ended before it got back to its lane
     if (enemy.flying) {
       moveFlyer(game, enemy, dt); // M2h §3: its own rules, over the ground enemies
       continue;
@@ -43,6 +51,48 @@ export function updateEnemyMovement(game, dt) {
     }
     footsteps(enemy, before, dt);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Confused (Potions §5): the enemy turns and walks back along its lane at its normal speed (slows
+// still apply), first back to the lane if it had left it for the Druid. Ground enemies still collide
+// (one blocked from behind just stands there); flyers never do.
+// ---------------------------------------------------------------------------
+function walkBack(game, enemy, dt) {
+  const step = enemySpeed(enemy) * dt;
+  enemy.advancing = false;
+  let s = enemy.s;
+  let target = laneWorldPos(enemy.lane, s, enemy.offset);
+  if (!enemy.offLane) {
+    s = Math.max(0, s - step);
+    target = laneWorldPos(enemy.lane, s, enemy.offset);
+  }
+  const dx = target.x - enemy.x;
+  const dy = target.y - enemy.y;
+  const dist = Math.hypot(dx, dy);
+  const k = dist > step ? step / dist : 1;
+  const x = enemy.x + dx * k;
+  const y = enemy.y + dy * k;
+  if (enemy.flying) {
+    if (Math.abs(dx) > 0.01) enemy.facing = Math.sign(dx);
+    enemy.stride += Math.hypot(x - enemy.x, y - enemy.y);
+    enemy.x = x;
+    enemy.y = y;
+  } else if (tryMoveTo(game, enemy, x, y)) return; // blocked: stands
+  if (enemy.offLane) {
+    if (k === 1) enemy.offLane = false; // back on its lane
+  } else enemy.s = s;
+}
+
+// Its confusion ended while it was still off its lane: it goes for the Druid again from where it is.
+function resume(game, enemy) {
+  enemy.offLane = false;
+  if (enemy.flying) {
+    const d = game.scene.level.druidPos;
+    const angle = game.rng.range(0, Math.PI * 2);
+    enemy.stand = { x: d.x + Math.cos(angle) * C.STIRGE_DRUID_RING, y: d.y + Math.sin(angle) * C.STIRGE_DRUID_RING, angle };
+    enemy.state = EnemyState.APPROACHING;
+  } else enemy.state = EnemyState.WAITING;
 }
 
 // ---------------------------------------------------------------------------

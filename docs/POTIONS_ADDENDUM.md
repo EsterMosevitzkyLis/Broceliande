@@ -18,9 +18,9 @@ appears there is a starting guess: read it from the data, never hard-code it.
   Its display name is "<Tier> <Potion>", e.g. "Faint Potion of Healing".
 - `use` column: `drink` (self, any time), `prepOnly` (self, Prep only), `throw` (targeted),
   `auto` (never clicked: triggers by itself).
-- Tier look: Faint small clear vial, Potent round green flask, Sublime tall blue bottle,
-  Sovereign ornate gold decanter. Each potion's liquid colour tells potions apart. Drawn in
-  code like every other visual.
+- Tier look: Faint small grey vial, Potent round lilac flask, Sublime tall violet bottle,
+  Sovereign ornate magenta decanter (the glass follows the tier colours). Each potion's
+  liquid colour tells potions apart. Drawn in code like every other visual.
 - **Swiftfoot Draught is not in this addendum.** The Druid stands at his home position in
   Combat, so a move-speed potion has nothing to do. (Designer to confirm or rework.)
 

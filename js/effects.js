@@ -53,6 +53,8 @@ export function updateEffects(game, dt) {
   for (const d of game.dustRings) d.age += dt;
   for (const b of game.phoenixBursts) b.age += dt; // Potions §5
   game.phoenixBursts = game.phoenixBursts.filter((b) => b.age < C.PHOENIX_BURST_TIME);
+  for (const p of game.auraPulses) p.age += dt;
+  game.auraPulses = game.auraPulses.filter((p) => p.age < C.AURA_PULSE_TIME);
   game.dustRings = game.dustRings.filter((d) => d.age < C.OGRE_DUST_TIME);
   updateAshes(game, dt); // M3b §3.1: risers burnt to ash smoulder away
   // Grim trait feedback (M2l §2.2): armor sparks and lifesteal sparkles.

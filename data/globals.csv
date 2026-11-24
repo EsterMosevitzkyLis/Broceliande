@@ -160,3 +160,5 @@ POTION_RECIPES_KNOWN,healing:faint,"potion recipes (potion:tier, comma-separated
 SOVEREIGN_RECIPE_FIND_CHANCE,0.5,"TUNING - chance a region boss battle's hidden find is a Sovereign potion recipe not known yet (Sovereign recipes are never sold)"
 PHOENIX_IMMUNE_TIME,2,TUNING - s the Druid takes no damage after a Phoenix Draught saves him
 POTION_TICK_INTERVAL,1,TUNING - s between the ticks of a potion that works over time (Regeneration)
+ROOTGRIP_INTERVAL,4,TUNING - s between a Rootgrip Aura's pulses (each roots every enemy in its radius)
+BEWILDER_REPEAT,6,TUNING - s before a Bewildering Aura can confuse the same enemy again

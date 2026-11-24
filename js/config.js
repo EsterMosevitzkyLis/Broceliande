@@ -572,6 +572,8 @@ export const POTION_MAP_SOCKET_SIZE = 30; // px, a socket on the equipment portr
 export const FIT_TEXT_MIN = 0.8;          // a long name in a tight row shrinks to this share of its font size before it wraps (fitText.js)
 export const POTION_EFFECT_ICON_SIZE = 30; // px, an active potion effect's icon by the HUD HP bar (§5)
 export const PHOENIX_BURST_TIME = 0.9;    // s, a Phoenix save's burst of flame (visual only)
+export const AURA_FADE_TIME = 3;          // s, an aura's ring fades out over its last this many seconds (§5, visual only)
+export const AURA_PULSE_TIME = 0.6;       // s, a Rootgrip pulse's ring spreading out (visual only)
 export const ELDER_SQUIRREL_SCALE = 1.3;  // an Elder Squirrel (Burrowcall) is drawn this much larger (drawing only)
 
 
@@ -672,7 +674,8 @@ export let ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION
 export let REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL; // M6c
 export let WALL_MIN_GAP, WALL_DRUID_CLEARANCE; // M6d §2.4
 export let POTION_COOLDOWN, POTION_SLOTS_BASE; // Potions §3.1, §4.1
-export let PHOENIX_IMMUNE_TIME, POTION_TICK_INTERVAL; // Potions §5: after a Phoenix save; Regeneration's ticks
+export let PHOENIX_IMMUNE_TIME, POTION_TICK_INTERVAL; // Potions §5: after a Phoenix save; Regeneration's and Thorn Aura's ticks
+export let ROOTGRIP_INTERVAL, BEWILDER_REPEAT; // Potions §5: the auras' pulse and repeat times
 export let HP_BETWEEN_BATTLES_PCT; // Potions §6: the share of his max HP the Druid regains before each battle
 export let POTION_RECIPES_KNOWN, SOVEREIGN_RECIPE_FIND_CHANCE; // Potions §7: recipes known from the start (potion keys); a boss find
 export let BELT_SLOT_ODDS; // Potions §3.1: rarity → chances of [2, 3, 4, 5] potion slots (BELT_SLOT_ODDS_R0-3)
@@ -785,7 +788,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR,
     REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL, WALL_MIN_GAP, WALL_DRUID_CLEARANCE,
     POTION_COOLDOWN, POTION_SLOTS_BASE, HP_BETWEEN_BATTLES_PCT, POTION_RECIPES_KNOWN, SOVEREIGN_RECIPE_FIND_CHANCE,
-    PHOENIX_IMMUNE_TIME, POTION_TICK_INTERVAL,
+    PHOENIX_IMMUNE_TIME, POTION_TICK_INTERVAL, ROOTGRIP_INTERVAL, BEWILDER_REPEAT,
   } = keyed(t.globals));
   const g = keyed(t.globals);
   POTION_RECIPES_KNOWN = String(POTION_RECIPES_KNOWN ?? '').split(',').map((s) => s.trim()).filter(Boolean);

@@ -5,9 +5,11 @@
 //   burning:  { until, nextTick, tickDamage, tickInterval, spreadRadius, level, sourceTurretId } —
 //             tickDamage every tickInterval s (burnSystem.js), M2o §2.2; spreadRadius > 0: Wildfire
 //   shielded: { until, amount, max } — absorbs damage before HP (M6b §3, damageEnemy in combatSystem.js)
+//   confused: { until } — Potions §5: walks back along its lane, attacking nothing (movementSystem.js)
+// Rooted (Potions §5) is Slowed to 0.
 
 import * as C from '../config.js';
-import { enemyType } from '../entities/enemy.js';
+import { enemyType, EnemyState, AttackState } from '../entities/enemy.js';
 
 // Slows an enemy for `duration` s from now; already slowed: the duration restarts. Its type's
 // slowResist (M2l §1.3, the Grim Wolf's Dogged) ignores that fraction of the slow:
@@ -15,6 +17,49 @@ import { enemyType } from '../entities/enemy.js';
 export function applySlow(game, enemy, mult, duration) {
   const resist = enemyType(enemy).slowResist ?? 0;
   enemy.statuses.slowed = { until: game.combatTime + duration, mult: 1 - (1 - mult) * (1 - resist) };
+}
+
+// Potions §5 (Mire Aura): a slow that never weakens a stronger one already on the enemy (a root, a
+// Slow Wisp's): it only takes over if it slows as much or more.
+export function applySlowAtLeast(game, enemy, mult, duration) {
+  const old = enemy.statuses.slowed;
+  const resist = enemyType(enemy).slowResist ?? 0;
+  const eff = 1 - (1 - mult) * (1 - resist);
+  if (old && old.mult < eff) return;
+  enemy.statuses.slowed = { until: Math.max(old?.until ?? 0, game.combatTime + duration), mult: eff };
+}
+
+// Potions §5: Rooted = Slowed to 0 (slowResist still applies) for `duration` s. Bosses ignore it.
+export function applyRoot(game, enemy, duration) {
+  if (enemyType(enemy).boss || !(duration > 0)) return false;
+  applySlow(game, enemy, 0, duration);
+  return true;
+}
+
+// Potions §5: Confused for `duration` s (a longer confusion already on it is kept). The enemy lets go
+// of the Druid (its melee slots are freed, a wind-up is dropped) and walks back along its lane at
+// its normal speed, attacking nothing; then it resumes. Bosses, egg sacs and the perched Oracle
+// ignore it. Returns whether it took.
+export function applyConfuse(game, enemy, duration) {
+  if (enemyType(enemy).boss || enemy.stationary || enemy.bound || !(duration > 0)) return false;
+  const old = enemy.statuses.confused;
+  enemy.statuses.confused = { until: Math.max(old?.until ?? 0, game.combatTime + duration) };
+  if (old) return true;
+  for (const s of enemy.slots ?? []) game.meleeSlots[s].enemyId = null;
+  enemy.slots = [];
+  if (enemy.state !== EnemyState.WALKING) {
+    enemy.state = EnemyState.WALKING;
+    enemy.s = Math.min(enemy.s, enemy.lane.path.length - C.ENEMY_SLOT_CLAIM_DISTANCE);
+    enemy.offLane = true; // off its lane (at the Druid, or walking to him): it heads back to it first
+  }
+  if (enemy.attack === AttackState.WINDUP) enemy.attack = AttackState.READY;
+  enemy.throwing = false;
+  enemy.passThroughId = null;
+  return true;
+}
+
+export function isConfused(enemy) {
+  return !!enemy.statuses.confused;
 }
 
 export function isSlowed(enemy) {

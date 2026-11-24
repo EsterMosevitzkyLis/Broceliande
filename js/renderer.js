@@ -36,8 +36,9 @@ import { drawBody, drawAsh, drawBossEntrance, drawSunkRing } from './render/unde
 import { drawShowcase } from './debug/showcase.js';
 import { drawFernClump, drawCamouflaged } from './render/valeTwists.js'; // M6c
 import { isUnderFerns, fernClumps } from './systems/hiddenSpotSystem.js';
-import { isDruidImmune } from './systems/potionSystem.js';
-import { drawPhoenixBurst, drawPhoenixWard } from './render/potions.js';
+import { isDruidImmune, activeAuras } from './systems/potionSystem.js';
+import { drawPhoenixBurst, drawPhoenixWard, drawAuraRing, drawAuraPulse, drawConfusedStars } from './render/potions.js';
+import { isConfused } from './systems/statusSystem.js';
 
 const HIT_FLASH_TIME = 0.15; // s of hit flash on the Druid (bite) or an enemy (pebble); visual only
 const PROGRESS_GAP = 12;     // px between the top of a location's footprint and its progress bar
@@ -151,6 +152,12 @@ export function createRenderer(canvas) {
     // Poison clouds lie on the ground too, under anything upright (M1f §6.5).
     // Each is drawn at its own creation stats, so its visible edge is its damage radius (M1h §2.4).
     for (const cloud of game.clouds) drawCloud(ctx, cloud, cloud.spec.radius, cloud.spec.duration);
+    // Potions §5: auras round the Druid's home, and Rootgrip pulses, on the ground.
+    if (game.state === GameState.COMBAT) {
+      const home = game.scene.level.druidPos;
+      for (const a of activeAuras(game)) drawAuraRing(ctx, home.x, home.y, a, animationTime(game));
+    }
+    for (const p of game.auraPulses ?? []) drawAuraPulse(ctx, p, p.age / C.AURA_PULSE_TIME);
     // Dust rings where Ogre blows land (M2c §2.5), on the ground.
     for (const d of game.dustRings) drawDustRing(ctx, d, d.age / C.OGRE_DUST_TIME);
     // M3b §3.3: bodies slumped in the mire waiting to rise, and risers burnt to ash, on the ground.
@@ -292,6 +299,8 @@ export function createRenderer(canvas) {
     // Slowed (M2k §3.5): a small turning spiral above the head, clear of the HP bar.
     // Dogged (M2l §2.2): on a slow-resistant enemy it spins faster and fainter (only partly slowed).
     for (const e of game.enemies) if (isSlowed(e) && !e.camouflaged) drawSlowSpiral(ctx, e.x, enemyBarY(e) - C.SLOW_SPIRAL_SIZE - 6, anim, !!C.ENEMY_TYPES[e.type].slowResist);
+    // Potions §5: Confused, stars circling above the head (above the slow spiral when both).
+    for (const e of game.enemies) if (isConfused(e) && !e.camouflaged) drawConfusedStars(ctx, e.x, enemyBarY(e) - (isSlowed(e) ? C.SLOW_SPIRAL_SIZE * 2 + 14 : 8), anim);
     if (view.showcase) drawShowcase(ctx, view.showcase, anim); // debug Shift+C: normal and Grim enemies side by side
     for (const v of game.vultures) drawVultureStatus(ctx, v);
     for (const s of game.squirrels) drawSquirrelStatus(ctx, s);

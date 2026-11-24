@@ -5,7 +5,7 @@ import * as C from '../config.js';
 import { VultureState } from '../entities/vulture.js';
 import { hitTarget, lifestealOnBite } from './combatSystem.js';
 import { targetById, pylonsInRange } from './oracleSystem.js';
-import { applyItemBurn } from './statusSystem.js';
+import { applyItemBurn, isConfused } from './statusSystem.js';
 import { enemyType } from '../entities/enemy.js';
 import { blockingSquirrels } from './squirrelSystem.js';
 import { canTarget } from './camouflageSystem.js';
@@ -95,6 +95,11 @@ export function updateBlocking(game, dt) {
   ];
   for (const enemy of game.enemies) {
     if (enemy.stationary) continue; // M6b §5.1: an egg sac attacks nothing
+    if (isConfused(enemy)) { // Potions §5: a confused enemy attacks nothing and walks back past it
+      enemy.blockedBy = null;
+      enemy.vultureBiteTimer = 0;
+      continue;
+    }
     let blocker = null;
     let bestDist = Infinity;
     for (const { unit, radius, squirrel } of blockers) {

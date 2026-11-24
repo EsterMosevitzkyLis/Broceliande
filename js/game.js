@@ -206,6 +206,7 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.phoenixUsed = false; // Potions §5: one Phoenix save per battle
   game.druidImmuneUntil = -Infinity; // combat time the Phoenix save's immunity ends
   game.phoenixBursts = []; // { x, y, age } a Phoenix save's burst of flame (visual only)
+  game.auraPulses = [];    // { x, y, radius, color, age } a Rootgrip pulse spreading out (visual only)
   game.druidMeleeTimer = 0;
   game.druidWasBusy = false;
   game.druidMeleeTargetId = null;
