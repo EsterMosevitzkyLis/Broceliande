@@ -12,6 +12,7 @@ import { RESOURCE_ICON_SVG } from './icons.js';
 import { RESOURCE_KEYS, resourceName } from './resources.js';
 import { knownPatterns, newPatterns, totalPatterns, markPatternsSeen } from './patterns.js';
 import { regionStartNode } from './run.js';
+import { beltSlotsLine } from './potions.js';
 
 const SLOTS = Object.keys(C.SLOT_TYPES);
 const ICON_PX = 60;     // item / slot icon inside a slot circle
@@ -101,6 +102,8 @@ export function createEquipmentPanel(callbacks) {
     }
     const item = C.ITEMS[id];
     tip.replaceChildren(textDiv('equip-tip-name', item.name), rarityLine(item), textDiv('equip-tip-desc', item.description));
+    const slots = beltSlotsLine(run, id); // Potions §3.1
+    if (slots) tip.append(textDiv('equip-tip-desc', slots));
     placeBeside(tip, slot, 14);
     tip.hidden = false;
   }
@@ -142,6 +145,8 @@ export function createEquipmentPanel(callbacks) {
       if (newInPopover.includes(id)) name.append(textSpan('equip-new', 'New'));
       if (run.equipped[slot] === id) name.append(textSpan('equip-on', 'Equipped'));
       text.append(name, rarityLine(item), textDiv('equip-pop-desc', item.description));
+      const slots = beltSlotsLine(run, id); // Potions §3.1
+      if (slots) text.append(textDiv('equip-pop-desc', slots));
       row.append(icon, text);
       row.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -262,7 +267,7 @@ export function createEquipmentPanel(callbacks) {
       return;
     }
     run = game.run;
-    const k = JSON.stringify([run.items, run.equipped, run.seenItems, run.inventory, knownPatterns(), newPatterns()]);
+    const k = JSON.stringify([run.items, run.equipped, run.seenItems, run.inventory, knownPatterns(), newPatterns(), run.beltSlots]);
     if (k === key) return;
     key = k;
     renderSlots();

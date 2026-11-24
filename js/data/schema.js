@@ -46,6 +46,8 @@ export const GLOBAL_TYPES = {
   ORACLE_CALL_INTERVAL: 'number', ORACLE_CALL_SHIELD: 'number', ORACLE_CALL_SHIELD_DURATION: 'number', ORACLE_CALL_SPAWNS: 'int', PYLON_HP: 'number', PYLON_ARMOR: 'number', // M6b §6
   REVEAL_RADIUS: 'number', REVEAL_LINGER: 'number', THROW_REVEAL: 'number', WISP_REVEAL: 'number', // M6c
   WALL_MIN_GAP: 'number', WALL_DRUID_CLEARANCE: 'number', // M6d §2.4
+  POTION_COOLDOWN: 'number', POTION_SLOTS_BASE: 'int', // Potions §3.1, §4.1
+  BELT_SLOT_ODDS_R0: 'list', BELT_SLOT_ODDS_R1: 'list', BELT_SLOT_ODDS_R2: 'list', BELT_SLOT_ODDS_R3: 'list', // chances of 2, 3, 4, 5 potion slots
 };
 
 // Druid stats: key → type. Every key must have a row.
@@ -175,6 +177,17 @@ export const TABS = {
       trader: { type: 'id', required: true }, resource: { type: 'id', required: true }, stockMin: { type: 'int', required: true },
       stockMax: { type: 'int', required: true }, priceMin: { type: 'number', required: true }, priceMax: { type: 'number', required: true },
     },
+  },
+  // Potions §9: one row per potion per tier (a potion-tier); its effect's numbers, Trader price,
+  // recipe cost and pattern weight / price.
+  potions: {
+    columns: {
+      id: { type: 'id', required: true }, potion: { type: 'text', required: true }, tier: { type: 'id', required: true },
+      rank: { type: 'int', required: true }, category: { type: 'id', required: true }, use: { type: 'id', required: true },
+      amount: { type: 'number', required: true }, unit: { type: 'text' }, duration: { type: 'number' }, radius: { type: 'number' },
+      price: { type: 'number' }, patternWeight: { type: 'number' }, patternPrice: { type: 'number' },
+    },
+    pattern: [/^cost_[a-z][a-zA-Z0-9]*$/, COST],
   },
   // Debug only: what Jump to region sets the run's resources to, one row per region and resource.
   debugLoadouts: { columns: { region: { type: 'id', required: true }, resource: { type: 'id', required: true }, amount: { type: 'int', required: true } } },

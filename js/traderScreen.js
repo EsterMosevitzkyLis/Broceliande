@@ -7,6 +7,7 @@
 // reads game state and calls back for every action; the art is on the canvas (render/trader.js).
 
 import * as C from './config.js';
+import { beltSlotsLine } from './potions.js';
 import { GameState } from './states.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
 import { MATERIAL_KEYS, resourceName } from './resources.js';
@@ -54,6 +55,7 @@ export function createTraderScreen(callbacks) {
 
   // Returns how dark the scene fade should be (0–1) for this screen.
   function update(game) {
+    shownRun = game.run;
     const v = game.visit;
     const village = game.state === GameState.VILLAGE ? game.village : null;
     el.root.hidden = !v || !(game.state === GameState.TRADER || village?.tab === 'trade');
@@ -121,6 +123,13 @@ export function createTraderScreen(callbacks) {
   return { update };
 }
 
+// Potions §3.1: a belt's potion slots (or their odds) after its description.
+let shownRun = null;
+const withBeltSlots = (id, text) => {
+  const line = beltSlotsLine(shownRun, id);
+  return line ? `${text} ${line}.` : text;
+};
+
 // The deal's picture and words: a resource's icon and price, or an item / pattern shown larger.
 function fillDealHead(el, deal, inv) {
   const res = deal.kind === 'resource';
@@ -145,7 +154,7 @@ function fillDealHead(el, deal, inv) {
   setText(el.dealKind, deal.kind === 'pattern' ? 'Pattern: learn to craft' : deal.side === 'buy' ? 'Item' : 'Your item');
   setText(el.dealName, item.name);
   el.dealName.style.color = C.RARITY[item.rarity].frame;
-  setText(el.dealDesc, item.description);
+  setText(el.dealDesc, withBeltSlots(deal.id, item.description));
   if (deal.kind === 'pattern') {
     const label = document.createElement('div');
     label.className = 'shop-deal-cost-label';
@@ -242,7 +251,7 @@ function wareCard(kind, good, state, affordable, selected, onClick) {
   head.append(icon, words);
   const desc = document.createElement('div');
   desc.className = 'shop-card-desc';
-  desc.textContent = item.description;
+  desc.textContent = withBeltSlots(good.id, item.description);
   const foot = document.createElement('div');
   foot.className = 'shop-card-foot';
   if (kind === 'pattern') foot.append(costRowsElement(C.RECIPES[good.id].cost, C.RECIPES[good.id].cost)); // the recipe, never marked short here

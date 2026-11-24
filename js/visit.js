@@ -12,6 +12,7 @@ import { GameState } from './states.js';
 import { setState } from './game.js';
 import { createRng } from './rng.js';
 import { mapNode, nodeState, addItem } from './run.js';
+import { fitBelt } from './potions.js';
 import { resourceName } from './resources.js';
 import { learnPattern, unlearnPattern, isPatternKnown } from './patterns.js';
 import { rollTrader, traderProfileIds, resourcePrice, sellBundle, itemSellPrice, traderLine } from './trade.js';
@@ -200,6 +201,7 @@ function applyTrade(run, trader, trade, sign) {
     run.seenItems = run.seenItems.filter((x) => x !== id);
     for (const slot of Object.keys(run.equipped)) if (run.equipped[slot] === id) run.equipped[slot] = null; // selling unequips it
   }
+  if (run.hasPotions && C.ITEMS[id]?.slot === 'belt') fitBelt(run); // Potions §3.1: selling (or buying back) the equipped belt
 }
 
 // Back to the road (§4.4): a farewell line, the fade, then the map.

@@ -8,6 +8,7 @@
 // by the wall clock).
 
 import * as C from './config.js';
+import { beltSlotsLine } from './potions.js';
 import { GameState } from './states.js';
 import { drawSlotIcon, drawFramedItemIcon } from './render/items.js';
 import { costRowsElement, costRowsKey } from './costRows.js';
@@ -112,8 +113,9 @@ export function createTinkerScreen(callbacks) {
       setText(el.empty, knownPatterns().length ? 'Choose a pattern from the list.' : 'You know no patterns yet. Search the wilds for them.');
       return fadeNow;
     }
-    if (id !== detailKey) {
-      detailKey = id;
+    const dk = `${id}|${run.beltSlots[id] ?? ''}`; // a crafted belt's slots show once rolled
+    if (dk !== detailKey) {
+      detailKey = dk;
       const item = C.ITEMS[id];
       const ctx = el.icon.getContext('2d');
       ctx.clearRect(0, 0, DETAIL_ICON_PX, DETAIL_ICON_PX);
@@ -121,7 +123,8 @@ export function createTinkerScreen(callbacks) {
       setText(el.name, item.name);
       setText(el.rarity, `${C.RARITY[item.rarity].label} · ${C.SLOT_TYPES[item.slot].label}`);
       el.rarity.style.color = PAGE_RARITY_COLOR[item.rarity];
-      setText(el.desc, item.description);
+      const slots = beltSlotsLine(run, id); // Potions §3.1
+      setText(el.desc, slots ? `${item.description} ${slots}.` : item.description);
     }
     const cost = C.RECIPES[id].cost;
     const ck = `${id}|${costRowsKey(cost, run.inventory)}`;

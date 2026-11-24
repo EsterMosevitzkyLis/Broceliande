@@ -26,6 +26,7 @@ import { enemyTotals, waveCounts } from './game.js';
 import { isMuted, soundStats, audioStatus } from './audio.js';
 import { chosenSpeed } from './gameSpeed.js';
 import { isRunComplete, mapNode, nodeRadius, deathLoss, nextRegionId } from './run.js';
+import { potionName, potionOrder } from './potions.js';
 import { raisedCount } from './systems/bogKingSystem.js';
 import { resolveStats, changedStats, statLabel } from './stats.js';
 import { drawSlotIcon, drawScrollIcon } from './render/items.js';
@@ -1533,6 +1534,11 @@ function updateEndOverlay(el, game, view) {
       const lost = Object.fromEntries(Object.entries(loss.resources).filter(([, n]) => n > 0));
       el.endLossRows.replaceChildren(Object.keys(lost).length ? costRowsElement(lost, lost) : document.createTextNode('No resources'));
       el.endLossItems.textContent = loss.items.length ? loss.items.map((id) => C.ITEMS[id].name).join(', ') : 'No equipment';
+      // Potions §2: potions are lost like items, from the pack and the belt.
+      const potions = { ...loss.potions };
+      for (const { key: k } of loss.belt) potions[k] = (potions[k] ?? 0) + 1;
+      const names = Object.keys(potions).sort(potionOrder).map((k) => (potions[k] > 1 ? `${potions[k]}x ` : '') + potionName(k));
+      if (names.length) el.endLossItems.textContent += `. Potions: ${names.join(', ')}`;
     }
   }
   if (goesOn) {

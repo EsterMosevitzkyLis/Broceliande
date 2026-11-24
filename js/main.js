@@ -13,8 +13,12 @@ import { ActionState } from './states.js';
 import { undoLastMove } from './systems/actionSystem.js';
 import { toggleDropMult } from './systems/dropSystem.js';
 import { initAudio, toggleMute } from './audio.js';
-import { isRunComplete, availableNodeAt, validateMap, regenerateMap, addItem, equipItem, unequipSlot, randomUnownedItem, markSlotSeen, regionStartNode, enterRegion } from './run.js';
+import { isRunComplete, availableNodeAt, validateMap, regenerateMap, addItem, equipItem, unequipSlot, randomUnownedItem, markSlotSeen, regionStartNode, enterRegion, consumePotion } from './run.js';
 import { createEquipmentPanel } from './equipmentPanel.js';
+import { createPotionBelt, checkPotionBelt } from './potionBelt.js';
+import { createPotionPanel } from './potionPanel.js';
+import { usePotion, isBeltShown } from './systems/potionSystem.js';
+import { addFaintPotions, equipPotion, unequipPotion } from './potions.js';
 import { validateItems } from './stats.js';
 import { createRng, makeRandomSeed } from './rng.js';
 import { events } from './events.js';
@@ -150,6 +154,7 @@ checkLevelNameLabel(LEVEL_IDS.map(sceneFor)); // M2a §6: the label must not cov
 for (const id of LEVEL_IDS) sceneFor(id).labelArea = levelNameLabelArea(sceneFor(id)); // drops land clear of it (dropSystem.js)
 checkBossBar(LEVEL_IDS.map(sceneFor));        // M2c §2.7: nor may the boss HP bar
 checkWavePreview(LEVEL_IDS.map(sceneFor));    // M2i §4.2: nor the wave preview
+checkPotionBelt(LEVEL_IDS.map(sceneFor));     // Potions §3.3: nor the potion belt (with its most slots)
 if (view.debug) logWaveTotals();              // M2i §2: per-wave totals, to compare with the comments
 // Equipment panel on the map (M2e §4): equipping is free and only possible there, between battles.
 const equipPanel = createEquipmentPanel({
@@ -157,6 +162,13 @@ const equipPanel = createEquipmentPanel({
   onUnequip: (slot) => unequipSlot(game.run, slot),
   onSlotViewed: (slot) => markSlotSeen(game.run, slot),
 });
+// Potions §3.2: the belt and the potion inventory on the map; §3.3: the belt in battle.
+const potionPanel = createPotionPanel({
+  onEquip: (key) => equipPotion(game.run, key),
+  onUnequip: (slot) => unequipPotion(game.run, slot),
+  onConsume: (key, slot) => consumePotion(game.run, key, slot),
+});
+const potionBelt = createPotionBelt({ onUse: (slot) => usePotion(game, slot) });
 
 // The trader scene's controls (M2n §4, M3e §5); also a village's Trade tab (M6a §2.3), whose deals,
 // Undo and Back to the road are the village's.
@@ -230,6 +242,12 @@ const input = createInput(stage, canvas, () => scale, {
     }
   },
   onKeyDown(key, e) {
+    // Potions §3.3: once the battle belt shows, keys 1-5 are its slots, and Shift+1 / 2 / 4 set the game speed.
+    if (e.shiftKey && /^Digit\d$/.test(e.code)) {
+      const n = Number(e.code.slice(5));
+      if (C.SIM_SPEEDS.includes(n)) setSpeed(n);
+      return;
+    }
     switch (key) {
       case 'd':
         view.debug = !view.debug;
@@ -240,10 +258,14 @@ const input = createInput(stage, canvas, () => scale, {
       case 'p': // P: pause; Shift+P on the map (M2p §6): learn a random unknown pattern
         if (e.shiftKey) { if (game.state === GameState.MAP) debugLearnPattern(); } else clock.paused = !clock.paused;
         break;
-      // Keys 1-6 pick a build menu's tiles while it is open; otherwise 1 / 2 / 4 set the game speed (M2k §1, Combat only).
+      // Keys 1-6 pick a build menu's tiles while it is open; otherwise, with the potion belt shown
+      // (Potions §3.3), 1-5 use its slots; without it, 1 / 2 / 4 set the game speed (M2k §1, Combat only).
       case '1': case '2': case '3': case '4': case '5': case '6':
-        if (!ui.pickMenuTile(view, Number(key) - 1) && C.SIM_SPEEDS.includes(Number(key))) setSpeed(Number(key));
+        if (ui.pickMenuTile(view, Number(key) - 1)) break;
+        if (isBeltShown(game)) { if (Number(key) <= C.POTION_MAX_SLOTS) usePotion(game, Number(key) - 1); break; }
+        if (C.SIM_SPEEDS.includes(Number(key))) setSpeed(Number(key));
         break;
+      case 'f': if (e.shiftKey && game.run) addFaintPotions(game.run); break; // debug Shift+F (Potions §8): one of each Faint potion
       case 'n': // N: start Combat from Prep; Shift+N (M2i §7): kill all and skip the rest of this wave
         if (e.shiftKey) skipWave(game);
         else if (game.state === GameState.PREP) startCombat(game);
@@ -430,6 +452,8 @@ function frame(now) {
   renderer.render(game, view);
   ui.update(game, clock, view);
   equipPanel.update(game);
+  potionPanel.update(game);
+  potionBelt.update(game);
   updateSceneFade(Math.max(traderScreen.update(game), tinkerScreen.update(game), villageScreen.update(game)));
   requestAnimationFrame(frame);
 }

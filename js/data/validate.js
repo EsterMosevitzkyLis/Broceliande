@@ -3,7 +3,7 @@
 // per-level start-up checks (candidates, corridors, zones, Ogre widths…) run later, on the applied
 // data, as before.
 
-import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES, isVillageRow } from '../config.js';
+import { RESOURCE_IDS, SUMMON_KINDS, SLOT_TYPES, NODE_TYPES, PLACE_PALETTES, TRADER_LINE_KINDS, TRADER_TABLES, POTION_TIERS, POTION_USES, POTION_LIQUID, isVillageRow } from '../config.js';
 import { GLOBAL_TYPES, DRUID_KEYS } from './schema.js';
 
 const ENEMY_ROLES = ['swarm', 'brute', 'miniboss', 'flyer', 'boss', 'warrior', 'ranged', 'support', 'egg']; // M3b §1, M6b §4.1, §5.1
@@ -305,6 +305,35 @@ export function validateTables(t, problems, maps = {}) {
     for (const k of Object.keys(r)) if (k.startsWith('cost_') && (!RESOURCE_IDS.includes(k.slice(5)) || currencies.has(k.slice(5)))) err('recipes', r, k, `unknown material "${k.slice(5)}"`);
   }
   for (const id of itemIds) if (!t.recipes.some((r) => r.item === id)) err('recipes', '', 'item', `item ${id} has no recipe`);
+
+  // potions (Potions §1, §9): every potion in all four tiers, once each, with its tier's rank; a known
+  // use; positive amounts (0 allowed: a Faint Cleansing Tonic's immunity); known cost materials.
+  const potionRows = {};
+  for (const r of t.potions) {
+    const tier = POTION_TIERS[r.tier];
+    if (!tier) err('potions', r, 'tier', `unknown tier "${r.tier}" (${Object.keys(POTION_TIERS).join(', ')})`);
+    else if (r.rank !== tier.rank) err('potions', r, 'rank', `the ${r.tier} tier is rank ${tier.rank}`);
+    if (!POTION_USES.includes(r.use)) err('potions', r, 'use', `use must be one of ${POTION_USES.join(', ')}`);
+    if (!(r.amount >= 0)) err('potions', r, 'amount', 'amount must be 0 or more');
+    if (r.duration !== undefined && !(r.duration > 0)) err('potions', r, 'duration', 'duration must be above 0 (or blank)');
+    if (r.radius !== undefined && !(r.radius > 0)) err('potions', r, 'radius', 'radius must be above 0 (or blank)');
+    if (r.use === 'throw' && r.radius === undefined) err('potions', r, 'radius', 'a thrown potion needs a radius');
+    if (r.patternWeight !== undefined && !(r.patternWeight >= 0)) err('potions', r, 'patternWeight', 'patternWeight must be 0 or more');
+    for (const k of Object.keys(r)) if (k.startsWith('cost_') && (!RESOURCE_IDS.includes(k.slice(5)) || currencies.has(k.slice(5)))) err('potions', r, k, `unknown material "${k.slice(5)}"`);
+    const tiers = (potionRows[r.id] ??= []);
+    if (tiers.includes(r.tier)) err('potions', r, 'tier', `${r.id} has two ${r.tier} rows`);
+    tiers.push(r.tier);
+  }
+  for (const [id, tiers] of Object.entries(potionRows)) {
+    for (const tier of Object.keys(POTION_TIERS)) if (!tiers.includes(tier)) err('potions', '', 'tier', `${id} has no ${tier} row`);
+    if (!POTION_LIQUID[id]) warn('potions', '', 'id', `${id} has no liquid colour in config.js POTION_LIQUID (drawn grey)`);
+  }
+  // Belt slot odds (§3.1): chances of 2, 3, 4, 5 slots, none negative, not all 0.
+  for (const g of t.globals.filter((x) => /^BELT_SLOT_ODDS_R\d$/.test(x.key))) {
+    if (!Array.isArray(g.value) || g.value.length !== 4 || g.value.some((n) => n < 0) || !g.value.some((n) => n > 0)) {
+      err('globals', g, 'value', `${g.key} must be 4 chances (of 2, 3, 4, 5 slots), 0 or more, not all 0`);
+    }
+  }
 
   ids('sounds');
 

@@ -9,6 +9,8 @@ import { emptyResources, RESOURCE_KEYS } from './resources.js';
 import { makeRandomSeed, createRng } from './rng.js';
 import { rollTrader, pickProfile } from './trade.js';
 import { generateMap, mapSeedFor, nodeRadius } from './mapGen.js';
+import { rollBeltSlots, fitBelt, potionRow } from './potions.js';
+import { resolveStats } from './stats.js';
 
 export { nodeRadius };
 
@@ -22,7 +24,8 @@ export { nodeRadius };
 // (M2e §5): items owned this run (ITEMS keys), the one equipped in each slot (or null), and the
 // owned items the player has looked at (badges and New marks). traders (M2n §5, M3e §3): each Trader
 // node's rolled trader (trade.js), by node id, rolled with the region's map; traderProfilesUsed: the
-// profiles met so far this run (no repeats in a run).
+// profiles met so far this run (no repeats in a run). Potions (potions.js): potions (the
+// inventory), belt (its slots), beltSlots (each belt item's rolled slots) and hasPotions.
 export function createRun() {
   const seed = C.DEBUG_SEED ?? makeRandomSeed(); // DEBUG_SEED reproduces the whole run
   const run = {
@@ -41,6 +44,10 @@ export function createRun() {
     traders: {},
     traderProfilesUsed: [],
     dialoguesSeen: [], // M5a §2.2: oncePerRun dialogue triggers already played this run
+    potions: {},
+    belt: [],
+    beltSlots: {},
+    hasPotions: false,
   };
   enterRegion(run, C.REGION_ORDER[0]);
   return run;
@@ -148,12 +155,15 @@ export function isRunComplete(run) {
 // goes on from the region's start: each resource keeps floor(amount × (1 − deathLossPct)) and each
 // owned item is lost with chance deathLossPct, rolled in turn from the run seed and the death count
 // (so the debug panel's preview is what the next death will take). Patterns are never lost.
+// Potions (Potions §2) are owned things like items: each one, in the inventory or a belt slot, is
+// lost with chance deathLossPct, rolled after the items.
 // ---------------------------------------------------------------------------
 export function regionEndsRunOnDeath(run) {
   return C.REGIONS[run.regionId].deathLossPct >= 1;
 }
 
-// What a death now would take: { resources: { id: units lost }, kept: { id: units kept }, items: [ids] },
+// What a death now would take: { resources: { id: units lost }, kept: { id: units kept }, items: [ids],
+// potions: { key: units lost from the inventory }, belt: [{ slot, key }] (belt slots emptied) },
 // or null where a death ends the run. Reads the carried inventory (what the battle started with:
 // anything found in the battle is gone anyway).
 export function deathLoss(run) {
@@ -168,7 +178,14 @@ export function deathLoss(run) {
     resources[k] = have - kept[k];
   }
   const items = run.items.filter(() => rng.next() < pct);
-  return { resources, kept, items };
+  const potions = {};
+  for (const key of Object.keys(run.potions).sort()) {
+    let lost = 0;
+    for (let i = 0; i < run.potions[key]; i++) if (rng.next() < pct) lost++;
+    if (lost) potions[key] = lost;
+  }
+  const belt = run.belt.map((key, slot) => ({ slot, key })).filter(({ key }) => key && rng.next() < pct);
+  return { resources, kept, items, potions, belt };
 }
 
 // Applies a death's losses (deathLoss) to the run: what was lost is gone and lost items leave their
@@ -178,6 +195,12 @@ export function applyDeathLoss(run, loss) {
   run.items = run.items.filter((id) => !loss.items.includes(id));
   run.seenItems = run.seenItems.filter((id) => run.items.includes(id));
   for (const slot of Object.keys(run.equipped)) if (loss.items.includes(run.equipped[slot])) run.equipped[slot] = null;
+  for (const [key, n] of Object.entries(loss.potions)) {
+    run.potions[key] -= n;
+    if (run.potions[key] <= 0) delete run.potions[key];
+  }
+  for (const { slot } of loss.belt) run.belt[slot] = null;
+  if (run.hasPotions) fitBelt(run); // a lost belt: the potions in its extra slots go back to the inventory
   run.deaths++;
 }
 
@@ -258,6 +281,7 @@ export function randomUnownedItem(run, rng, { anyItem = false } = {}) {
 export function addItem(run, itemId) {
   if (!C.ITEMS[itemId] || run.items.includes(itemId)) return false;
   run.items.push(itemId);
+  rollBeltSlots(run, itemId); // Potions §3.1: a belt's potion slots, once per run
   return true;
 }
 
@@ -266,12 +290,14 @@ export function equipItem(run, itemId) {
   const item = C.ITEMS[itemId];
   if (!item || !run.items.includes(itemId)) return false;
   run.equipped[item.slot] = itemId;
+  if (item.slot === 'belt' && run.hasPotions) fitBelt(run); // Potions §3.1
   return true;
 }
 
 export function unequipSlot(run, slot) {
   if (!(slot in run.equipped)) return false;
   run.equipped[slot] = null;
+  if (slot === 'belt' && run.hasPotions) fitBelt(run);
   return true;
 }
 
@@ -292,4 +318,39 @@ export function regenerateMap(run, seed) {
   if (!was) return true;
   const now = mapNode(run, was.id);
   return !!now && now.row === was.row;
+}
+
+// ---------------------------------------------------------------------------
+// Potions between battles (Potions §3.2): Consume works only for a potion whose effect is instant and
+// makes sense outside battle, Healing. It heals the HP the next battle starts with.
+// ---------------------------------------------------------------------------
+
+// The Druid's HP and max HP between battles (the max as the equipment panel shows it).
+export function runDruidHp(run) {
+  const maxHp = resolveStats(run.equipped, C.LEVELS[regionStartNode(run.regionId)])['druid.maxHp'];
+  return { hp: startingDruidHp(run, maxHp), maxHp };
+}
+
+// Why this potion can't be consumed here, or null if it can.
+export function consumeBlocker(run, key) {
+  if (potionRow(key)?.id !== 'healing') return 'Only Healing can be drunk outside battle';
+  const { hp, maxHp } = runDruidHp(run);
+  if (hp >= maxHp) return 'Already at full HP';
+  return null;
+}
+
+// Drinks a potion from a belt slot (slot) or the inventory (slot null).
+export function consumePotion(run, key, slot = null) {
+  if (consumeBlocker(run, key)) return false;
+  if (slot !== null) {
+    if (run.belt[slot] !== key) return false;
+    run.belt[slot] = null;
+  } else {
+    if (!(run.potions[key] > 0)) return false;
+    run.potions[key]--;
+    if (run.potions[key] === 0) delete run.potions[key];
+  }
+  const { hp, maxHp } = runDruidHp(run);
+  run.druidHp = Math.min(maxHp, hp + potionRow(key).amount);
+  return true;
 }

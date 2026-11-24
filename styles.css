@@ -2042,3 +2042,152 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
   opacity: 0;
   pointer-events: none;
 }
+
+/* ---------- Potions (Potions addendum §3) ---------- */
+/* The battle belt, bottom right: one socket per slot with its hotkey; greyed and swept on cooldown. */
+#potion-belt {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  background: rgba(20, 26, 16, 0.62);
+  border-radius: 12px;
+  pointer-events: none;
+}
+#potion-belt[hidden] { display: none; }
+.potion-socket {
+  position: relative;
+  display: block;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid #7a6a48;
+  background: radial-gradient(#2c3324, #161a10);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  cursor: default;
+  overflow: hidden;
+}
+.potion-socket canvas { position: absolute; left: 0; top: 0; }
+.potion-socket.filled { border-color: #c9a74a; cursor: pointer; }
+.potion-socket.filled:hover { border-color: #f0d670; }
+.potion-socket.greyed { border-color: #6a6252; cursor: default; }
+.potion-cd {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+.potion-key {
+  position: absolute;
+  right: 5px;
+  bottom: 1px;
+  font: bold 14px/1 sans-serif;
+  color: #f1e8cc;
+  text-shadow: 0 1px 3px #000, 0 0 2px #000;
+}
+#potion-tip,
+#potion-inv-tip {
+  position: absolute;
+  z-index: 8;
+  width: 280px;
+  padding: 8px 10px;
+  background: rgba(24, 20, 12, 0.96);
+  border: 1px solid #8a7a54;
+  border-radius: 8px;
+  color: #e4dcc0;
+  pointer-events: none;
+  text-shadow: none;
+}
+#potion-tip { bottom: 84px; }
+.potion-tip-name { font-size: 17px; }
+.potion-tip-kind { font-size: 12px; letter-spacing: 0.04em; color: #b9b29a; margin: 2px 0 4px; }
+.potion-tip-desc { font-size: 14px; color: #d8d0b4; }
+.potion-tip-reason { margin-top: 5px; font-size: 13px; font-style: italic; color: #e0a890; }
+
+/* On the map: sockets over the portrait's belt, the inventory under it, the right-click menu. */
+#potion-belt-map {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+  pointer-events: auto;
+}
+#potion-belt-map[hidden] { display: none; }
+.potion-map-socket {
+  position: relative;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid #c8b27a;
+  background: radial-gradient(#3a2c1c, #20180e);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+.potion-map-socket canvas { position: absolute; left: -2px; top: -2px; }
+.potion-map-socket:hover,
+#potion-belt-map.open .potion-map-socket { border-color: #f0d670; }
+#potion-inv {
+  position: absolute;
+  z-index: 6;
+  width: 340px;
+  max-height: 430px;
+  overflow-y: auto;
+  padding: 10px;
+  background: rgba(24, 20, 12, 0.97);
+  border: 2px solid #c9a74a;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+}
+.potion-inv-title { margin: 0 4px 2px; font-size: 19px; color: #f1e3b0; }
+.potion-inv-sub { margin: 0 4px 8px; font-size: 13px; color: #b9b29a; }
+.potion-inv-empty { margin: 4px; font-size: 16px; }
+.potion-inv-hint { margin: 6px 4px 0; font-size: 13px; font-style: italic; color: #a9a58f; }
+.potion-inv-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 3px 6px;
+  text-align: left;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.potion-inv-item:hover { background: rgba(255, 236, 170, 0.12); }
+.potion-inv-item.full { cursor: default; }
+.potion-inv-name { flex: 1; font-size: 16px; }
+.potion-inv-count { font: 17px 'Consolas', monospace; color: #e4dcc0; }
+#potion-menu {
+  position: absolute;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 170px;
+  padding: 6px;
+  background: rgba(24, 20, 12, 0.98);
+  border: 1px solid #c9a74a;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+}
+#potion-menu[hidden] { display: none; }
+.potion-menu-title { padding: 2px 4px 4px; font-size: 14px; color: #f1e3b0; }
+#potion-menu button {
+  padding: 5px 8px;
+  text-align: left;
+  border: 1px solid #8a7a54;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1e8cc;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+#potion-menu button:hover:not(:disabled) { background: rgba(255, 236, 170, 0.14); }
+#potion-menu button:disabled { color: #8a8470; border-color: #5a5240; cursor: default; }
+.potion-menu-reason { padding: 0 4px 2px; font-size: 12px; font-style: italic; color: #c8a890; }

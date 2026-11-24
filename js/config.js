@@ -421,6 +421,7 @@ export const DEBUG_START_ENABLED = false;
 export const VENOM_TICK_INTERVAL = 1;   // s
 export const VENOM_COLOR = '#b6ec3c';    // his HP bars while poisoned (an acid lime, apart from the healthy green)
 export const VENOM_TEXT_COLOR = '#c4f25a'; // the small damage number each venom tick shows on him
+export const HEAL_TEXT_COLOR = '#ff8f8f';  // the "+20" a Healing potion shows over him (Potions §5)
 export const DEBUG_GRANT_GOLD = 50; // M3e §8: debug G also grants this much gold
 export const DEBUG_GRANT_AMOUNT = 10;   // G key: +this many of each resource
 export const DEBUG_DROP_MULT = 10;      // X key toggles wolf drop chances between ×1 and ×this (M1d §3)
@@ -546,6 +547,26 @@ export const RARITY = {
 };
 export const RARITY_FRAME_WIDTH = 2.5;   // px, the frame round an item icon (at a 64 px icon; scales with it)
 
+// Potions (Potions addendum §1): the tiers (the potions tab's `tier`, in rank order), each with its
+// label and the colour its name is shown in; the `use` values; each potion's liquid colour (drawing
+// only, also its aura's colour later). The numbers are in data/potions.csv.
+export const POTION_TIERS = {
+  faint:     { rank: 1, label: 'Faint',     color: '#d8d2bc' },
+  potent:    { rank: 2, label: 'Potent',    color: '#7fcf6a' },
+  sublime:   { rank: 3, label: 'Sublime',   color: '#6ab4f0' },
+  sovereign: { rank: 4, label: 'Sovereign', color: '#f0c850' },
+};
+export const POTION_USES = ['drink', 'prepOnly', 'throw', 'auto'];
+export const POTION_LIQUID = {
+  healing: '#d8323a', regeneration: '#ef7fa0', cleansing: '#dff4ee', phoenix: '#ff8a1e',
+  wardBark: '#9a6a3a', wardVenom: '#8fd23a', fury: '#9e1c22', quickening: '#f2d23a', foresight: '#9a6ae0',
+  mireAura: '#6a7442', rootgripAura: '#3f9a52', bewilderAura: '#e070d8', thornAura: '#5d8a2a',
+  burrowcall: '#c88a48', firebomb: '#ff5a1a', acidFlask: '#c4f020', sporecapFlask: '#cdbcec', tanglevineFlask: '#2f7a3a',
+};
+export const POTION_MAX_SLOTS = 5;        // the most belt slots the UI lays out (§3.1: 5 is for future belts)
+export const POTION_SOCKET_SIZE = 56;     // px, a battle belt socket (bottom right of the wilds screen, §3.3)
+export const POTION_MAP_SOCKET_SIZE = 30; // px, a socket on the equipment portrait's belt (§3.2)
+
 
 // Finding items (M2e §3): one hidden in a random resource spot of each battle.
 export const ITEM_FOUND_TIME = 2.5;       // s the "You found a …!" message stays, fading over its last third
@@ -643,6 +664,8 @@ export let BROOD_EGG_INTERVAL, BROOD_HATCH_TIME, BROOD_HATCH_COUNT, GRIM_BROOD_E
 export let ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR; // M6b §6
 export let REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL; // M6c
 export let WALL_MIN_GAP, WALL_DRUID_CLEARANCE; // M6d §2.4
+export let POTION_COOLDOWN, POTION_SLOTS_BASE; // Potions §3.1, §4.1
+export let BELT_SLOT_ODDS; // Potions §3.1: rarity → chances of [2, 3, 4, 5] potion slots (BELT_SLOT_ODDS_R0-3)
 export let HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED; // M6b §5.3
 export let SHAMAN_SHIELD_INTERVAL, SHAMAN_SHIELD_TARGETS, SHAMAN_SHIELD_RANGE, SHAMAN_SHIELD_AMOUNT, SHAMAN_SHIELD_DURATION,
   GRIM_SHAMAN_SHIELD_INTERVAL, GRIM_SHAMAN_SHIELD_AMOUNT; // M6b §4.3
@@ -704,6 +727,10 @@ export let TRADER_TEXT;
 export let TRADER_PROFILES;
 // palettes of non-combat places (PLACE_PALETTES): id → palette, like a level's
 export let PLACE_PALETTE;
+// potions (Potions §1, §9): potion-tier key ('healing:faint', potionKey) → { key, id, potion (its name
+// without the tier), tier, rank, category, use, amount, unit, duration, radius, price, cost,
+// patternWeight, patternPrice }; POTION_IDS: the potions in the tab's order
+export let POTIONS, POTION_IDS;
 // debugLoadouts (debug only): region → { resource: amount }; regions without rows are absent
 export let DEBUG_LOADOUTS;
 
@@ -747,7 +774,10 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     HIGH_SHAMAN_PULSE_INTERVAL, HIGH_SHAMAN_RANGE, HIGH_SHAMAN_PULSE_SHIELD, HIGH_SHAMAN_SELF_SHIELD, HIGH_SHAMAN_SHIELD_DURATION, HIGH_SHAMAN_AURA_SPEED,
     ORACLE_CALL_INTERVAL, ORACLE_CALL_SHIELD, ORACLE_CALL_SHIELD_DURATION, ORACLE_CALL_SPAWNS, PYLON_HP, PYLON_ARMOR,
     REVEAL_RADIUS, REVEAL_LINGER, THROW_REVEAL, WISP_REVEAL, WALL_MIN_GAP, WALL_DRUID_CLEARANCE,
+    POTION_COOLDOWN, POTION_SLOTS_BASE,
   } = keyed(t.globals));
+  const g = keyed(t.globals);
+  BELT_SLOT_ODDS = [g.BELT_SLOT_ODDS_R0, g.BELT_SLOT_ODDS_R1, g.BELT_SLOT_ODDS_R2, g.BELT_SLOT_ODDS_R3];
   REPAIR_COST = { pits: REPAIR_COST };
   ITEM_PRICE = [ITEM_PRICE_R0, ITEM_PRICE_R1, ITEM_PRICE_R2, ITEM_PRICE_R3];
   PATTERN_PRICE = [PATTERN_PRICE_R0, PATTERN_PRICE_R1, PATTERN_PRICE_R2, PATTERN_PRICE_R3];
@@ -887,8 +917,19 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     };
   });
   PLACE_PALETTE = Object.fromEntries(PLACE_PALETTES.map((id) => [id, unflatten(t.palettes.find((p) => p.level === id) ?? {}, ['level', '_row'])]));
+  POTIONS = {};
+  for (const r of t.potions) {
+    const key = potionKey(r.id, r.tier);
+    POTIONS[key] = { key, id: r.id, potion: r.potion, tier: r.tier, rank: r.rank, category: r.category, use: r.use, amount: r.amount, unit: r.unit ?? '', duration: r.duration, radius: r.radius, price: r.price, cost: cost(r), patternWeight: r.patternWeight ?? 0, patternPrice: r.patternPrice };
+  }
+  POTION_IDS = [...new Set(t.potions.map((r) => r.id))];
   DEBUG_LOADOUTS = {};
   for (const r of t.debugLoadouts) (DEBUG_LOADOUTS[r.region] ??= {})[r.resource] = r.amount;
+}
+
+// Potions §1: a potion-tier's key, the unit of inventory, belt slots and stock.
+export function potionKey(id, tier) {
+  return `${id}:${tier}`;
 }
 
 // M3b §1: the enemy a region uses in the place of `type`: the type itself if it belongs to that

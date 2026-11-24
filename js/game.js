@@ -32,6 +32,7 @@ import { updateBogKing } from './systems/bogKingSystem.js';
 import { isStepMode } from './systems/stepSystem.js';
 import { GameState, PrepMode, ActionState } from './states.js';
 import { sceneFor } from './scene.js';
+import { updatePotions } from './systems/potionSystem.js';
 import { createRun, mapNode, nodeState, encounterSeed, recordVictory, isRunComplete, isRegionComplete, startingDruidHp, randomUnownedItem, addItem, enterRegion, nextRegionId, regionStartNode, deathLoss, applyDeathLoss } from './run.js';
 import { resolveStats } from './stats.js';
 import { events } from './events.js';
@@ -198,6 +199,7 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.regenTimer = 0; // M2e: s towards the next regen tick (Sap Pendant)
   game.druidLastHitTime = -Infinity;
   game.druidVenom = null; // venomSystem.js: { until, nextTick, dps, duration } while poisoned
+  game.potionCooldown = 0; // Potions §4.1: s left of the shared cooldown (Combat time)
   game.druidMeleeTimer = 0;
   game.druidWasBusy = false;
   game.druidMeleeTargetId = null;
@@ -686,6 +688,7 @@ export function updateGame(game, dt) {
       updateMelee(game, dt);
       updateWindupAttacks(game, dt); // the Ogre's wind-up and blow (M2c §2.5), on the Druid or a blocker
       updateVenom(game);             // spider venom ticks on the Druid
+      updatePotions(game, dt);       // Potions §4.1: the shared cooldown
       expireVultures(game, dt);
       expireSquirrels(game, dt);
       updateAction(game, dt);

@@ -149,3 +149,10 @@ WISP_REVEAL,4,TUNING - s a Slow Wisp burst reveals a camouflaged hunter it hits
 # Scale Bulwark (M6d),,
 WALL_MIN_GAP,60,TUNING - px along a lane a Scale Bulwark wall must keep from any other wall
 WALL_DRUID_CLEARANCE,150,TUNING - px a Scale Bulwark wall must keep from the Druid
+# Potions (Potions addendum),,
+POTION_COOLDOWN,4,TUNING - s of Combat time after any potion is used before another can be (none in Prep)
+POTION_SLOTS_BASE,2,TUNING - potion belt slots with no equipment belt equipped
+BELT_SLOT_ODDS_R0,"1, 0, 0, 0","TUNING - a Common belt's chances of 2, 3, 4, 5 potion slots, rolled once when the run gets it"
+BELT_SLOT_ODDS_R1,"0.8, 0.2, 0, 0","TUNING - an Uncommon belt's chances of 2, 3, 4, 5 potion slots"
+BELT_SLOT_ODDS_R2,"0.5, 0.5, 0, 0","TUNING - a Rare belt's chances of 2, 3, 4, 5 potion slots"
+BELT_SLOT_ODDS_R3,"0, 0.8, 0.2, 0","TUNING - a Very Rare belt's chances of 2, 3, 4, 5 potion slots"

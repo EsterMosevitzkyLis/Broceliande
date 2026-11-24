@@ -83,7 +83,7 @@
         <div class="hud-right">
           <button id="btn-start-combat" type="button">Start Combat</button>
           <!-- Game speed (M2k §1), Combat only: one button cycling ×1, ×2, ×4; also keys 1 / 2 / 4. -->
-          <button id="hud-speed" type="button" title="Game speed (click to change, or keys 1 / 2 / 4)" hidden>×1</button>
+          <button id="hud-speed" type="button" title="Game speed (click to change, or keys 1 / 2 / 4; Shift+1 / 2 / 4 once you carry potions)" hidden>×1</button>
           <!-- Mute toggle (M1g §3.6); also the V key. -->
           <button id="btn-mute" type="button" title="Sound on (V to mute)">
             <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
@@ -142,6 +142,10 @@
       <!-- Summon panel (M2q), Combat only: one card per summon, built by js/ui.js. Before the menu
            and tooltip, so they open over it. -->
       <div id="summon-panel" hidden></div>
+      <!-- Potion belt (Potions §3.3), bottom right in battle once the run owns a potion: one socket per
+           slot, keys 1-5. Built by js/potionBelt.js. -->
+      <div id="potion-belt" hidden></div>
+      <div id="potion-tip" hidden></div>
 
       <!-- Equipment panel on the map (M2e §4), built by js/equipmentPanel.js. -->
       <div id="equip-panel" hidden>
@@ -158,6 +162,12 @@
         <div id="equip-popover" hidden></div>
         <div id="equip-tip" hidden></div>
         <div id="equip-pattern-list" hidden></div>
+        <!-- Potions §3.2: the belt's sockets on the portrait, the potion inventory under it, the
+             right-click menu and the tooltip (js/potionPanel.js). -->
+        <div id="potion-belt-map" hidden></div>
+        <div id="potion-inv" hidden></div>
+        <div id="potion-menu" hidden></div>
+        <div id="potion-inv-tip" hidden></div>
       </div>
 
       <!-- Trader scene (M2n §4.2, M3e §5): the text and controls over the canvas art, built by
