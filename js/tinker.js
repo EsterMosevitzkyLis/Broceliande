@@ -2,8 +2,11 @@
 // spends the carried pack (run.inventory) directly, as at a Trader; game.resources mirrors it for
 // the HUD.
 //
-// game.tinker: { nodeId (null for debug Shift+K), tab ('all' or a slot), selected (an item ID or
-//   null), crafts (undo stack: [{ itemId, cost }]), craftAt (scene time of the last Craft, for the
+// Potions §7: the book's Potions section (the 'potions' tab, and after the items on All) crafts potions
+// from known potion recipes, as many as the pack pays for; a recipe is selected by its potion key.
+//
+// game.tinker: { nodeId (null for debug Shift+K), tab ('all', a slot or 'potions'), selected (an item ID,
+//   a potion key or null), crafts (undo stack: [{ itemId, cost, hadPotions }]), craftAt (scene time of the last Craft, for the
 //   animation), craftItem, appeared (its item has burst out), time (s since arrival, simulation
 //   time), crackleAt (the forge's next crackle), crackles, leaving (s since Back to the road, or null) }
 
@@ -12,7 +15,8 @@ import { GameState } from './states.js';
 import { setState } from './game.js';
 import { mapNode, nodeState, addItem } from './run.js';
 import { canAfford, deduct, add } from './resources.js';
-import { knownPatterns, isPatternKnown } from './patterns.js';
+import { knownPatterns, isPatternKnown, knownPotionRecipes } from './patterns.js';
+import { addPotion } from './potions.js';
 import { events } from './events.js';
 
 // Entering a Tinker's Rest node (MAP → TINKER).
@@ -46,22 +50,34 @@ export function newTinkerVisit(nodeId) {
   return v;
 }
 
-// Every recipe's item ID in the book's order (the recipes tab's), or a slot's only.
+// Every recipe's item ID in the book's order (the recipes tab's), or a slot's only. Potions §7: on
+// All, then the known potion recipes (potion keys, the potions tab's order); the Potions tab has only
+// those. Unknown potion recipes are not listed (the book counts them instead).
 export function recipesInTab(tab) {
-  return Object.keys(C.RECIPES).filter((id) => C.ITEMS[id] && (tab === 'all' || C.ITEMS[id].slot === tab));
+  const items = tab === 'potions' ? [] : Object.keys(C.RECIPES).filter((id) => C.ITEMS[id] && (tab === 'all' || C.ITEMS[id].slot === tab));
+  return tab === 'all' || tab === 'potions' ? [...items, ...knownPotionRecipes()] : items;
 }
 
-// Why this recipe can't be crafted now, or null (§4.3).
+export function isPotionRecipe(id) {
+  return !!C.POTIONS[id];
+}
+
+// A recipe's cost: an item's (recipes tab) or a potion's (potions tab).
+export function recipeCost(id) {
+  return isPotionRecipe(id) ? C.POTIONS[id].cost : C.RECIPES[id].cost;
+}
+
+// Why this recipe can't be crafted now, or null (§4.3). A potion can be crafted again and again.
 export function craftBlocker(run, itemId) {
   if (!isPatternKnown(itemId)) return 'Pattern not known';
-  if (run.items.includes(itemId)) return 'Already owned';
-  if (!canAfford(run.inventory, C.RECIPES[itemId].cost)) return 'Not enough resources';
+  if (!isPotionRecipe(itemId) && run.items.includes(itemId)) return 'Already owned';
+  if (!canAfford(run.inventory, recipeCost(itemId))) return 'Not enough resources';
   return null;
 }
 
-// Known patterns that could be crafted now: the map tooltip's "Craftable now" (§4.1).
+// Known patterns and potion recipes that could be crafted now: the map tooltip's "Craftable now" (§4.1).
 export function craftableCount(run) {
-  return knownPatterns().filter((id) => C.RECIPES[id] && !craftBlocker(run, id)).length;
+  return [...knownPatterns().filter((id) => C.RECIPES[id]), ...knownPotionRecipes()].filter((id) => !craftBlocker(run, id)).length;
 }
 
 // Craft and Undo wait while the forge is still at work on the last craft (visual only).
@@ -82,21 +98,27 @@ export function selectRecipe(game, itemId) {
 }
 
 // Craft (§4.3): pay the recipe, add the item to the run (New in its slot on the map), animate.
+// Potions §7: a potion goes to the potion inventory.
 export function craft(game) {
   const v = game.tinker;
   const id = v.selected;
   if (!id || v.leaving !== null || isCrafting(game) || craftBlocker(game.run, id)) return false;
-  const cost = C.RECIPES[id].cost;
+  const cost = recipeCost(id);
+  const potion = isPotionRecipe(id);
+  const hadPotions = game.run.hasPotions;
   deduct(game.run.inventory, cost);
-  addItem(game.run, id);
-  game.run.seenItems = game.run.seenItems.filter((x) => x !== id); // marked New on the map
-  v.crafts.push({ itemId: id, cost });
+  if (potion) addPotion(game.run, id);
+  else {
+    addItem(game.run, id);
+    game.run.seenItems = game.run.seenItems.filter((x) => x !== id); // marked New on the map
+  }
+  v.crafts.push({ itemId: id, cost, hadPotions });
   v.craftAt = v.time;
   v.craftItem = id;
   v.appeared = false;
   syncResources(game);
   events.emit('craftHammer', {});
-  events.emit('itemAcquired', { run: game.run, itemId: id }); // M5a §2.1
+  if (!potion) events.emit('itemAcquired', { run: game.run, itemId: id }); // M5a §2.1
   return true;
 }
 
@@ -104,8 +126,13 @@ export function craft(game) {
 export function undoCraft(game) {
   const v = game.tinker;
   if (v.leaving !== null || isCrafting(game) || !v.crafts.length) return false;
-  const { itemId, cost } = v.crafts.pop();
-  game.run.items = game.run.items.filter((x) => x !== itemId);
+  const { itemId, cost, hadPotions } = v.crafts.pop();
+  if (isPotionRecipe(itemId)) {
+    const run = game.run;
+    run.potions[itemId]--;
+    if (run.potions[itemId] <= 0) delete run.potions[itemId];
+    run.hasPotions = hadPotions;
+  } else game.run.items = game.run.items.filter((x) => x !== itemId);
   add(game.run.inventory, cost);
   syncResources(game);
   return true;

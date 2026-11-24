@@ -14,6 +14,7 @@ import { geometricZone } from '../zones.js';
 import { AttackState } from '../entities/enemy.js';
 import { targetById } from '../systems/oracleSystem.js';
 import { revealState } from '../systems/camouflageSystem.js';
+import { patternGrade } from '../patterns.js';
 
 const COLOR = 'rgba(120, 220, 255, 0.9)';
 const EDGE_COLOR = 'rgba(120, 220, 255, 0.45)';
@@ -635,5 +636,5 @@ function drawHiddenItem(ctx, game) {
     ctx.stroke();
   }
   ctx.lineWidth = 1.5;
-  label(ctx, `${h.kind === 'pattern' ? 'PATTERN' : 'ITEM'}: ${h.itemId} (${C.RARITY[C.ITEMS[h.itemId].rarity].label})${h.found ? ' (found)' : ''}`, f.x - 60, f.y - C.LOCATION_RADIUS - 20, ITEM_COLOR);
+  label(ctx, `${h.kind === 'pattern' ? 'PATTERN' : 'ITEM'}: ${h.itemId} (${patternGrade(h.itemId)})${h.found ? ' (found)' : ''}`, f.x - 60, f.y - C.LOCATION_RADIUS - 20, ITEM_COLOR);
 }

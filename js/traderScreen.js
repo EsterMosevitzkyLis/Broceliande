@@ -7,7 +7,8 @@
 // reads game state and calls back for every action; the art is on the canvas (render/trader.js).
 
 import * as C from './config.js';
-import { beltSlotsLine } from './potions.js';
+import { beltSlotsLine, potionRow, potionName, potionKindLine, potionEffectText } from './potions.js';
+import { drawPotionIcon } from './render/potions.js';
 import { GameState } from './states.js';
 import { RESOURCE_ICON_SVG } from './icons.js';
 import { MATERIAL_KEYS, resourceName } from './resources.js';
@@ -93,11 +94,13 @@ export function createTraderScreen(callbacks) {
       el.goodsRes.replaceChildren(...t.offers.map((k) => resourceChip(k, t.stock[k], String(resourcePrice(t, k)), true,
         t.stock[k] <= 0 ? ['Sold out', 'poor'] : TAGS[goodsTag(t, k)], isSel('resource', 'buy', k), () => callbacks.onSelect('resource', 'buy', k), t.stock[k] <= 0)));
     });
-    const wareState = (kind, id) => (kind === 'item' ? run.items.includes(id) : isPatternKnown(id)) ? 1 : 0;
-    const wares = [...t.items.map((g) => ['item', g]), ...t.patterns.map((g) => ['pattern', g])];
-    once('wares', [sel?.kind, sel?.side, sel?.id, inv.gold, ...wares.map(([kind, g]) => `${kind}${g.id}${wareState(kind, g.id)}`)].join(','), () => {
-      el.wares.replaceChildren(...(wares.length ? wares.map(([kind, g]) => wareCard(kind, g, wareState(kind, g.id), (inv.gold ?? 0) >= g.price,
-        isSel(kind, 'buy', g.id), () => callbacks.onSelect(kind, 'buy', g.id))) : [emptyNote('No items or patterns this time.')]));
+    // state 1: owned / known (a sold-out potion too); Potions §7: potion and recipe cards follow.
+    const wareState = (kind, g) => (kind === 'item' ? run.items.includes(g.id) : kind === 'potion' ? g.stock <= 0 : isPatternKnown(g.id)) ? 1 : 0;
+    const wares = [...t.items.map((g) => ['item', g]), ...t.patterns.map((g) => ['pattern', g]),
+      ...(t.potions ?? []).map((g) => ['potion', g]), ...(t.recipes ?? []).map((g) => ['recipe', g])];
+    once('wares', [sel?.kind, sel?.side, sel?.id, inv.gold, ...wares.map(([kind, g]) => `${kind}${g.id}${wareState(kind, g)}${g.stock ?? ''}`)].join(','), () => {
+      el.wares.replaceChildren(...(wares.length ? wares.map(([kind, g]) => (kind === 'potion' || kind === 'recipe' ? potionCard : wareCard)(kind, g, wareState(kind, g),
+        (inv.gold ?? 0) >= g.price, isSel(kind, 'buy', g.id), () => callbacks.onSelect(kind, 'buy', g.id))) : [emptyNote('No items or patterns this time.')]));
     });
 
     // The centre panel: the selected deal.
@@ -144,9 +147,27 @@ function fillDealHead(el, deal, inv) {
     setText(el.dealDesc, '');
     return;
   }
-  const item = C.ITEMS[deal.id];
   const ctx = el.dealIcon.getContext('2d');
   ctx.clearRect(0, 0, DEAL_ICON_PX, DEAL_ICON_PX);
+  if (deal.kind === 'potion' || deal.kind === 'recipe') { // Potions §7
+    const recipe = deal.kind === 'recipe';
+    if (recipe) {
+      drawScrollIcon(ctx, DEAL_ICON_PX * 0.3, DEAL_ICON_PX * 0.3, DEAL_ICON_PX * 0.55);
+      drawPotionIcon(ctx, deal.id, DEAL_ICON_PX * 0.6, DEAL_ICON_PX * 0.6, DEAL_ICON_PX * 0.72);
+    } else drawPotionIcon(ctx, deal.id, DEAL_ICON_PX / 2, DEAL_ICON_PX / 2, DEAL_ICON_PX - 4);
+    setText(el.dealKind, recipe ? 'Potion recipe: learn to craft' : 'Potion');
+    setText(el.dealName, potionName(deal.id));
+    el.dealName.style.color = C.POTION_TIERS[potionRow(deal.id).tier].color;
+    setText(el.dealDesc, potionEffectText(deal.id));
+    if (recipe) {
+      const label = document.createElement('div');
+      label.className = 'shop-deal-cost-label';
+      label.textContent = 'Recipe:';
+      el.dealCost.append(label, costRowsElement(C.POTIONS[deal.id].cost, inv));
+    }
+    return;
+  }
+  const item = C.ITEMS[deal.id];
   if (deal.kind === 'pattern') {
     drawScrollIcon(ctx, DEAL_ICON_PX * 0.3, DEAL_ICON_PX * 0.3, DEAL_ICON_PX * 0.55);
     drawFramedItemIcon(ctx, deal.id, DEAL_ICON_PX * 0.6, DEAL_ICON_PX * 0.6, DEAL_ICON_PX * 0.72);
@@ -168,18 +189,21 @@ function fillDealBody(el, deal, game, t) {
   const inv = game.run.inventory;
   const gold = inv.gold ?? 0;
   const res = deal.kind === 'resource';
-  const item = res ? null : C.ITEMS[deal.id];
+  const potion = deal.kind === 'potion'; // Potions §7: bought by quantity, like a resource
+  const item = C.ITEMS[deal.id] ?? null;
   let sub;
-  if (res && deal.side === 'buy') sub = `${deal.price} gold each · ${t.stock[deal.id]} in stock`;
+  if (potion) sub = `${potionKindLine(deal.id)} · ${deal.price} gold each · ${t.potions.find((g) => g.id === deal.id).stock} in stock`;
+  else if (deal.kind === 'recipe') sub = `Potion recipe · ${potionKindLine(deal.id)}`;
+  else if (res && deal.side === 'buy') sub = `${deal.price} gold each · ${t.stock[deal.id]} in stock`;
   else if (res) sub = deal.bundle ? `${deal.bundle.n} ${resourceName(deal.id, deal.bundle.n)} → ${deal.bundle.gold} gold` : 'He has no use for these';
   else {
     const equipped = deal.side === 'sell' && Object.values(game.run.equipped).includes(deal.id);
     sub = `${C.RARITY[item.rarity].label} · ${C.SLOT_TYPES[item.slot].label}${equipped ? ' · equipped (selling it unequips it)' : ''}`;
   }
   setText(el.dealSub, sub);
-  el.qty.hidden = !res || (!!deal.blocker && deal.max < 1);
-  if (res) {
-    setText(el.qtyText, `${deal.units} ${resourceName(deal.id, deal.units)}`);
+  el.qty.hidden = !(res || potion) || (!!deal.blocker && deal.max < 1);
+  if (res || potion) {
+    setText(el.qtyText, potion ? `${deal.units} ${deal.units === 1 ? 'potion' : 'potions'}` : `${deal.units} ${resourceName(deal.id, deal.units)}`);
     el.less.disabled = deal.qty <= 1;
     el.more.disabled = deal.max <= deal.qty;
     el.max.disabled = deal.max <= deal.qty;
@@ -191,6 +215,10 @@ function fillDealBody(el, deal, game, t) {
   if (res) {
     const have = inv[deal.id] ?? 0;
     parts.push(`${C.RESOURCES[deal.id].plural} ${have} → ${have + (deal.side === 'buy' ? deal.units : -deal.units)}`);
+  }
+  if (potion) {
+    const have = game.run.potions[deal.id] ?? 0;
+    parts.push(`In your pack ${have} → ${have + deal.units}`);
   }
   setText(el.preview, deal.blocker ? '' : parts.join('    '));
   setText(el.action, deal.side === 'buy' ? 'Buy' : 'Sell');
@@ -260,6 +288,45 @@ function wareCard(kind, good, state, affordable, selected, onClick) {
     const owned = document.createElement('span');
     owned.className = 'shop-owned';
     owned.textContent = kind === 'pattern' ? 'known' : 'owned';
+    foot.append(owned);
+  } else foot.append(goldPrice(good.price, !affordable));
+  card.append(head, desc, foot);
+  card.addEventListener('click', onClick);
+  return card;
+}
+
+// Potions §7: a potion or potion recipe card: icon (a recipe's scroll), name in its tier colour, kind
+// line, effect, (recipe) and price; a potion's stock. state 1: a known recipe, a sold-out potion.
+function potionCard(kind, good, state, affordable, selected, onClick) {
+  const recipe = kind === 'recipe';
+  const card = document.createElement('div');
+  card.className = `shop-card ${recipe ? 'pattern' : 'item'}${selected ? ' selected' : ''}${state ? ' owned' : ''}`;
+  const icon = document.createElement('canvas');
+  icon.width = icon.height = CARD_ICON_PX;
+  const ctx = icon.getContext('2d');
+  if (recipe) {
+    drawScrollIcon(ctx, CARD_ICON_PX * 0.36, CARD_ICON_PX * 0.36, CARD_ICON_PX * 0.66);
+    drawPotionIcon(ctx, good.id, CARD_ICON_PX * 0.64, CARD_ICON_PX * 0.62, CARD_ICON_PX * 0.7);
+  } else drawPotionIcon(ctx, good.id, CARD_ICON_PX / 2, CARD_ICON_PX / 2, CARD_ICON_PX - 4);
+  const head = document.createElement('div');
+  head.className = 'shop-card-head';
+  const words = document.createElement('div');
+  words.innerHTML = `<div class="shop-card-name"></div><div class="shop-card-sub"></div>`;
+  words.firstChild.textContent = potionName(good.id);
+  words.firstChild.style.color = recipe ? '' : C.POTION_TIERS[potionRow(good.id).tier].color;
+  words.lastChild.textContent = `${recipe ? 'Recipe · ' : ''}${potionKindLine(good.id)}${recipe ? '' : ` · ${good.stock} in stock`}`;
+  head.append(icon, words);
+  const desc = document.createElement('div');
+  desc.className = 'shop-card-desc';
+  desc.textContent = potionEffectText(good.id);
+  const foot = document.createElement('div');
+  foot.className = 'shop-card-foot';
+  if (recipe) foot.append(costRowsElement(C.POTIONS[good.id].cost, C.POTIONS[good.id].cost));
+  else foot.append(document.createElement('span'));
+  if (state) {
+    const owned = document.createElement('span');
+    owned.className = 'shop-owned';
+    owned.textContent = recipe ? 'known' : 'sold out';
     foot.append(owned);
   } else foot.append(goldPrice(good.price, !affordable));
   card.append(head, desc, foot);

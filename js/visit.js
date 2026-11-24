@@ -3,8 +3,8 @@
 // game.resources mirrors the inventory for the HUD.
 //
 // game.visit: { trader, nodeId (null for debug Shift+T), rng (dialogue), trades (undo stack),
-//   sel: { kind: 'resource' | 'item' | 'pattern', side: 'buy' | 'sell', id } or null, qty (units
-//   to buy, or bundles to sell, of a resource), line (speech line), time (s since arrival,
+//   sel: { kind: 'resource' | 'item' | 'pattern' | 'potion' | 'recipe' (Potions §7), side: 'buy' | 'sell', id }
+//   or null, qty (units to buy, or bundles to sell, of a resource; potions to buy), line (speech line), time (s since arrival,
 //   simulation time), lastTradeAt, leaving (s since Back to the road, or null) }
 
 import * as C from './config.js';
@@ -12,7 +12,7 @@ import { GameState } from './states.js';
 import { setState } from './game.js';
 import { createRng } from './rng.js';
 import { mapNode, nodeState, addItem } from './run.js';
-import { fitBelt } from './potions.js';
+import { fitBelt, addPotion, potionName } from './potions.js';
 import { resourceName } from './resources.js';
 import { learnPattern, unlearnPattern, isPatternKnown } from './patterns.js';
 import { rollTrader, traderProfileIds, resourcePrice, sellBundle, itemSellPrice, traderLine } from './trade.js';
@@ -82,7 +82,7 @@ export function selectGoods(game, kind, side, id) {
   if (!v.sel || side !== 'buy') return;
   const deal = currentDeal(game);
   if (deal.blocker === 'Sold out') {
-    v.line = traderLine(v.rng, 'soldout', v.trader.profileId, resourceName(id, 2));
+    v.line = traderLine(v.rng, 'soldout', v.trader.profileId, kind === 'potion' ? potionName(id) : resourceName(id, 2));
     events.emit('soldOut', {});
   } else if (deal.blocker === 'Not enough gold') {
     v.line = traderLine(v.rng, 'poor', v.trader.profileId);
@@ -114,13 +114,20 @@ export function currentDeal(game) {
     const blocker = max < 1 ? `You need ${bundle.n} ${resourceName(s.id, bundle.n)} to sell` : null;
     return { ...s, bundle, price: bundle.gold, qty, max, units: bundle.n * qty, gold: bundle.gold * qty, blocker };
   }
+  if (s.kind === 'potion') { // Potions §7: bought only, any number up to the stock
+    const good = t.potions.find((g) => g.id === s.id);
+    const max = Math.min(good.stock, Math.floor(gold / good.price));
+    const qty = clampQty(v.qty, max);
+    const blocker = good.stock <= 0 ? 'Sold out' : gold < good.price ? 'Not enough gold' : null;
+    return { ...s, price: good.price, qty, max, units: qty, gold: -good.price * qty, blocker };
+  }
   if (s.side === 'sell') {
     const price = itemSellPrice(t, s.id);
     return { ...s, price, qty: 1, max: 1, units: 0, gold: price, blocker: run.items.includes(s.id) ? null : 'No longer in your pack' };
   }
-  const good = (s.kind === 'item' ? t.items : t.patterns).find((g) => g.id === s.id);
+  const good = (s.kind === 'item' ? t.items : s.kind === 'recipe' ? t.recipes : t.patterns).find((g) => g.id === s.id);
   const blocker = s.kind === 'item' && run.items.includes(s.id) ? 'Already owned'
-    : s.kind === 'pattern' && isPatternKnown(s.id) ? 'Already known'
+    : (s.kind === 'pattern' || s.kind === 'recipe') && isPatternKnown(s.id) ? 'Already known'
       : gold < good.price ? 'Not enough gold' : null;
   return { ...s, price: good.price, qty: 1, max: 1, units: 0, gold: -good.price, blocker };
 }
@@ -146,6 +153,7 @@ export function makeDeal(game) {
   const deal = currentDeal(game);
   if (v.leaving !== null || !deal || deal.blocker) return false;
   const trade = { kind: deal.kind, side: deal.side, id: deal.id, units: deal.units, gold: deal.gold };
+  if (deal.kind === 'potion') trade.hadPotions = game.run.hasPotions; // Undo hides the belt again
   if (deal.kind === 'item' && deal.side === 'sell') {
     trade.slot = Object.keys(game.run.equipped).find((slot) => game.run.equipped[slot] === deal.id) ?? null;
     trade.seen = game.run.seenItems.includes(deal.id);
@@ -153,12 +161,12 @@ export function makeDeal(game) {
   applyTrade(game.run, v.trader, trade, 1);
   v.trades.push(trade);
   v.lastTradeAt = v.time;
-  const name = deal.kind === 'resource' ? resourceName(deal.id, 2) : C.ITEMS[deal.id].name;
+  const name = deal.kind === 'resource' ? resourceName(deal.id, 2) : C.ITEMS[deal.id]?.name ?? potionName(deal.id);
   v.line = traderLine(v.rng, deal.side, v.trader.profileId, name);
-  if (deal.kind !== 'resource' || deal.side === 'sell') v.sel = null; // a good changed hands: nothing left to show
+  if ((deal.kind !== 'resource' && deal.kind !== 'potion') || deal.side === 'sell') v.sel = null; // a good changed hands: nothing left to show
   else v.qty = clampQty(v.qty, currentDeal(game).max);
   syncResources(game);
-  events.emit(deal.side === 'buy' ? 'shopBuy' : 'shopSell', { pattern: deal.kind === 'pattern' });
+  events.emit(deal.side === 'buy' ? 'shopBuy' : 'shopSell', { pattern: deal.kind === 'pattern' || deal.kind === 'recipe' });
   if (deal.kind === 'item' && deal.side === 'buy') events.emit('itemAcquired', { run: game.run, itemId: deal.id }); // M5a §2.1
   return true;
 }
@@ -183,7 +191,17 @@ function applyTrade(run, trader, trade, sign) {
     if (side === 'buy') trader.stock[id] -= sign * units; // what the player sells doesn't join the stock
     return;
   }
-  if (kind === 'pattern') {
+  if (kind === 'potion') { // Potions §7: into the potion inventory (never the belt)
+    trader.potions.find((g) => g.id === id).stock -= sign * units;
+    if (sign > 0) addPotion(run, id, units);
+    else {
+      run.potions[id] -= units;
+      if (run.potions[id] <= 0) delete run.potions[id];
+      run.hasPotions = trade.hadPotions;
+    }
+    return;
+  }
+  if (kind === 'pattern' || kind === 'recipe') {
     if (sign > 0) learnPattern(id);
     else unlearnPattern(id);
     return;

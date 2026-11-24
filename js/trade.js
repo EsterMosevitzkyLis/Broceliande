@@ -5,7 +5,9 @@
 //
 // A trader: { profileId, name, look, mult: { resource: price multiplier }, stock: { resource: count },
 //   offers: [resources stocked], items: [{ id, price }], patterns: [{ id, price }],
-//   rolls: { itemCount, patternCount } (as rolled, before any empty pool skipped a slot) }
+//   potions: [{ id (potion key), price, stock }], recipes: [{ id (potion key), price }] (Potions §7),
+//   rolls: { itemCount, patternCount, potionCount, recipeCount } (as rolled, before any empty pool
+//   skipped a slot) }
 
 import * as C from './config.js';
 import { MATERIAL_KEYS } from './resources.js';
@@ -83,22 +85,41 @@ export function rollTrader(rng, { profileId, regionId, ownedItems = [] }) {
   const patterns = rollGoods(rng, profileId, 'pattern', rolls,
     (rarity, taken) => Object.keys(C.RECIPES).filter((id) => C.ITEMS[id]?.rarity === rarity && !isPatternKnown(id) && !taken.includes(id)),
     (id) => shopPrice(patternBasePrice(id), profile.patternPriceMult, rng));
+  // Potions §7: potions (a tier rank per slot, then any potion of it; one rolled twice stocks 2) and
+  // potion recipes (not known, not already in this shop, weighted by patternWeight: never a weight 0
+  // Sovereign). Potions at the item price multiplier, recipes at the pattern one.
+  const potions = [];
+  for (const g of rollGoods(rng, profileId, 'potion', rolls, (rank) => potionsOfRank(rank), (id) => shopPrice(C.POTIONS[id].price, profile.itemPriceMult, rng), 'Tier', true)) {
+    const same = potions.find((p) => p.id === g.id);
+    if (same) same.stock++;
+    else potions.push({ ...g, stock: 1 });
+  }
+  const recipes = rollGoods(rng, profileId, 'recipe', rolls,
+    (rank, taken) => potionsOfRank(rank).filter((id) => C.POTIONS[id].patternWeight > 0 && !isPatternKnown(id) && !taken.includes(id)),
+    (id) => shopPrice(C.POTIONS[id].patternPrice ?? C.POTIONS[id].price, profile.patternPriceMult, rng), 'Tier', false, (id) => C.POTIONS[id].patternWeight);
   const look = Math.max(0, traderProfileIds().indexOf(profileId));
-  return { profileId, name: profile.name || 'Wandering Trader', look, mult, stock, offers, items, patterns, rolls };
+  return { profileId, name: profile.name || 'Wandering Trader', look, mult, stock, offers, items, patterns, potions, recipes, rolls };
+}
+
+// Potion keys of a tier rank (Potions §1), in the potions tab's order.
+function potionsOfRank(rank) {
+  return Object.keys(C.POTIONS).filter((k) => C.POTIONS[k].rank === rank);
 }
 
 // §3.2 steps 1–5: roll the count, then a rarity per slot and a random good of it. A rarity whose
 // pool is empty is passed over for the others with weight; with none left the slot is skipped.
-function rollGoods(rng, profileId, kind, rolls, pool, price) {
+// Potions §7: grade 'Tier' reads the potionTier / recipeTier tables (ranks); repeats: the same good
+// may come again (potions, stacked by the caller); weight: pick a good by weight instead of evenly.
+function rollGoods(rng, profileId, kind, rolls, pool, price, grade = 'Rarity', repeats = false, weight = null) {
   const count = weighted(rng, table(profileId, `${kind}Count`)) ?? 0;
   rolls[`${kind}Count`] = count;
   const goods = [];
   for (let i = 0; i < count; i++) {
-    const taken = goods.map((g) => g.id);
-    const rarity = weighted(rng, table(profileId, `${kind}Rarity`).filter((r) => r.weight > 0 && pool(r.value, taken).length));
+    const taken = repeats ? [] : goods.map((g) => g.id);
+    const rarity = weighted(rng, table(profileId, `${kind}${grade}`).filter((r) => r.weight > 0 && pool(r.value, taken).length));
     if (rarity === null) continue;
     const ids = pool(rarity, taken);
-    const id = ids[rng.int(0, ids.length - 1)];
+    const id = weight ? weighted(rng, ids.map((x) => ({ value: x, weight: weight(x) }))) : ids[rng.int(0, ids.length - 1)];
     goods.push({ id, price: price(id) });
   }
   return goods;
@@ -164,7 +185,10 @@ export function shopSummary(trader) {
     const rarities = [...new Set(goods.map((g) => C.ITEMS[g.id].rarity))].sort((a, b) => a - b);
     return `${goods.length} ${word}${goods.length > 1 ? 's' : ''} (${rarities.map((r) => C.RARITY[r].label).join(', ')})`;
   };
-  return [part(trader.items, 'item'), part(trader.patterns, 'pattern')].filter(Boolean).join(', ') || 'resources only';
+  const potions = (trader.potions ?? []).reduce((n, p) => n + p.stock, 0);
+  const recipes = (trader.recipes ?? []).length;
+  return [part(trader.items, 'item'), part(trader.patterns, 'pattern'),
+    potions && `${potions} potion${potions > 1 ? 's' : ''}`, recipes && `${recipes} potion recipe${recipes > 1 ? 's' : ''}`].filter(Boolean).join(', ') || 'resources only';
 }
 
 export function cheapResources(trader) {

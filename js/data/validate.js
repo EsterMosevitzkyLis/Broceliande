@@ -263,7 +263,9 @@ export function validateTables(t, problems, maps = {}) {
     known('traderTables', r, 'trader', profiles, 'trader');
     if (!TRADER_TABLES.includes(r.table)) err('traderTables', r, 'table', `table must be one of ${TRADER_TABLES.join(', ')}`);
     if (r.weight < 0) err('traderTables', r, 'weight', 'weight must be 0 or more');
-    const [lo, hi] = r.table === 'itemRarity' || r.table === 'patternRarity' ? [0, 3] : [0, Infinity];
+    // Potions §7: potion and recipe tiers are ranks; traders sell Faint and Potent potions only.
+    const [lo, hi] = r.table === 'itemRarity' || r.table === 'patternRarity' ? [0, 3]
+      : r.table === 'potionTier' ? [1, 2] : r.table === 'recipeTier' ? [1, 4] : [0, Infinity];
     if (r.value < lo || r.value > hi) err('traderTables', r, 'value', `${r.table} values must be ${hi === Infinity ? '0 or more' : `${lo}-${hi}`}`);
   }
   for (const table of TRADER_TABLES) {
@@ -327,6 +329,12 @@ export function validateTables(t, problems, maps = {}) {
   for (const [id, tiers] of Object.entries(potionRows)) {
     for (const tier of Object.keys(POTION_TIERS)) if (!tiers.includes(tier)) err('potions', '', 'tier', `${id} has no ${tier} row`);
     if (!POTION_LIQUID[id]) warn('potions', '', 'id', `${id} has no liquid colour in config.js POTION_LIQUID (drawn grey)`);
+  }
+  // Recipes known from the start (§7): potion keys (potion:tier) of the potions tab.
+  const knownAtStart = t.globals.find((x) => x.key === 'POTION_RECIPES_KNOWN');
+  for (const k of String(knownAtStart?.value ?? '').split(',').map((s) => s.trim()).filter(Boolean)) {
+    const [id, tier] = k.split(':');
+    if (!t.potions.some((r) => r.id === id && r.tier === tier)) err('globals', knownAtStart, 'value', `POTION_RECIPES_KNOWN: "${k}" is not a potion:tier of the potions tab`);
   }
   // Belt slot odds (§3.1): chances of 2, 3, 4, 5 slots, none negative, not all 0.
   for (const g of t.globals.filter((x) => /^BELT_SLOT_ODDS_R\d$/.test(x.key))) {

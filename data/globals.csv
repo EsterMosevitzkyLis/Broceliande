@@ -67,7 +67,6 @@ SWEEP_END_MARGIN,0.1,s before the Victory overlay by which the last item must la
 SWEEP_END_SCALE,0.65,"item size on arrival, relative to its size on the ground"
 SWEEP_PULSE_TIME,0.3,s a HUD counter pulses after an item lands on it
 # Run and equipment bases,,
-CARRY_DRUID_HP,FALSE,TUNING - true: the Druid starts the next encounter with the HP he won with (M2a sec. 3)
 ITEMS_PER_BATTLE,1,0 turns hidden items off
 RARITY_WEIGHT_0,6,TUNING - weight of a Common (rarity 0) item when picking the hidden find (M2p sec. 3.1)
 RARITY_WEIGHT_1,3,TUNING - weight of an Uncommon (rarity 1) item
@@ -156,3 +155,6 @@ BELT_SLOT_ODDS_R0,"1, 0, 0, 0","TUNING - a Common belt's chances of 2, 3, 4, 5 p
 BELT_SLOT_ODDS_R1,"0.8, 0.2, 0, 0","TUNING - an Uncommon belt's chances of 2, 3, 4, 5 potion slots"
 BELT_SLOT_ODDS_R2,"0.5, 0.5, 0, 0","TUNING - a Rare belt's chances of 2, 3, 4, 5 potion slots"
 BELT_SLOT_ODDS_R3,"0, 0.8, 0.2, 0","TUNING - a Very Rare belt's chances of 2, 3, 4, 5 potion slots"
+HP_BETWEEN_BATTLES_PCT,0.1,"TUNING - the Druid's HP carries over between battles, and before each battle he regains this share of his max HP, up to max"
+POTION_RECIPES_KNOWN,healing:faint,"potion recipes (potion:tier, comma-separated) known from the start of every run"
+SOVEREIGN_RECIPE_FIND_CHANCE,0.5,"TUNING - chance a region boss battle's hidden find is a Sovereign potion recipe not known yet (Sovereign recipes are never sold)"

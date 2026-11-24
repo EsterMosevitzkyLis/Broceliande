@@ -30,7 +30,7 @@ import { potionName, potionOrder } from './potions.js';
 import { raisedCount } from './systems/bogKingSystem.js';
 import { resolveStats, changedStats, statLabel } from './stats.js';
 import { drawSlotIcon, drawScrollIcon } from './render/items.js';
-import { knownPatterns, newPatterns, totalPatterns } from './patterns.js';
+import { knownPatterns, newPatterns, totalPatterns, patternGrade, knownPotionRecipes, totalPotionRecipes } from './patterns.js';
 import { resourcePrice, sellBundle, shopSummary, cheapResources } from './trade.js';
 import { currentDeal } from './visit.js';
 import { craftableCount, craftBlocker } from './tinker.js';
@@ -1024,7 +1024,7 @@ function tinkerTooltip(run, anchor) {
   const known = knownPatterns().filter((id) => C.RECIPES[id]).length;
   return {
     title: `${C.NODE_TYPES.tinker.label} — Craft equipment from your patterns.`,
-    lines: [['', `Patterns known: ${known} · Craftable now: ${craftableCount(run)}`]],
+    lines: [['', `Patterns known: ${known} · Potion recipes: ${knownPotionRecipes().length} · Craftable now: ${craftableCount(run)}`]],
     anchor,
   };
 }
@@ -1573,7 +1573,7 @@ const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(2));
 function patternDebugLines(game) {
   const h = game.hiddenFind;
   const inBattle = [GameState.PREP, GameState.COMBAT, GameState.ENDING, GameState.VICTORY, GameState.DEFEAT].includes(game.state);
-  const find = !h ? 'none' : `${h.kind} ${h.itemId} (${C.RARITY[C.ITEMS[h.itemId].rarity].label})${h.found ? ' — found' : ''}`;
+  const find = !h ? 'none' : `${h.kind} ${h.itemId} (${patternGrade(h.itemId)})${h.found ? ' — found' : ''}`;
   return [
     `Patterns known: ${knownPatterns().length} / ${totalPatterns()}${newPatterns().length ? `  (${newPatterns().length} New)` : ''}   (Shift+P on the map learns one)`,
     ...(inBattle ? [`Hidden find: ${find}`] : []),
@@ -1600,7 +1600,7 @@ function runLines(game) {
     `Run seed: ${r.seed}  (reload for a new run)`,
     ...regionLines(game),
     `Node:   ${r.currentNodeId ?? '—'}   completed: ${r.completedNodeIds.join(', ') || '—'}${isRunComplete(r) ? '   RUN COMPLETE' : ''}`,
-    `Carried: ${resourceLine(r.inventory)}   Druid HP ${Number.isFinite(r.druidHp) ? r.druidHp.toFixed(1) : 'full'}${C.CARRY_DRUID_HP ? ' (carried)' : ' (not carried)'}`,
+    `Carried: ${resourceLine(r.inventory)}   Druid HP ${Number.isFinite(r.druidHp) ? r.druidHp.toFixed(1) : 'full'} (carried, +${Math.round(C.HP_BETWEEN_BATTLES_PCT * 100)}% of max before each battle)`,
     ...equipmentLines(game),
     ...patternDebugLines(game),
     // M2d §4: items the field sweep gathered on the last Victory.
@@ -1630,6 +1630,8 @@ function traderDebugLines(game) {
     `  mults: items ×${p.itemPriceMult}  patterns ×${p.patternPriceMult}  pays for items ×${p.itemBuyMult}`,
     `  itemCount rolled ${t.rolls.itemCount}: ${goods(t.items)}`,
     `  patternCount rolled ${t.rolls.patternCount}: ${goods(t.patterns)}`,
+    `  potionCount rolled ${t.rolls.potionCount ?? 0}: ${(t.potions ?? []).map((g) => `${g.id} x${g.stock} ${g.price}g`).join(', ') || 'none'}`,
+    `  recipeCount rolled ${t.rolls.recipeCount ?? 0}: ${(t.recipes ?? []).map((g) => `${g.id} ${g.price}g`).join(', ') || 'none'}`,
   ];
   for (const k of MATERIAL_KEYS) {
     const b = sellBundle(t, k);

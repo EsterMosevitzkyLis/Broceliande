@@ -1927,6 +1927,16 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
 .tinker-row.unknown .tinker-row-name { font-weight: normal; }
 .tinker-row-mark { font-size: 15px; color: #7a6a4c; font-style: italic; }
 .tinker-row-mark.tick { font-size: 22px; color: #2f7a2c; font-style: normal; font-weight: bold; }
+/* Potions sec. 7: the book's Potions heading, and the count of potion recipes still to find */
+.tinker-section {
+  margin: 10px 6px 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(106, 84, 52, 0.4);
+  font-size: 19px;
+  font-variant: small-caps;
+  color: #6a5434;
+}
+.tinker-section.note { border: none; margin-top: 6px; font-size: 16px; font-style: italic; font-variant: normal; }
 #tinker-empty {
   margin-top: 200px;
   text-align: center;

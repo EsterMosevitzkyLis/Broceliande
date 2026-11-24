@@ -30,7 +30,7 @@ export const GLOBAL_TYPES = {
   DROP_COIN_VALUES: 'list', DROP_GOLD_MAX_ITEMS: 'int', DROP_MERGE_OVER: 'int',
   FLOATER_RISE_PX: 'number', FLOATER_TIME: 'number', FLOATER_STAGGER: 'number', FLOATER_STACK_PX: 'number',
   SWEEP_FLIGHT_TIME: 'number', SWEEP_STAGGER: 'number', SWEEP_END_MARGIN: 'number', SWEEP_END_SCALE: 'number', SWEEP_PULSE_TIME: 'number',
-  CARRY_DRUID_HP: 'bool', ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_0: 'number', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
+  ITEMS_PER_BATTLE: 'int', RARITY_WEIGHT_0: 'number', RARITY_WEIGHT_1: 'number', RARITY_WEIGHT_2: 'number', RARITY_WEIGHT_3: 'number', FIND_PATTERN_CHANCE: 'number', WORK_SPEED: 'number', SEARCH_MAIN_BONUS: 'number', BOUGH_REFUND_CHANCE: 'number',
   MASTER_VOLUME: 'number', SOUND_PITCH_JITTER: 'number',
   TRADE_TAG_CHEAP: 'number', TRADE_TAG_PRICEY: 'number',
   GOLD_PER_VALUE: 'number', RESOURCE_SELL_FRACTION: 'number', ITEM_SELL_FRACTION: 'number', SHOP_PRICE_JITTER: 'number', // M3e §4
@@ -46,7 +46,7 @@ export const GLOBAL_TYPES = {
   ORACLE_CALL_INTERVAL: 'number', ORACLE_CALL_SHIELD: 'number', ORACLE_CALL_SHIELD_DURATION: 'number', ORACLE_CALL_SPAWNS: 'int', PYLON_HP: 'number', PYLON_ARMOR: 'number', // M6b §6
   REVEAL_RADIUS: 'number', REVEAL_LINGER: 'number', THROW_REVEAL: 'number', WISP_REVEAL: 'number', // M6c
   WALL_MIN_GAP: 'number', WALL_DRUID_CLEARANCE: 'number', // M6d §2.4
-  POTION_COOLDOWN: 'number', POTION_SLOTS_BASE: 'int', // Potions §3.1, §4.1
+  HP_BETWEEN_BATTLES_PCT: 'number', POTION_RECIPES_KNOWN: 'string', SOVEREIGN_RECIPE_FIND_CHANCE: 'number', POTION_COOLDOWN: 'number', POTION_SLOTS_BASE: 'int', // Potions §3.1, §4.1
   BELT_SLOT_ODDS_R0: 'list', BELT_SLOT_ODDS_R1: 'list', BELT_SLOT_ODDS_R2: 'list', BELT_SLOT_ODDS_R3: 'list', // chances of 2, 3, 4, 5 potion slots
 };
 

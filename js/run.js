@@ -20,7 +20,7 @@ export { nodeRadius };
 // entry gets a new map); deaths: deaths so far (each death's losses are rolled from it).
 // map (M2g): the current region's generated map (mapGen.js), nodes with positions and `next` roads.
 // currentNodeId: the node last entered (null before the first). inventory: resources carried
-// between encounters. druidHp: used for the next encounter only with CARRY_DRUID_HP. Equipment
+// between encounters. druidHp: his HP between battles (Potions §6: it carries over). Equipment
 // (M2e §5): items owned this run (ITEMS keys), the one equipped in each slot (or null), and the
 // owned items the player has looked at (badges and New marks). traders (M2n §5, M3e §3): each Trader
 // node's rolled trader (trade.js), by node id, rolled with the region's map; traderProfilesUsed: the
@@ -212,19 +212,24 @@ export function encounterSeed(run, nodeId) {
   return (h ^ (h >>> 15)) >>> 0;
 }
 
-// On Victory (§3): the node is won and the resources (all four) are carried; with
-// CARRY_DRUID_HP, the Druid's HP too.
+// On Victory (§3): the node is won and the resources (all four) are carried, and the Druid's HP
+// (Potions §6).
 export function recordVictory(run, resources, druidHp) {
   if (run.currentNodeId && !run.completedNodeIds.includes(run.currentNodeId)) run.completedNodeIds.push(run.currentNodeId);
   run.inventory = { ...emptyResources(), ...resources };
   run.druidHp = druidHp;
 }
 
-// HP the Druid starts the next encounter with: full (his effective max HP, M2e §5), or with
-// CARRY_DRUID_HP the HP he won with, clamped to that max (it may have dropped after unequipping;
-// on entering a region it is Infinity, so full).
+// Potions §6: the Druid's HP between battles, clamped to his effective max HP (M2e §5; it may have
+// dropped after unequipping; on entering a region it is Infinity, so full).
+export function currentDruidHp(run, maxHp) {
+  return Math.min(run.druidHp, maxHp);
+}
+
+// HP the Druid starts the next encounter with: his HP between battles plus HP_BETWEEN_BATTLES_PCT of
+// his max HP, up to max.
 export function startingDruidHp(run, maxHp) {
-  return C.CARRY_DRUID_HP ? Math.min(run.druidHp, maxHp) : maxHp;
+  return Math.min(maxHp, currentDruidHp(run, maxHp) + C.HP_BETWEEN_BATTLES_PCT * maxHp);
 }
 
 // The available node under p (for hover and clicks), or null. Locked, completed and bypassed
@@ -322,13 +327,13 @@ export function regenerateMap(run, seed) {
 
 // ---------------------------------------------------------------------------
 // Potions between battles (Potions §3.2): Consume works only for a potion whose effect is instant and
-// makes sense outside battle, Healing. It heals the HP the next battle starts with.
+// makes sense outside battle, Healing. It heals his HP between battles (§6).
 // ---------------------------------------------------------------------------
 
 // The Druid's HP and max HP between battles (the max as the equipment panel shows it).
 export function runDruidHp(run) {
   const maxHp = resolveStats(run.equipped, C.LEVELS[regionStartNode(run.regionId)])['druid.maxHp'];
-  return { hp: startingDruidHp(run, maxHp), maxHp };
+  return { hp: currentDruidHp(run, maxHp), maxHp };
 }
 
 // Why this potion can't be consumed here, or null if it can.

@@ -2,8 +2,13 @@
 // permanent: kept across runs, defeats and reloads in localStorage, as a list of item IDs. Newly
 // learned ones are marked New until the player hovers the map panel's pattern list. If storage is
 // unavailable they last for the session only; every read and write is wrapped in try/catch.
+// Potions §7: potion recipes are patterns too, kept in the same list by their potion key
+// ('healing:faint'); POTION_RECIPES_KNOWN are known from the start of every run (never stored, never
+// forgotten). knownPatterns, newPatterns and totalPatterns count item patterns only; the potion
+// recipes have their own counts.
 
 import * as C from './config.js';
+import { potionName, potionRow } from './potions.js';
 
 const KNOWN_KEY = 'broceliande.patterns.v1';
 const NEW_KEY = 'broceliande.patternsNew.v1';
@@ -34,7 +39,30 @@ export function knownPatterns() {
 }
 
 export function isPatternKnown(id) {
-  return known.includes(id);
+  return known.includes(id) || C.POTION_RECIPES_KNOWN.includes(id);
+}
+
+// A pattern ID: an item with a recipe, or a potion key (Potions §7).
+function isPatternId(id) {
+  return !!((C.RECIPES[id] && C.ITEMS[id]) || C.POTIONS[id]);
+}
+
+// A pattern's name (the item's or the potion's) and its grade (rarity or tier label).
+export function patternName(id) {
+  return C.ITEMS[id]?.name ?? potionName(id);
+}
+
+export function patternGrade(id) {
+  return C.POTIONS[id] ? C.POTION_TIERS[potionRow(id).tier].label : C.RARITY[C.ITEMS[id].rarity].label;
+}
+
+// Potion recipes known (Potions §7), in the potions tab's order.
+export function knownPotionRecipes() {
+  return Object.keys(C.POTIONS).filter(isPatternKnown);
+}
+
+export function totalPotionRecipes() {
+  return Object.keys(C.POTIONS).length;
 }
 
 // Patterns learned since the list was last hovered.
@@ -48,7 +76,7 @@ export function totalPatterns() {
 
 // Learns a pattern (marked New). Returns false if it was already known or isn't an item.
 export function learnPattern(id) {
-  if (!C.RECIPES[id] || known.includes(id)) return false;
+  if (!isPatternId(id) || isPatternKnown(id)) return false;
   known = [...known, id];
   fresh = [...fresh, id];
   save(KNOWN_KEY, known);
@@ -73,23 +101,32 @@ export function markPatternsSeen() {
   save(NEW_KEY, fresh);
 }
 
-// A random pattern not known yet (seeded rng), weighted by its recipe's patternWeight (§3.1);
-// null if every pattern is known.
+// A random pattern not known yet (seeded rng), weighted by its recipe's patternWeight (§3.1):
+// items' and potion recipes' together (Potions §7; a weight of 0, the Sovereign recipes, is never
+// picked); null if none is left.
 export function randomUnknownPattern(rng) {
-  const left = Object.keys(C.RECIPES).filter((id) => C.ITEMS[id] && !known.includes(id));
-  const total = left.reduce((sum, id) => sum + C.RECIPES[id].patternWeight, 0);
+  const weight = (id) => (C.POTIONS[id] ? C.POTIONS[id].patternWeight : C.RECIPES[id].patternWeight);
+  const left = [...Object.keys(C.RECIPES).filter((id) => C.ITEMS[id]), ...Object.keys(C.POTIONS)].filter((id) => !isPatternKnown(id) && weight(id) > 0);
+  const total = left.reduce((sum, id) => sum + weight(id), 0);
   if (total <= 0) return null;
   let r = rng.next() * total;
   for (const id of left) {
-    r -= C.RECIPES[id].patternWeight;
+    r -= weight(id);
     if (r < 0) return id;
   }
   return left[left.length - 1];
 }
 
-// Debug (§6): learn every pattern / forget them all.
+// Potions §7: a Sovereign recipe not known yet (they are found only: a region boss's hidden find),
+// evenly; null if all are known.
+export function randomUnknownSovereignRecipe(rng) {
+  const left = Object.keys(C.POTIONS).filter((k) => C.POTIONS[k].tier === 'sovereign' && !isPatternKnown(k));
+  return left.length ? left[rng.int(0, left.length - 1)] : null;
+}
+
+// Debug (§6): learn every pattern (and potion recipe) / forget them all.
 export function learnAllPatterns() {
-  for (const id of Object.keys(C.RECIPES)) learnPattern(id);
+  for (const id of [...Object.keys(C.RECIPES), ...Object.keys(C.POTIONS)]) learnPattern(id);
 }
 
 export function forgetAllPatterns() {

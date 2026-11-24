@@ -1,7 +1,7 @@
 // Bootstrap, stage scaling and the fixed-timestep loop (spec §3.4, §3.5).
 
 import * as C from './config.js';
-import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, spawnDebugBogKing, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion, debugJumpToRegion, spawnDebugEnemy } from './game.js';
+import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, spawnDebugBogKing, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion, debugJumpToRegion, spawnDebugEnemy, showRunOnHud } from './game.js';
 import { createInput } from './input.js';
 import { createRenderer } from './renderer.js';
 import { createUI, checkLevelNameLabel, checkBossBar, checkWavePreview, levelNameLabelArea } from './ui.js';
@@ -27,7 +27,7 @@ import { buildShowcase } from './debug/showcase.js';
 import { createTraderScreen } from './traderScreen.js';
 import { createTinkerScreen } from './tinkerScreen.js';
 import { openDebugTinker, selectTab, selectRecipe, craft, undoCraft, leaveTinker } from './tinker.js';
-import { learnPattern, randomUnknownPattern, knownPatterns, learnAllPatterns, forgetAllPatterns } from './patterns.js';
+import { learnPattern, randomUnknownPattern, knownPatterns, learnAllPatterns, forgetAllPatterns, patternName } from './patterns.js';
 import { openDebugTrader, selectGoods, stepQty, maxQty, makeDeal, undoVisitTrade, leaveVisit } from './visit.js';
 import { initDialogues, takeNextDialogue, isDialogueOpen, forgetSeenDialogues, playDialogueNow } from './dialogue.js';
 import { createDialogueBox } from './dialogueBox.js';
@@ -156,16 +156,21 @@ checkBossBar(LEVEL_IDS.map(sceneFor));        // M2c §2.7: nor may the boss HP 
 checkWavePreview(LEVEL_IDS.map(sceneFor));    // M2i §4.2: nor the wave preview
 if (view.debug) logWaveTotals();              // M2i §2: per-wave totals, to compare with the comments
 // Equipment panel on the map (M2e §4): equipping is free and only possible there, between battles.
+// The HUD's HP bar follows (Potions §6: his max HP may change, and drinking heals him).
+const onMap = (done) => {
+  if (done && game.state === GameState.MAP) showRunOnHud(game);
+  return done;
+};
 const equipPanel = createEquipmentPanel({
-  onEquip: (itemId) => equipItem(game.run, itemId),
-  onUnequip: (slot) => unequipSlot(game.run, slot),
+  onEquip: (itemId) => onMap(equipItem(game.run, itemId)),
+  onUnequip: (slot) => onMap(unequipSlot(game.run, slot)),
   onSlotViewed: (slot) => markSlotSeen(game.run, slot),
 });
 // Potions §3.2: the belt and the potion inventory on the map; §3.3: the belt in battle.
 const potionPanel = createPotionPanel({
   onEquip: (key) => equipPotion(game.run, key),
   onUnequip: (slot) => unequipPotion(game.run, slot),
-  onConsume: (key, slot) => consumePotion(game.run, key, slot),
+  onConsume: (key, slot) => onMap(consumePotion(game.run, key, slot)),
 });
 const potionBelt = createPotionBelt({ onUse: (slot) => usePotion(game, slot) });
 
@@ -369,7 +374,7 @@ function debugNewMap() {
 // (seeded from the run seed and how many are known).
 function debugLearnPattern() {
   const id = randomUnknownPattern(createRng(game.run.seed + 104729 * (knownPatterns().length + 1)));
-  if (id && learnPattern(id)) game.mapMessage = { text: `Pattern learned: ${C.ITEMS[id].name}`, age: 0 };
+  if (id && learnPattern(id)) game.mapMessage = { text: `Pattern learned: ${patternName(id)}`, age: 0 };
 }
 
 // Debug key I on the map (M2e §6): a random unowned item joins the run (seeded from the run seed),

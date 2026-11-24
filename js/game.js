@@ -33,7 +33,7 @@ import { isStepMode } from './systems/stepSystem.js';
 import { GameState, PrepMode, ActionState } from './states.js';
 import { sceneFor } from './scene.js';
 import { updatePotions } from './systems/potionSystem.js';
-import { createRun, mapNode, nodeState, encounterSeed, recordVictory, isRunComplete, isRegionComplete, startingDruidHp, randomUnownedItem, addItem, enterRegion, nextRegionId, regionStartNode, deathLoss, applyDeathLoss } from './run.js';
+import { createRun, mapNode, nodeState, encounterSeed, recordVictory, isRunComplete, isRegionComplete, startingDruidHp, currentDruidHp, randomUnownedItem, addItem, enterRegion, nextRegionId, regionStartNode, deathLoss, applyDeathLoss } from './run.js';
 import { resolveStats } from './stats.js';
 import { events } from './events.js';
 import { updateDruidMelee } from './systems/druidMeleeSystem.js';
@@ -43,7 +43,7 @@ import { startSweep, updateSweep, finishSweep } from './systems/sweepSystem.js';
 import { updateVisit, enterTrader, isTraderNode } from './visit.js';
 import { updateTinker, enterTinker, isTinkerNode } from './tinker.js';
 import { updateVillage, enterVillage, isVillageNode } from './village.js';
-import { learnPattern, randomUnknownPattern } from './patterns.js';
+import { learnPattern, randomUnknownPattern, randomUnknownSovereignRecipe, patternName } from './patterns.js';
 
 export { GameState };
 
@@ -172,7 +172,7 @@ export function setState(game, next) {
 // DEBUG_SEED is set). The layout is generated from it before anything else uses the RNG (M1c §3).
 // newSeed: always draw a new seed, even with DEBUG_SEED (debug key L, §6.1). levelId: switch to
 // that level first; otherwise the current level. resources: start Prep with these instead of
-// none. druidHp: start with this HP instead of full (CARRY_DRUID_HP, M2a §3).
+// none. druidHp: start with this HP instead of full (the run's, Potions §6).
 export function startEncounter(game, { newSeed = false, levelId = null, resources = null, seed = null, druidHp = null } = {}) {
   if (levelId && levelId !== game.levelId) {
     game.levelId = levelId;
@@ -320,7 +320,7 @@ function finishEnding(game) {
     const h = game.hiddenFind;
     const itemJoined = h?.found && h.kind === 'item' && addItem(game.run, h.itemId);
     if (h?.found && h.kind === 'pattern' && learnPattern(h.itemId)) {
-      game.mapMessage = { text: `Pattern learned: ${C.ITEMS[h.itemId].name}`, age: 0 };
+      game.mapMessage = { text: `Pattern learned: ${patternName(h.itemId)}`, age: 0 };
     }
     recordVictory(game.run, game.resources, game.druidHp);
     if (isRunComplete(game.run)) events.emit('runComplete', {});
@@ -359,16 +359,16 @@ function emitRegionEntered(game) {
 }
 
 // On the map the HUD shows the run (M3a: after a crossing or a return too): its carried resources and
-// the HP the next battle would start with.
-function showRunOnHud(game) {
+// the Druid's HP between battles (Potions §6). Also after equipping or drinking on the map (main.js).
+export function showRunOnHud(game) {
   const run = game.run;
   game.stats = resolveStats(run.equipped, C.LEVELS[regionStartNode(run.regionId)]);
   game.resources = { ...run.inventory };
-  game.druidHp = startingDruidHp(run, game.stats['druid.maxHp']);
+  game.druidHp = currentDruidHp(run, game.stats['druid.maxHp']);
 }
 
 // Clicking an available map node: its encounter's Prep, with the carried resources, the node's
-// derived seed and (with CARRY_DRUID_HP) the carried HP. Returns false for any other node.
+// derived seed and the carried HP plus the regained share (Potions §6). Returns false for any other node.
 export function enterNode(game, nodeId) {
   if (game.state !== GameState.MAP || nodeState(game.run, nodeId) !== 'available') return false;
   if (isTraderNode(game.run, nodeId)) return enterTrader(game, nodeId); // M2n §4.1: a Trader's scene, not an encounter
@@ -478,12 +478,18 @@ function checkEndConditions(game) {
 // patternWeight, or else an item the run doesn't own (never a crafted one), weighted by rarity. If the
 // chosen pool is empty the other one is used. Nothing in the spot's look or tooltip shows it. Null
 // when there is no run (direct starts), no spot, or both pools are empty.
-// hiddenFind: { featureIndex, kind: 'item' | 'pattern', itemId (the item, or the item the pattern is for), found }
+// Potions §7: a pattern may be a potion recipe; in a region's boss battle (its node has no `next`) the
+// find is first, with SOVEREIGN_RECIPE_FIND_CHANCE, a Sovereign recipe not known yet (found only).
+// hiddenFind: { featureIndex, kind: 'item' | 'pattern', itemId (the item, or the item the pattern is
+// for, or the potion key of a potion recipe), found }
 function hideFind(game) {
   if (!game.run || C.ITEMS_PER_BATTLE < 1 || game.features.length === 0) return null;
   const pools = { item: () => randomUnownedItem(game.run, game.rng), pattern: () => randomUnknownPattern(game.rng) };
-  let kind = game.rng.next() < C.FIND_PATTERN_CHANCE ? 'pattern' : 'item';
-  let itemId = pools[kind]();
+  const node = game.run.currentNodeId ? mapNode(game.run, game.run.currentNodeId) : null;
+  const sovereign = node && node.levelId === game.levelId && node.next.length === 0 && game.rng.next() < C.SOVEREIGN_RECIPE_FIND_CHANCE
+    ? randomUnknownSovereignRecipe(game.rng) : null;
+  let kind = sovereign || game.rng.next() < C.FIND_PATTERN_CHANCE ? 'pattern' : 'item';
+  let itemId = sovereign ?? pools[kind]();
   if (!itemId) {
     kind = kind === 'item' ? 'pattern' : 'item';
     itemId = pools[kind]();

@@ -8,6 +8,7 @@ import * as C from '../config.js';
 import { drawPlaceScene, placePaletteId } from './placeScene.js';
 import { drawShadow } from './environment.js';
 import { drawFramedItemIcon } from './items.js';
+import { drawPotionIcon } from './potions.js';
 
 const COLORS = {
   iron: '#3a3836',
@@ -344,7 +345,8 @@ export function drawCraft(ctx, anvil, visit, age) {
   ctx.beginPath();
   ctx.arc(face.x, y, 90, 0, Math.PI * 2);
   ctx.fill();
-  drawFramedItemIcon(ctx, visit.craftItem, face.x, y, 84 * pop);
+  if (C.POTIONS[visit.craftItem]) drawPotionIcon(ctx, visit.craftItem, face.x, y, 84 * pop); // Potions §7
+  else drawFramedItemIcon(ctx, visit.craftItem, face.x, y, 84 * pop);
   ctx.restore();
   if (k < 0.6) drawSparks(ctx, face.x, y, k / 0.6, 20, 150, 3);
 }
