@@ -15,7 +15,7 @@ export const STAGE_HEIGHT = 1080;
 export const SIM_STEP = 1 / 60;          // seconds, fixed timestep
 export const MAX_FRAME_DT = 0.05;        // real seconds; larger frame gaps (tab switch) are clamped
 export const MAX_STEPS_PER_FRAME = 12;   // hard cap on sim steps per animation frame (covers ×4 speed)
-export const SIM_SPEEDS = [1, 2, 4];     // game speeds for the player in Combat (M2k §1: HUD buttons, keys 1 / 2 / 4)
+export const SIM_SPEEDS = [1, 2, 4];     // game speeds for the player in Combat (M2k §1: the HUD button, Tab to cycle, Shift+1 / 2 / 4)
 
 // ---------------------------------------------------------------------------
 // M1b addendum §9 — step-budget Prep (docs/M1B_STEPS_ADDENDUM.md)
@@ -564,7 +564,7 @@ export const POTION_LIQUID = {
   burrowcall: '#c88a48', firebomb: '#ff5a1a', acidFlask: '#c4f020', sporecapFlask: '#cdbcec', tanglevineFlask: '#2f7a3a',
 };
 export const POTION_MAX_SLOTS = 5;        // the most belt slots the UI lays out (§3.1: 5 is for future belts)
-export const POTION_SOCKET_SIZE = 56;     // px, a battle belt socket (bottom right of the wilds screen, §3.3)
+export const POTION_SOCKET_SIZE = 44;     // px, a battle belt socket (in the HUD strip beside the HP bar, §3.3)
 export const POTION_MAP_SOCKET_SIZE = 30; // px, a socket on the equipment portrait's belt (§3.2)
 
 

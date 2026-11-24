@@ -19,6 +19,9 @@
             <div id="hud-hp-bar"><div id="hud-hp-fill"></div></div>
             <span id="hud-hp-text"></span>
           </div>
+          <!-- Potion belt (Potions §3.3), beside the HP bar from Prep to Defeat once the run owns a
+               potion: one socket per slot, keys 1-5. Built by js/potionBelt.js. -->
+          <div id="potion-belt" hidden></div>
           <!-- Icons are inserted from js/icons.js, shared with the drop items on the canvas. -->
           <!-- M3e §2.1: gold on its own, apart from the materials. -->
           <span class="res res-currency" title="Gold">
@@ -83,7 +86,7 @@
         <div class="hud-right">
           <button id="btn-start-combat" type="button">Start Combat</button>
           <!-- Game speed (M2k §1), Combat only: one button cycling ×1, ×2, ×4; also keys 1 / 2 / 4. -->
-          <button id="hud-speed" type="button" title="Game speed (click to change, or keys 1 / 2 / 4; Shift+1 / 2 / 4 once you carry potions)" hidden>×1</button>
+          <button id="hud-speed" type="button" title="Game speed (click or Tab to change, or Shift+1 / 2 / 4)" hidden>×1</button>
           <!-- Mute toggle (M1g §3.6); also the V key. -->
           <button id="btn-mute" type="button" title="Sound on (V to mute)">
             <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
@@ -142,9 +145,7 @@
       <!-- Summon panel (M2q), Combat only: one card per summon, built by js/ui.js. Before the menu
            and tooltip, so they open over it. -->
       <div id="summon-panel" hidden></div>
-      <!-- Potion belt (Potions §3.3), bottom right in battle once the run owns a potion: one socket per
-           slot, keys 1-5. Built by js/potionBelt.js. -->
-      <div id="potion-belt" hidden></div>
+      <!-- Potions §3.3: the battle belt's tooltip, under the HUD strip. -->
       <div id="potion-tip" hidden></div>
 
       <!-- Equipment panel on the map (M2e §4), built by js/equipmentPanel.js. -->

@@ -19,7 +19,6 @@ import { fitsCorridor } from '../js/entities/enemy.js';
 import { trialOutcome, trialFailRate, drawFitRate, routeBand, centredBudget } from '../js/layout.js';
 import { decorOverlaps } from '../js/mapDraft.js';
 import { levelNameLabelProblems, bossBarProblems, wavePreviewProblems } from '../js/ui.js';
-import { potionBeltProblems } from '../js/potionBelt.js';
 
 export const ROUTE_TRIALS = 50;   // layouts made as the game makes them, for the Prep figures
 const FAIL_WARN_RATE = 0.2;       // a "no fair draw" rate above this is a warning
@@ -38,7 +37,7 @@ function groupOf(check) {
   return 'Waves';
 }
 
-// areas: the UI areas measured once per level, { label, bossBar, wavePreview, potionBelt }.
+// areas: the UI areas measured once per level, { label, bossBar, wavePreview }.
 // laneRows: the sheet's lanes reference tab (data/lanes.csv), whose ids the spawns tab offers.
 export function cheapChecks(scene, map, areas, laneRows = []) {
   const { level, levelId } = scene;
@@ -47,7 +46,7 @@ export function cheapChecks(scene, map, areas, laneRows = []) {
 
   for (const m of mapProblems(map, levelId)) add('Map file', 'error', m);
   for (const c of levelChecks(scene)) add(groupOf(c), c.severity, c.message, c.target);
-  const underUi = [...levelNameLabelProblems(scene, areas.label), ...bossBarProblems(scene, areas.bossBar), ...wavePreviewProblems(scene, areas.wavePreview), ...potionBeltProblems(scene, areas.potionBelt)];
+  const underUi = [...levelNameLabelProblems(scene, areas.label), ...bossBarProblems(scene, areas.bossBar), ...wavePreviewProblems(scene, areas.wavePreview)];
   for (const p of underUi) add('Candidates', 'warn', p.problem, { kind: 'candidate', index: p.index });
 
   // Zones: candidates per zone against its quota (turret + feature), e.g. "fN 4 / 5".

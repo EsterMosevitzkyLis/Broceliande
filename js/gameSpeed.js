@@ -1,5 +1,5 @@
-// Player game speed (M2k §1, M2m §1): ×1 / ×2 / ×4, chosen with the HUD buttons or keys 1 / 2 / 4
-// in Combat. The choice holds through a battle's waves and gaps; every battle's Combat starts at
+// Player game speed (M2k §1, M2m §1): ×1 / ×2 / ×4, chosen with the HUD button, Tab (cycles) or
+// Shift+1 / 2 / 4 in Combat. The choice holds through a battle's waves and gaps; every battle's Combat starts at
 // ×1 and nothing is remembered between battles or sessions. Outside Combat (Prep, ENDING,
 // overlays, the map) the game runs at ×1; main.js applies that. UI-only state: the simulation
 // never reads it.

@@ -13,7 +13,6 @@ import { levelFromMap, MAP_DIR } from '../js/mapFile.js';
 import { sceneFromLevel } from '../js/scene.js';
 import { geometricZone, zoneIds, zoneQuota, zoneCandidates } from '../js/zones.js';
 import { levelNameLabelArea, bossBarArea, wavePreviewArea } from '../js/ui.js';
-import { potionBeltArea } from '../js/potionBelt.js';
 import { trialSetup, layoutTrial } from '../js/layout.js';
 import { clipMire, encodeMire } from '../js/mire.js';
 import { BACKGROUND_DIR } from '../js/mapFile.js';
@@ -433,7 +432,7 @@ function rebuild() {
     }
   }
   // The UI areas depend only on the level's name and waves: measured once per level.
-  ed.areas ??= { label: levelNameLabelArea(ed.scene), bossBar: bossBarArea(), wavePreview: wavePreviewArea(ed.scene), potionBelt: potionBeltArea() };
+  ed.areas ??= { label: levelNameLabelArea(ed.scene), bossBar: bossBarArea(), wavePreview: wavePreviewArea(ed.scene) };
   ed.checks = cheapChecks(ed.scene, ed.map, ed.areas, ed.data.laneRows);
   updateDirty();
   showChecks();
@@ -696,7 +695,7 @@ function brushOutline() {
 function frame(now) {
   if (ed.needsRebuild) rebuild();
   if (ed.scene) {
-    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }, { ...ed.areas.potionBelt, name: 'potion belt' }] : [], tool: ed.tool, box: ed.box, bgOpacity: ed.bgOpacity, brush: brushOutline(), preview: ed.preview.data, newLaneAt: ed.newLane && ed.pointer ? entryAt(ed.pointer) : null });
+    drawView(ctx, ed.scene, { layers: ed.layers, time: now / 1000, checks: ed.checks, selection: ed.selection, areas: ed.areas ? [{ ...ed.areas.label, name: 'level name' }, { ...ed.areas.bossBar, name: 'boss bar' }, { ...ed.areas.wavePreview, name: 'wave preview' }] : [], tool: ed.tool, box: ed.box, bgOpacity: ed.bgOpacity, brush: brushOutline(), preview: ed.preview.data, newLaneAt: ed.newLane && ed.pointer ? entryAt(ed.pointer) : null });
   }
   requestAnimationFrame(frame);
 }

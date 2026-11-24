@@ -15,7 +15,7 @@ import { toggleDropMult } from './systems/dropSystem.js';
 import { initAudio, toggleMute } from './audio.js';
 import { isRunComplete, availableNodeAt, validateMap, regenerateMap, addItem, equipItem, unequipSlot, randomUnownedItem, markSlotSeen, regionStartNode, enterRegion, consumePotion } from './run.js';
 import { createEquipmentPanel } from './equipmentPanel.js';
-import { createPotionBelt, checkPotionBelt } from './potionBelt.js';
+import { createPotionBelt } from './potionBelt.js';
 import { createPotionPanel } from './potionPanel.js';
 import { usePotion, isBeltShown } from './systems/potionSystem.js';
 import { addFaintPotions, equipPotion, unequipPotion } from './potions.js';
@@ -154,7 +154,6 @@ checkLevelNameLabel(LEVEL_IDS.map(sceneFor)); // M2a §6: the label must not cov
 for (const id of LEVEL_IDS) sceneFor(id).labelArea = levelNameLabelArea(sceneFor(id)); // drops land clear of it (dropSystem.js)
 checkBossBar(LEVEL_IDS.map(sceneFor));        // M2c §2.7: nor may the boss HP bar
 checkWavePreview(LEVEL_IDS.map(sceneFor));    // M2i §4.2: nor the wave preview
-checkPotionBelt(LEVEL_IDS.map(sceneFor));     // Potions §3.3: nor the potion belt (with its most slots)
 if (view.debug) logWaveTotals();              // M2i §2: per-wave totals, to compare with the comments
 // Equipment panel on the map (M2e §4): equipping is free and only possible there, between battles.
 const equipPanel = createEquipmentPanel({
@@ -242,10 +241,18 @@ const input = createInput(stage, canvas, () => scale, {
     }
   },
   onKeyDown(key, e) {
-    // Potions §3.3: once the battle belt shows, keys 1-5 are its slots, and Shift+1 / 2 / 4 set the game speed.
+    // Game speed (M2k §1, Potions §3.3): Shift+1 / 2 / 4 set it directly, Tab cycles it. Tab never
+    // moves the page's focus here, except in a text field.
     if (e.shiftKey && /^Digit\d$/.test(e.code)) {
       const n = Number(e.code.slice(5));
       if (C.SIM_SPEEDS.includes(n)) setSpeed(n);
+      return;
+    }
+    if (key === 'Tab') {
+      if (isTextField(e.target)) return;
+      e.preventDefault();
+      const speeds = C.SIM_SPEEDS;
+      setSpeed(speeds[(speeds.indexOf(chosenSpeed()) + 1) % speeds.length]);
       return;
     }
     switch (key) {
@@ -258,12 +265,11 @@ const input = createInput(stage, canvas, () => scale, {
       case 'p': // P: pause; Shift+P on the map (M2p §6): learn a random unknown pattern
         if (e.shiftKey) { if (game.state === GameState.MAP) debugLearnPattern(); } else clock.paused = !clock.paused;
         break;
-      // Keys 1-6 pick a build menu's tiles while it is open; otherwise, with the potion belt shown
-      // (Potions §3.3), 1-5 use its slots; without it, 1 / 2 / 4 set the game speed (M2k §1, Combat only).
+      // Keys 1-6 pick a build menu's tiles while it is open; otherwise 1-5 use the potion belt's
+      // slots (Potions §3.3), and do nothing without a belt.
       case '1': case '2': case '3': case '4': case '5': case '6':
         if (ui.pickMenuTile(view, Number(key) - 1)) break;
-        if (isBeltShown(game)) { if (Number(key) <= C.POTION_MAX_SLOTS) usePotion(game, Number(key) - 1); break; }
-        if (C.SIM_SPEEDS.includes(Number(key))) setSpeed(Number(key));
+        if (isBeltShown(game) && Number(key) <= C.POTION_MAX_SLOTS) usePotion(game, Number(key) - 1);
         break;
       case 'f': if (e.shiftKey && game.run) addFaintPotions(game.run); break; // debug Shift+F (Potions §8): one of each Faint potion
       case 'n': // N: start Combat from Prep; Shift+N (M2i §7): kill all and skip the rest of this wave
@@ -336,9 +342,14 @@ function inEncounter() {
   return game.state !== GameState.MAP && game.state !== GameState.CROSSING && !isPlaceScene(game.state);
 }
 
-// M2k §1.1: the HUD speed buttons and keys 1 / 2 / 4 choose the game speed, in Combat only.
+// M2k §1.1: the HUD speed button, Tab and Shift+1 / 2 / 4 choose the game speed, in Combat only.
 function setSpeed(speed) {
   if (game.state === GameState.COMBAT) setChosenSpeed(speed);
+}
+
+// A text field (the debug panel's inputs), where Tab keeps moving focus as usual.
+function isTextField(el) {
+  return !!el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 }
 
 // Q / W / E / R (SUMMON_KEYS): the summon shortcuts, Combat only (ignored in Prep, on the map, in ENDING).

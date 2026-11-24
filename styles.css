@@ -2044,16 +2044,15 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
 }
 
 /* ---------- Potions (Potions addendum §3) ---------- */
-/* The battle belt, bottom right: one socket per slot with its hotkey; greyed and swept on cooldown. */
+/* The battle belt, in the HUD strip beside the HP bar: one socket per slot with its hotkey; greyed
+   and swept on cooldown. */
 #potion-belt {
-  position: absolute;
-  right: 10px;
-  bottom: 6px;
   display: flex;
-  gap: 6px;
-  padding: 5px;
-  background: rgba(20, 26, 16, 0.62);
-  border-radius: 12px;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 26px;
+  background: rgba(0, 0, 0, 0.22);
   pointer-events: none;
 }
 #potion-belt[hidden] { display: none; }
@@ -2080,9 +2079,9 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
 }
 .potion-key {
   position: absolute;
-  right: 5px;
+  right: 4px;
   bottom: 1px;
-  font: bold 14px/1 sans-serif;
+  font: bold 12px/1 sans-serif;
   color: #f1e8cc;
   text-shadow: 0 1px 3px #000, 0 0 2px #000;
 }
@@ -2099,7 +2098,7 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
   pointer-events: none;
   text-shadow: none;
 }
-#potion-tip { bottom: 84px; }
+#potion-tip { top: 86px; }
 .potion-tip-name { font-size: 17px; }
 .potion-tip-kind { font-size: 12px; letter-spacing: 0.04em; color: #b9b29a; margin: 2px 0 4px; }
 .potion-tip-desc { font-size: 14px; color: #d8d0b4; }
