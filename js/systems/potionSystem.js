@@ -9,7 +9,11 @@
 //     nextTick: Regeneration's next heal, Thorn Aura's next damage, Rootgrip's next pulse (combat time)
 // Self effects with a stat (Wards, Fury, Quickening) are timed stat modifiers: game.stats is resolved
 // again (equipment, then the active potions) whenever one starts or ends. Auras (phase 4) work on every
-// enemy within their radius of the Druid's home. All effects end with the battle.
+// enemy within their radius of the Druid's home. Thrown flasks (phase 5) fly to a spot and break there:
+//   game.flasks: [{ key, from, to, age, flight }] in flight (Combat time; the effect lands on arrival)
+//   game.potionFields: [{ key, id, x, y, radius, born, until, nextTick }] what a broken flask leaves on
+//     the ground: Firebomb's fire, Sporecap's cloud, Tanglevine's vines, Acid's splash (the last two
+//     only for drawing). All effects end with the battle.
 
 import * as C from '../config.js';
 import { GameState } from '../states.js';
@@ -19,7 +23,7 @@ import { resolveStats } from '../stats.js';
 import { potionRow, isPotionWorking } from '../potions.js';
 import { isStepMode } from './stepSystem.js';
 import { damageEnemy } from './combatSystem.js';
-import { applySlowAtLeast, applyRoot, applyConfuse, isConfused } from './statusSystem.js';
+import { applySlowAtLeast, applyRoot, applyConfuse, isConfused, applyCorrode } from './statusSystem.js';
 
 // The states the battle belt shows in (greyed outside Prep and Combat).
 const BELT_STATES = [GameState.PREP, GameState.COMBAT, GameState.ENDING, GameState.VICTORY, GameState.DEFEAT];
@@ -46,6 +50,7 @@ export function potionUseBlocker(game, slot) {
   if (p.use === 'auto') return 'Used by itself when needed';
   if (!isPotionWorking(key)) return 'Not in the game yet';
   if (p.use === 'prepOnly' && game.state === GameState.COMBAT) return 'Only in Prep';
+  if (p.use === 'throw' && game.state !== GameState.COMBAT) return 'Only in Combat';
   if (game.state === GameState.COMBAT && game.potionCooldown > 0) return 'Wait for the cooldown';
   if (p.id === 'healing' && game.druidHp >= game.stats['druid.maxHp']) return 'Already at full HP';
   if (p.id === 'foresight' && !isStepMode(game)) return 'Only with a step budget';
@@ -120,6 +125,8 @@ export function startQueuedEffects(game) {
 
 // §5: all effects end when the battle ends.
 export function endPotionEffects(game) {
+  game.flasks = [];
+  game.potionFields = [];
   if (!Object.keys(game.potionEffects ?? {}).length) return;
   game.potionEffects = {};
   refreshPotionStats(game);
@@ -134,7 +141,7 @@ function healDruid(game, amount) {
 
 // Uses the potion in a belt slot (click or keys 1-5); false if it can't be used now.
 export function usePotion(game, slot) {
-  if (potionUseBlocker(game, slot)) return false;
+  if (potionUseBlocker(game, slot) || isThrowSlot(game, slot)) return false;
   const key = game.run.belt[slot];
   const p = potionRow(key);
   game.run.belt[slot] = null;
@@ -151,6 +158,75 @@ export function usePotion(game, slot) {
   if (TIMED.includes(p.id) && effectDuration(p) > 0) startEffect(game, key);
   events.emit('potionUsed', { key, slot });
   return true;
+}
+
+// Whether the slot holds a flask to throw (§4.4: it needs a spot, so a click or key starts aiming).
+export function isThrowSlot(game, slot) {
+  const key = game.run?.belt[slot];
+  return !!key && potionRow(key).use === 'throw';
+}
+
+// §4.4: throws the flask in a belt slot at a spot (any distance). It flies from the Druid and breaks
+// on arrival (FLASK_FLIGHT_TIME s later). Starts the shared cooldown. false if it can't be thrown now.
+export function throwPotion(game, slot, at) {
+  if (!isThrowSlot(game, slot) || potionUseBlocker(game, slot)) return false;
+  const key = game.run.belt[slot];
+  game.run.belt[slot] = null;
+  game.potionCooldown = C.POTION_COOLDOWN;
+  const from = { x: game.druidPos.x, y: game.druidPos.y - C.DRUID_RADIUS };
+  game.flasks.push({ key, from, to: { x: at.x, y: at.y }, age: 0, flight: C.FLASK_FLIGHT_TIME });
+  events.emit('potionUsed', { key, slot });
+  return true;
+}
+
+// The enemies a flask reaches: every one whose body is within `radius` of the spot.
+function enemiesNear(game, x, y, radius) {
+  return game.enemies.filter((en) => Math.hypot(en.x - x, en.y - y) <= radius + en.radius);
+}
+
+// A flask breaks where it lands (§5): Acid corrodes and Tanglevine roots whoever is there at once;
+// Firebomb and Sporecap leave a patch that works while it lasts (updateFields).
+function breakFlask(game, f) {
+  const p = potionRow(f.key);
+  const now = game.combatTime;
+  const near = enemiesNear(game, f.to.x, f.to.y, p.radius);
+  if (p.id === 'acidFlask') {
+    const mult = 1 + p.amount / 100;
+    for (const en of near) {
+      const old = en.statuses.corroded;
+      if (old && old.mult > mult && old.until >= now + p.duration) continue; // never weakens a stronger one
+      applyCorrode(game, en, Math.max(mult, old?.mult ?? 0), p.duration);
+    }
+  }
+  if (p.id === 'tanglevineFlask') for (const en of near) applyRoot(game, en, p.amount);
+  const life = p.id === 'acidFlask' ? C.ACID_SPLASH_TIME : p.duration;
+  game.potionFields.push({ key: f.key, id: p.id, x: f.to.x, y: f.to.y, radius: p.radius, born: now, until: now + life, nextTick: now + C.POTION_TICK_INTERVAL });
+  events.emit('flaskBroke', { key: f.key, x: f.to.x, y: f.to.y });
+}
+
+// Each Combat step: flasks in flight, and the patches broken flasks left.
+//   Firebomb: every enemy inside takes `amount` damage a second, in POTION_TICK_INTERVAL ticks
+//   Sporecap: every enemy inside is Confused for `amount` s, refreshed while it stays inside
+function updateFlasks(game, dt) {
+  for (const f of game.flasks) {
+    f.age += dt;
+    if (f.age >= f.flight - EPS) breakFlask(game, f);
+  }
+  game.flasks = game.flasks.filter((f) => f.age < f.flight - EPS);
+  const now = game.combatTime;
+  for (const field of game.potionFields) {
+    const p = potionRow(field.key);
+    if (p.id === 'sporecapFlask') for (const en of enemiesNear(game, field.x, field.y, p.radius)) applyConfuse(game, en, p.amount);
+    if (p.id === 'firebomb') {
+      while (field.nextTick <= field.until + EPS && now >= field.nextTick - EPS) {
+        field.nextTick += C.POTION_TICK_INTERVAL;
+        for (const en of enemiesNear(game, field.x, field.y, p.radius)) {
+          if (game.enemies.includes(en)) damageEnemy(game, en, p.amount * C.POTION_TICK_INTERVAL, `potion:${p.id}`);
+        }
+      }
+    }
+  }
+  game.potionFields = game.potionFields.filter((field) => now < field.until - EPS);
 }
 
 // Phoenix (§5, auto): the Druid's HP would reach 0 in Combat, so the first Phoenix in a belt slot is
@@ -181,6 +257,7 @@ export function isDruidImmune(game) {
 // ticks, and effects running out.
 export function updatePotions(game, dt) {
   if (game.potionCooldown > 0) game.potionCooldown = Math.max(0, game.potionCooldown - dt);
+  updateFlasks(game, dt);
   let ended = false;
   for (const [id, e] of Object.entries(game.potionEffects)) {
     if (e.until === null) continue;

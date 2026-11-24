@@ -6,6 +6,8 @@
 //   - M6d §2.4: choosing the Scale Bulwark opens wall placement mode (view.wallPlacement); a click on
 //     a valid wall position confirms the build there, Esc / right-click leaves it at no cost.
 //     They never cancel a Bough Double's job (only "Cancel job" in the target's menu does, M1i §2.6).
+//   - Potions §4.4: while aiming a flask (view.aiming), a click on the battlefield throws it there;
+//     Esc / right-click cancels it first, and the flask stays in its slot.
 
 import { GameState, ActionState } from './states.js';
 import { pick } from './picking.js';
@@ -23,6 +25,7 @@ import { availableNodeAt } from './run.js';
 import * as C from './config.js';
 import { resolveHiddenSpot } from './systems/hiddenSpotSystem.js';
 import { events } from './events.js';
+import { throwPotion } from './systems/potionSystem.js';
 
 const SUMMON_FLASH_MS = C.SUMMON_DENIED_FLASH_TIME * 1000; // real time: a UI flash, not gameplay
 
@@ -55,6 +58,10 @@ export function createInteraction(game, view) {
       return;
     }
     if (game.state !== GameState.PREP && game.state !== GameState.COMBAT) return;
+    if (view.aiming) {
+      if (world.y >= C.HUD_STRIP_HEIGHT && throwPotion(game, view.aiming.slot, world)) view.aiming = null; // not on the HUD strip
+      return;
+    }
     if (view.wallPlacement) {
       confirmWall(world);
       return;
@@ -120,6 +127,10 @@ export function createInteraction(game, view) {
   }
 
   function onEscape() {
+    if (view.aiming) {
+      view.aiming = null; // Potions §4.4: the flask stays in its slot
+      return;
+    }
     if (game.state === GameState.ENDING) return; // M1e §1.2: input disabled while the battle ends
     if (view.wallPlacement) {
       view.wallPlacement = null; // M6d §2.4: cancelled at no cost (a Double keeps targeting)

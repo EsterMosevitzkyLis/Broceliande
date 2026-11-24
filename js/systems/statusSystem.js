@@ -6,7 +6,7 @@
 //             tickDamage every tickInterval s (burnSystem.js), M2o §2.2; spreadRadius > 0: Wildfire
 //   shielded: { until, amount, max } — absorbs damage before HP (M6b §3, damageEnemy in combatSystem.js)
 //   confused: { until } — Potions §5: walks back along its lane, attacking nothing (movementSystem.js)
-// Rooted (Potions §5) is Slowed to 0.
+// Rooted (Potions §5) is Slowed to 0: slowed with rooted: true (a weaker slow never replaces it).
 
 import * as C from '../config.js';
 import { enemyType, EnemyState, AttackState } from '../entities/enemy.js';
@@ -15,6 +15,8 @@ import { enemyType, EnemyState, AttackState } from '../entities/enemy.js';
 // slowResist (M2l §1.3, the Grim Wolf's Dogged) ignores that fraction of the slow:
 // effective mult = 1 − (1 − mult) × (1 − slowResist).
 export function applySlow(game, enemy, mult, duration) {
+  const old = enemy.statuses.slowed;
+  if (old?.rooted && mult > 0 && old.until > game.combatTime) return; // Potions §5: a root holds
   const resist = enemyType(enemy).slowResist ?? 0;
   enemy.statuses.slowed = { until: game.combatTime + duration, mult: 1 - (1 - mult) * (1 - resist) };
 }
@@ -32,8 +34,15 @@ export function applySlowAtLeast(game, enemy, mult, duration) {
 // Potions §5: Rooted = Slowed to 0 (slowResist still applies) for `duration` s. Bosses ignore it.
 export function applyRoot(game, enemy, duration) {
   if (enemyType(enemy).boss || !(duration > 0)) return false;
-  applySlow(game, enemy, 0, duration);
+  const old = enemy.statuses.slowed;
+  const until = Math.max(old?.rooted ? old.until : 0, game.combatTime + duration);
+  applySlow(game, enemy, 0, until - game.combatTime);
+  enemy.statuses.slowed.rooted = true;
   return true;
+}
+
+export function isRooted(enemy) {
+  return !!enemy.statuses.slowed?.rooted;
 }
 
 // Potions §5: Confused for `duration` s (a longer confusion already on it is kept). The enemy lets go

@@ -1,6 +1,6 @@
 // The potion belt on the wilds screen (Potions addendum §3.3): in the HUD strip beside the HP bar
 // (clear of every build spot and the level name label), one socket per belt
-// slot with its potion and hotkey (1-5). A click or the key uses the slot. Greyed sockets: the
+// slot with its potion and hotkey (1-5). A click or the key uses the slot (a flask: aims it, §4.4). Greyed sockets: the
 // shared cooldown (with a sweep), a Prep-only potion in Combat, a potion that can't be used now.
 // Hovering a socket shows the potion's tooltip. HTML over the canvas; reads the game and changes it
 // only through the onUse callback (main.js).
@@ -99,7 +99,8 @@ export function createPotionBelt(callbacks) {
     });
   }
 
-  function update(g) {
+  // aimSlot: the slot whose flask is being aimed, or null.
+  function update(g, aimSlot = null) {
     game = g;
     const shown = isBeltShown(game);
     belt.hidden = !shown;
@@ -111,7 +112,7 @@ export function createPotionBelt(callbacks) {
     }
     const run = game.run;
     const blockers = run.belt.map((_, i) => potionUseBlocker(game, i));
-    const k = JSON.stringify([run.belt, blockers]);
+    const k = JSON.stringify([run.belt, blockers, aimSlot]);
     if (k !== key) {
       key = k;
       if (sockets.length !== run.belt.length) build(run.belt.length);
@@ -122,6 +123,7 @@ export function createPotionBelt(callbacks) {
         if (potion) drawPotionIcon(ctx, potion, icon.width / 2, icon.height / 2, icon.width * ICON_PAD, !!blockers[i]);
         btn.classList.toggle('filled', !!potion);
         btn.classList.toggle('greyed', !!potion && !!blockers[i]);
+        btn.classList.toggle('aiming', i === aimSlot);
       });
       if (hovered !== null) showTip();
     }

@@ -285,3 +285,200 @@ export function drawConfusedStars(ctx, x, y, t) {
   }
   ctx.restore();
 }
+
+// §4.4 aiming: a ring of the flask's radius following the cursor, in its liquid's colour. t: s (animation).
+export function drawAimRing(ctx, x, y, radius, color, t) {
+  ctx.save();
+  ctx.globalAlpha = 0.16;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.9;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
+  ctx.lineDashOffset = -t * 20;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x - 6, y); ctx.lineTo(x + 6, y);
+  ctx.moveTo(x, y - 6); ctx.lineTo(x, y + 6);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// A thrown flask in flight (§4.4): its icon tumbling along a short arc from the Druid to the spot.
+export function drawFlask(ctx, f) {
+  const k = Math.min(1, f.age / f.flight);
+  const x = f.from.x + (f.to.x - f.from.x) * k;
+  const y = f.from.y + (f.to.y - f.from.y) * k - C.FLASK_ARC_HEIGHT * 4 * k * (1 - k);
+  ctx.save();
+  // Its shadow on the ground below the arc.
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(f.from.x + (f.to.x - f.from.x) * k, f.from.y + (f.to.y - f.from.y) * k + 6, 7, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.translate(x, y);
+  ctx.rotate(k * Math.PI * 3);
+  drawPotionIcon(ctx, f.key, 0, 0, 26);
+  ctx.restore();
+}
+
+// A cheap stable pseudo-random number in [0, 1) from integers (drawing only, never the simulation).
+function hash(a, b) {
+  const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+// What a broken flask leaves (§5), its glass bursting first. f: a potionFields entry; now: combat
+// time; t: s (animation).
+export function drawPotionField(ctx, f, now, t) {
+  const age = now - f.born;
+  const fade = Math.min(1, Math.max(0, (f.until - now) / C.POTION_FIELD_FADE_TIME));
+  const grow = Math.min(1, age / 0.25);
+  const color = C.POTION_LIQUID[f.id];
+  const r = f.radius;
+  const seed = Math.round(f.x * 7 + f.y * 13);
+  ctx.save();
+  if (f.id === 'firebomb') {
+    const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, r * grow);
+    g.addColorStop(0, 'rgba(255, 200, 80, 0.55)');
+    g.addColorStop(0.7, 'rgba(255, 90, 26, 0.38)');
+    g.addColorStop(1, 'rgba(160, 30, 10, 0)');
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, r * grow, 0, Math.PI * 2);
+    ctx.fill();
+    const n = Math.round(r / 5);
+    for (let i = 0; i < n; i++) {
+      const a = hash(seed, i) * Math.PI * 2;
+      const d = Math.sqrt(hash(i, seed)) * r * 0.9 * grow;
+      const fx = f.x + Math.cos(a) * d;
+      const fy = f.y + Math.sin(a) * d;
+      const h = (6 + 8 * hash(i, i + seed)) * (0.7 + 0.3 * Math.sin(t * 9 + i * 1.7));
+      ctx.fillStyle = i % 3 ? color : '#ffd24a';
+      ctx.beginPath();
+      ctx.moveTo(fx - h * 0.35, fy);
+      ctx.quadraticCurveTo(fx + Math.sin(t * 6 + i) * 2, fy - h * 1.8, fx + h * 0.35, fy);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  if (f.id === 'sporecapFlask') {
+    const n = Math.round(r / 7);
+    for (let i = 0; i < n; i++) {
+      const a = hash(seed, i) * Math.PI * 2 + t * 0.25 * (i % 2 ? 1 : -1);
+      const d = Math.sqrt(hash(i, seed)) * r * 0.78 * grow;
+      const pr = (r * 0.22 + r * 0.12 * hash(i + 3, seed)) * grow;
+      ctx.globalAlpha = 0.28 * fade;
+      ctx.fillStyle = i % 4 ? color : '#efe4ff';
+      ctx.beginPath();
+      ctx.arc(f.x + Math.cos(a) * d, f.y + Math.sin(a) * d - 4 * Math.sin(t * 1.3 + i), pr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Floating spores.
+    ctx.fillStyle = '#f6eeff';
+    for (let i = 0; i < 14; i++) {
+      const a = hash(i, seed + 5) * Math.PI * 2 + t * 0.6;
+      const d = hash(seed + 5, i) * r * 0.9 * grow;
+      ctx.globalAlpha = 0.7 * fade;
+      ctx.beginPath();
+      ctx.arc(f.x + Math.cos(a) * d, f.y + Math.sin(a) * d - ((t * 10 + i * 7) % 14), 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if (f.id === 'tanglevineFlask') {
+    ctx.globalAlpha = fade;
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    const n = Math.round(r / 6);
+    for (let i = 0; i < n; i++) {
+      const a = hash(seed, i) * Math.PI * 2;
+      const d = Math.sqrt(hash(i, seed)) * r * 0.85;
+      const vx = f.x + Math.cos(a) * d;
+      const vy = f.y + Math.sin(a) * d;
+      const h = (10 + 10 * hash(i, i + seed)) * grow;
+      const sway = Math.sin(t * 2 + i) * 2;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(vx, vy);
+      ctx.bezierCurveTo(vx + 6 + sway, vy - h * 0.4, vx - 6 + sway, vy - h * 0.7, vx + sway, vy - h);
+      ctx.stroke();
+      ctx.fillStyle = '#5cae4a';
+      ctx.beginPath();
+      ctx.ellipse(vx + sway + 2, vy - h * 0.6, 3, 1.6, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if (f.id === 'acidFlask') {
+    const k = Math.min(1, age / C.ACID_SPLASH_TIME);
+    ctx.globalAlpha = 0.5 * (1 - k);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, r * (0.6 + 0.4 * grow), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.8 * (1 - k);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, r * (0.4 + 0.6 * k), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // The glass bursting and the liquid splashing out.
+  if (age < C.FLASK_BREAK_TIME) {
+    const k = age / C.FLASK_BREAK_TIME;
+    ctx.globalAlpha = 1 - k;
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 + hash(seed, i);
+      const d = 6 + 34 * k * (0.6 + 0.4 * hash(i, seed));
+      const sx = f.x + Math.cos(a) * d;
+      const sy = f.y + Math.sin(a) * d * 0.8 - 14 * Math.sin(k * Math.PI);
+      ctx.fillStyle = i % 2 ? color : 'rgba(235, 230, 245, 0.9)';
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - 3);
+      ctx.lineTo(sx + 2.5, sy + 2);
+      ctx.lineTo(sx - 2.5, sy + 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// Rooted (§5, Rootgrip and Tanglevine): vines curling up round the enemy's feet. x, y: its feet.
+export function drawRootMarker(ctx, x, y, radius, t, id) {
+  const r = radius * C.ROOT_MARKER_SIZE;
+  ctx.save();
+  ctx.lineCap = 'round';
+  // A dark patch of churned earth.
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#2e2414';
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + hash(id, i);
+    const bx = x + Math.cos(a) * r * 0.9;
+    const by = y + Math.sin(a) * r * 0.36;
+    const h = radius * (0.7 + 0.4 * hash(i, id)) * (0.94 + 0.06 * Math.sin(t * 3 + i));
+    const toward = x + Math.cos(a) * r * 0.25;
+    ctx.strokeStyle = i % 2 ? '#3f9a52' : '#6a4a26';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(bx + (bx - x) * 0.25, by - h * 0.6, toward, by - h);
+    ctx.stroke();
+    ctx.fillStyle = '#5cae4a';
+    ctx.beginPath();
+    ctx.ellipse(toward, by - h, 2.6, 1.4, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}

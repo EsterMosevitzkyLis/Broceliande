@@ -574,6 +574,12 @@ export const POTION_EFFECT_ICON_SIZE = 30; // px, an active potion effect's icon
 export const PHOENIX_BURST_TIME = 0.9;    // s, a Phoenix save's burst of flame (visual only)
 export const AURA_FADE_TIME = 3;          // s, an aura's ring fades out over its last this many seconds (§5, visual only)
 export const AURA_PULSE_TIME = 0.6;       // s, a Rootgrip pulse's ring spreading out (visual only)
+export const FLASK_FLIGHT_TIME = 0.45;    // s, a thrown flask's arc from the Druid to its spot; its effect lands on arrival (§4.4, visual)
+export const FLASK_ARC_HEIGHT = 80;       // px, how high the arc rises at its middle (visual only)
+export const FLASK_BREAK_TIME = 0.4;      // s, the glass shards bursting where a flask breaks (visual only)
+export const ACID_SPLASH_TIME = 0.9;      // s, Acid's splash on the ground (visual only; the Corrosion lasts its duration)
+export const POTION_FIELD_FADE_TIME = 0.6; // s, a flask's fire, cloud or vines fade out over their last this many seconds (visual only)
+export const ROOT_MARKER_SIZE = 1.25;     // a rooted enemy's vines reach this many times its radius round its feet (drawing only)
 export const ELDER_SQUIRREL_SCALE = 1.3;  // an Elder Squirrel (Burrowcall) is drawn this much larger (drawing only)
 
 

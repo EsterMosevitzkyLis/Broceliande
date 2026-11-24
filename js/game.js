@@ -207,6 +207,8 @@ export function startEncounter(game, { newSeed = false, levelId = null, resource
   game.druidImmuneUntil = -Infinity; // combat time the Phoenix save's immunity ends
   game.phoenixBursts = []; // { x, y, age } a Phoenix save's burst of flame (visual only)
   game.auraPulses = [];    // { x, y, radius, color, age } a Rootgrip pulse spreading out (visual only)
+  game.flasks = [];        // Potions §4.4: thrown flasks in flight (potionSystem.js)
+  game.potionFields = [];  // Potions §5: what broken flasks leave on the ground (potionSystem.js)
   game.druidMeleeTimer = 0;
   game.druidWasBusy = false;
   game.druidMeleeTargetId = null;

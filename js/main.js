@@ -17,7 +17,7 @@ import { isRunComplete, availableNodeAt, validateMap, regenerateMap, addItem, eq
 import { createEquipmentPanel } from './equipmentPanel.js';
 import { createPotionBelt } from './potionBelt.js';
 import { createPotionPanel } from './potionPanel.js';
-import { usePotion, isBeltShown } from './systems/potionSystem.js';
+import { usePotion, isBeltShown, isThrowSlot, potionUseBlocker } from './systems/potionSystem.js';
 import { addFaintPotions, equipPotion, unequipPotion } from './potions.js';
 import { validateItems } from './stats.js';
 import { createRng, makeRandomSeed } from './rng.js';
@@ -69,7 +69,7 @@ const game = createGame(regionStartNode(C.REGION_ORDER[0]));
 const clock = { speed: 1, paused: false };
 // UI-only state: never read by the simulation.
 let wavesLogged = C.DEBUG_START_ENABLED; // per-wave totals logged (M2i §2)
-const view = { debug: C.DEBUG_START_ENABLED, showcase: null, revealItem: false, clickMarker: null, fps: 0, hover: null, menu: null, pointer: null, menuHoverType: null, mapHover: null, wallPlacement: null }; // wallPlacement (M6d §2.4): { slotIndex, type, via: 'build' | 'double' } while choosing a wall's position // menuHoverType: build-menu card under the pointer (range preview); mapHover: available map node under the pointer; showcase: debug Shift+C comparison row
+const view = { debug: C.DEBUG_START_ENABLED, showcase: null, revealItem: false, clickMarker: null, fps: 0, hover: null, menu: null, pointer: null, menuHoverType: null, mapHover: null, wallPlacement: null, aiming: null }; // wallPlacement (M6d §2.4): { slotIndex, type, via: 'build' | 'double' } while choosing a wall's position // menuHoverType: build-menu card under the pointer (range preview); mapHover: available map node under the pointer; showcase: debug Shift+C comparison row
 document.body.classList.toggle('debug-on', view.debug); // the data warnings panel shows only with the debug overlay on (boot.js, styles.css)
 const interaction = createInteraction(game, view);
 
@@ -172,7 +172,25 @@ const potionPanel = createPotionPanel({
   onUnequip: (slot) => unequipPotion(game.run, slot),
   onConsume: (key, slot) => onMap(consumePotion(game.run, key, slot)),
 });
-const potionBelt = createPotionBelt({ onUse: (slot) => usePotion(game, slot) });
+const potionBelt = createPotionBelt({ onUse: (slot) => chooseSlot(slot) });
+
+// A belt slot is chosen (a click or keys 1-5). A flask starts aiming (Potions §4.4; the click that
+// throws it is in interaction.js); its own slot again cancels; while aiming, another flask's slot
+// aims that one instead, and any other potion is used as usual.
+function chooseSlot(slot) {
+  if (view.aiming?.slot === slot) {
+    view.aiming = null;
+    return;
+  }
+  if (isThrowSlot(game, slot)) {
+    if (!potionUseBlocker(game, slot)) {
+      view.aiming = { slot };
+      view.menu = null;
+    }
+    return;
+  }
+  if (usePotion(game, slot)) view.aiming = null;
+}
 
 // The trader scene's controls (M2n §4, M3e §5); also a village's Trade tab (M6a §2.3), whose deals,
 // Undo and Back to the road are the village's.
@@ -274,7 +292,7 @@ const input = createInput(stage, canvas, () => scale, {
       // slots (Potions §3.3), and do nothing without a belt.
       case '1': case '2': case '3': case '4': case '5': case '6':
         if (ui.pickMenuTile(view, Number(key) - 1)) break;
-        if (isBeltShown(game) && Number(key) <= C.POTION_MAX_SLOTS) usePotion(game, Number(key) - 1);
+        if (isBeltShown(game) && Number(key) <= C.POTION_MAX_SLOTS) chooseSlot(Number(key) - 1);
         break;
       case 'f': if (e.shiftKey && game.run) addFaintPotions(game.run); break; // debug Shift+F (Potions §8): one of each Faint potion
       case 'n': // N: start Combat from Prep; Shift+N (M2i §7): kill all and skip the rest of this wave
@@ -439,6 +457,7 @@ function frame(now) {
 
   // Hover is re-picked every frame so it stays correct when objects change under a still cursor.
   view.pointer = input.mouse.inside ? { x: input.mouse.x, y: input.mouse.y } : null;
+  if (view.aiming && potionUseBlocker(game, view.aiming.slot)) view.aiming = null; // Potions §4.4: the flask can't be thrown now (the battle ended)
   if (view.dialogueOpen) {
     view.hover = null; // M5a §3.3: nothing under the dialogue reacts to the pointer
     view.mapHover = null;
@@ -460,7 +479,7 @@ function frame(now) {
     // Placement: crosshair, except over a valid Bough Double target (pointer).
     const placing = game.action.state === ActionState.SUMMON_PLACEMENT;
     const interactive = isInteractive(game, view.hover) && (!placing || game.action.target === 'double');
-    canvas.style.cursor = interactive ? 'pointer' : placing ? 'crosshair' : 'default';
+    canvas.style.cursor = view.aiming ? 'crosshair' : interactive ? 'pointer' : placing ? 'crosshair' : 'default';
   }
 
   // M2d §2.2: HUD counter positions for the field sweep, measured at the start of each sweep.
@@ -469,7 +488,7 @@ function frame(now) {
   ui.update(game, clock, view);
   equipPanel.update(game);
   potionPanel.update(game);
-  potionBelt.update(game);
+  potionBelt.update(game, view.aiming?.slot ?? null);
   updateSceneFade(Math.max(traderScreen.update(game), tinkerScreen.update(game), villageScreen.update(game)));
   requestAnimationFrame(frame);
 }

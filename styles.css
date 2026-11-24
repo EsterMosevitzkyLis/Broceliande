@@ -2105,6 +2105,7 @@ body:not(.debug-on):not(.debug-param) #data-warnings {
 .potion-socket.filled { border-color: #c9a74a; cursor: pointer; }
 .potion-socket.filled:hover { border-color: #f0d670; }
 .potion-socket.greyed { border-color: #6a6252; cursor: default; }
+.potion-socket.aiming { border-color: #fff4c0; box-shadow: 0 0 8px 2px rgba(255, 236, 150, 0.7); } /* Potions §4.4: the flask being aimed */
 .potion-cd {
   position: absolute;
   inset: 0;
