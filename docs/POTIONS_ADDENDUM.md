@@ -18,9 +18,9 @@ appears there is a starting guess: read it from the data, never hard-code it.
   Its display name is "<Tier> <Potion>", e.g. "Faint Potion of Healing".
 - `use` column: `drink` (self, any time), `prepOnly` (self, Prep only), `throw` (targeted),
   `auto` (never clicked: triggers by itself).
-- Tier look: Faint small clear vial, Potent round green flask, Sublime tall blue bottle,
-  Sovereign ornate gold decanter. Each potion's liquid colour tells potions apart. Drawn in
-  code like every other visual.
+- Tier look: Faint small grey vial, Potent round lilac flask, Sublime tall violet bottle,
+  Sovereign ornate magenta decanter (the glass follows the tier colours). Each potion's
+  liquid colour tells potions apart. Drawn in code like every other visual.
 - **Swiftfoot Draught is not in this addendum.** The Druid stands at his home position in
   Combat, so a move-speed potion has nothing to do. (Designer to confirm or rework.)
 
@@ -142,15 +142,16 @@ Rules for all of them:
   3 s. Active self effects show as small icons with a timer by the HUD HP bar.
 - All effects end when the battle ends.
 
-## 6. HP carries over (phase 2)
+## 6. HP between battles (phase 2)
 
-- The Druid's HP no longer resets to max between battles. It carries over in the run.
+- The Druid's HP already carried over between battles (the old `CARRY_DRUID_HP` setting).
+  Phase 2 makes it always on and removes that setting.
 - Before each battle starts, he regains `HP_BETWEEN_BATTLES_PCT` of his max HP (data, start
-  10%), up to max.
+  10%), rounded up, up to max.
 - Healing potions can be consumed on the map screen (section 3.2).
 - No safety net: a run can spiral down. That's intended; balancing handles it.
-- Any existing full-heal moments (villages, rests, region changes) keep working. List the ones
-  you find and what they do now.
+- Full heals stay as they were: starting a new run, crossing to the next region, returning
+  after a death in Hag's Causeway, and the debug region jumps.
 
 ## 7. Getting potions (phase 2)
 
@@ -171,7 +172,7 @@ Rules for all of them:
    inventory panel, battle belt UI, hotkeys, shared cooldown, Prep rules, Healing potion.
    A debug key that adds one of each Faint potion so it can be tested. Only Healing does
    anything yet; the others can sit in slots, greyed, "not yet".
-2. **HP carry-over and getting potions** (sections 6 and 7).
+2. **HP between battles and getting potions** (sections 6 and 7).
 3. **Self potions:** Regeneration, Cleansing, Phoenix, both Wards, Fury, Quickening,
    Foresight, Burrowcall, plus active-effect icons.
 4. **Auras:** Mire, Rootgrip, Bewildering, Thorn, plus the Confused status.
