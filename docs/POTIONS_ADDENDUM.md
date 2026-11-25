@@ -72,13 +72,17 @@ appears there is a starting guess: read it from the data, never hard-code it.
 - Drag and drop: not in this addendum.
 
 ### 3.3 Belt UI in battle (the wilds screen)
-- Shown bottom right, one socket per slot, each with its potion icon and the hotkey number.
-  It must not cover build spots or the level name label (same checks as other HUD pieces).
-- Click a socket or press **1-5** to use that slot.
+- Shown in the top HUD strip beside the HP bar (nothing is built under the strip), one
+  socket per slot, each with its potion icon and the hotkey number. Active effects show as
+  icons with their seconds left beside the HP bar.
+- Click a socket or press **1-5** to use that slot. 1-5 are always the belt's keys (they do
+  nothing without a belt). Game speed moved off them: **Tab** cycles x1 / x2 / x4 and
+  **Shift+1 / 2 / 4** set it; the HUD speed button still works.
 - A used potion leaves its slot empty for the rest of the battle. The inventory is not used
   to refill it mid-battle.
 - Greyed sockets: on the shared cooldown (show a cooldown sweep), a `prepOnly` potion in
-  Combat, or any potion while the game state does not allow it (Ending, Victory, Defeat).
+  Combat, a `throw` potion in Prep, or any potion while the game state does not allow it
+  (Ending, Victory, Defeat). The tooltip gives the reason.
 
 ## 4. Using potions
 
@@ -97,9 +101,14 @@ appears there is a starting guess: read it from the data, never hard-code it.
 - Effects of different potions stack.
 
 ### 4.4 Throwing
-- Click a `throw` potion: the game enters **aiming**: a ring of the flask's radius follows
-  the cursor. Click anywhere on the battlefield to throw; **no range limit**. Right-click or
-  Esc cancels and the potion stays in its slot.
+- Flasks can only be thrown in **Combat** (greyed in Prep, "Only in Combat").
+- Click a `throw` potion or press its key: the game enters **aiming**: a ring of the flask's
+  radius follows the cursor and its socket glows. Click anywhere on the battlefield to throw;
+  **no range limit** (clicks on the HUD strip are ignored). Right-click, Esc or the same slot
+  key again cancels and the potion stays in its slot.
+- While aiming, another slot's key aims that flask instead if it is a `throw` potion, or
+  uses that potion if it is not.
+- The throw starts the shared cooldown when the flask leaves the hand.
 - The flask flies from the Druid to the spot as a short arc (visual only; the effect lands
   when it arrives) and breaks there.
 - Aiming does not pause the game.
@@ -133,9 +142,11 @@ Rules for all of them:
 - Self effects are **timed stat modifiers** where a stat exists (stats.js / stats tab). Add
   stats that are missing (e.g. `druid.strikeDamageMult`, `druid.strikeIntervalMult`)
   rather than special cases.
-- **Rooted** = Slowed to 0 (reuse applySlow; slowResist still applies). **Confused** is a new
-  enemy status: the enemy turns and walks back along its lane at its normal speed, stops
-  attacking, then resumes. Bosses ignore Confused and Root.
+- **Rooted** = Slowed to 0 (reuse applySlow; slowResist still applies). A weaker slow never
+  replaces an active root. A rooted enemy shows vines round its feet instead of the slow
+  spiral (Rootgrip and Tanglevine alike). **Confused** is a new enemy status: the enemy turns
+  and walks back along its lane at its normal speed, stops attacking, then resumes.
+- Bosses ignore Confused and Root from every source: the auras, Tanglevine and Sporecap.
 - Damage from potions goes through damageEnemy with sources `potion:<id>` so damageStats
   show it. Kills and drops work as usual.
 - Auras are drawn as a soft ring round the Druid in the potion's colour, fading in the last
