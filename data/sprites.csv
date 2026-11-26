@@ -1,0 +1,2 @@
+id,file,frames,frameW,frameH,scale,anchorX,anchorY,stride,fps,facing,notes
+wolfWalk,wolf_walk_1.png,4,44,30,1.2,22,28,34,,right,"Wolf walk cycle, feet on row 28. TUNING - scale and stride"

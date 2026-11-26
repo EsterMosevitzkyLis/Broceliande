@@ -584,7 +584,7 @@ export const ROOT_MARKER_SIZE = 1.25;     // a rooted enemy's vines reach this m
 export const SPRITE_HIT_FLASH = 'rgba(255, 236, 236, 0.5)';    // a hit's flash over the sprite
 export const SPRITE_STRIKE_FLASH = 'rgba(244, 240, 255, 0.85)'; // a Druid strike's white flash
 export const SPRITE_GRIM_TINT = 'rgba(28, 8, 12, 0.42)';        // a Grim drawn from its base type's sprite: darker
-export const SPRITE_EYES = { 'wolf_walk_1.png': { x: 34, y: 7 } }; // px in the frame: where a Grim's red eye glow sits
+export const SPRITE_EYES = { wolfWalk: { x: 34, y: 7 } }; // by sprite id, px in the frame: where a Grim's red eye glow sits
 export const ELDER_SQUIRREL_SCALE = 1.3;  // an Elder Squirrel (Burrowcall) is drawn this much larger (drawing only)
 
 
@@ -707,6 +707,8 @@ export let FEATURE_TYPES;
 // hitHeight, drops: [{ resource, chance, min, max }], and optional collisionRadius, windupTime,
 // flying, flyHeight, burstStagger, dropSpacing, keepSide, sideWander, boss, stepSoundInterval }
 export let ENEMY_TYPES;
+// sprites tab: id → { file, frames, frameW, frameH, scale, anchorX, anchorY, stride, fps, facing (1 right, -1 left) }
+export let SPRITES;
 // turrets: id → { name, attack: 'projectile' | 'cloud' | 'cone', range (level 1), projectileSpeed (not for a cone),
 // muzzleHeight, levels: [{ damage, fireInterval, range, cost, time, name (or null), targets (M2m §2.3:
 // pebbles per volley), cloud?: { radius, duration, tickInterval, tickDamage, corrode?: { mult, linger } },
@@ -825,6 +827,10 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     return { name: r.name, searchTime: r.searchTime, yields, mainResource: r.mainResource };
   });
 
+  // Hand-drawn sprites (sprites.js): the anchor defaults to the frame's bottom centre.
+  SPRITES = byId(t.sprites, (r) => ({ file: r.file, frames: r.frames, frameW: r.frameW, frameH: r.frameH, scale: r.scale ?? 1,
+    anchorX: r.anchorX ?? r.frameW / 2, anchorY: r.anchorY ?? r.frameH, stride: r.stride ?? null, fps: r.fps ?? null, facing: r.facing === 'left' ? -1 : 1 }));
+
   // Variant rows (M2l §1.1): every blank cell takes the baseType row's value.
   const enemyRows = byId(t.enemies, (r) => r);
   ENEMY_TYPES = byId(t.enemies.map((r) => (r.baseType ? { ...enemyRows[r.baseType], ...r } : r)), (r) => {
@@ -843,7 +849,7 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     // Venom (venomSystem.js): its bite poisons the Druid for venomDps per second over venomDuration s.
     for (const k of ['venomDps', 'venomDuration']) opt(e, k, r[k]);
     // A hand-drawn sprite (sprites.js, render/sprites.js); absent = its procedural drawing.
-    for (const k of ['sprite', 'spriteFrames', 'spriteFrameW', 'spriteFrameH', 'spriteScale', 'spriteStride']) opt(e, k, r[k]);
+    opt(e, 'sprite', r.sprite);
     // M6b §2.1, §4.2: whether it can damage turrets, a ranged enemy's range, camouflage (M6c).
     e.attacksTurrets = r.attacksTurrets ?? false;
     opt(e, 'attackRange', r.attackRange);

@@ -63,7 +63,15 @@ export function validateTables(t, problems, maps = {}) {
   }
 
   // enemies and drops
+  // Sprites: sizes positive, one way of animating at most, drawn facing left or right.
+  const sprites = ids('sprites');
+  for (const r of t.sprites) {
+    for (const c of ['frames', 'frameW', 'frameH', 'scale', 'stride', 'fps']) if (r[c] !== undefined && !(r[c] > 0)) err('sprites', r, c, 'must be above 0');
+    if (r.stride !== undefined && r.fps !== undefined) err('sprites', r, 'fps', 'give stride (a mover) or fps (a loop), not both');
+    if (!['left', 'right'].includes(r.facing)) err('sprites', r, 'facing', 'facing must be left or right');
+  }
   const enemies = ids('enemies');
+  for (const r of t.enemies) known('enemies', r, 'sprite', sprites, 'sprite');
   for (const r of t.drops) {
     known('drops', r, 'enemy', enemies, 'enemy');
     known('drops', r, 'resource', resources, 'resource');

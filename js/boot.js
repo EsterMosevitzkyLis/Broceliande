@@ -12,7 +12,7 @@ import { loadLevelMaps } from './mapFile.js';
 import { NARRATIVE_TABS } from './data/schema.js';
 import { validateNarrative } from './data/validateNarrative.js';
 import { applyNarrative, loadPortraits } from './narrative.js';
-import { loadSprites } from './sprites.js';
+import { loadSpriteImages } from './sprites.js';
 
 const loadingScreen = document.getElementById('loading-screen');
 
@@ -109,8 +109,9 @@ if (problems.errors.length === 0) validateTables(tables, problems, maps);
 if (problems.errors.length === 0) validateNarrative(narrative.tables, problems, tables);
 // M5a §1.2: portrait images, always from the project (in ?live mode too).
 const portraits = problems.errors.length === 0 ? await loadPortraits(narrative.tables.characters, problems) : {};
-// Hand-drawn enemy sprites (enemies tab sprite column), always from the project (in ?live mode too).
-if (problems.errors.length === 0) await loadSprites(tables.enemies ?? [], problems);
+// Hand-drawn sprites (sprites tab), always from the project (in ?live mode too). A missing file is a
+// warning: whatever names it is drawn procedurally.
+if (problems.errors.length === 0) await loadSpriteImages(tables.sprites ?? [], problems);
 if (problems.errors.length === 0) {
   try {
     C.applyData(tables, maps, backgrounds);

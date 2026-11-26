@@ -10,7 +10,7 @@ Browser prototype of a survival tower-defence roguelite. Current goal: **Milesto
 
 ## Hard rules
 - HTML, CSS and vanilla JavaScript ES modules only. No frameworks, libraries, bundlers or build step.
-- No external assets. All visuals are drawn programmatically.
+- The game's art is moving gradually from procedural drawing to hand-drawn assets in `assets/`. Any thing (enemy, turret, summon, Druid, decor, feature, portrait, icon) may name hand-drawn art in the data; when it does, use it, and when it doesn't, or the file is missing, keep the procedural drawing. Never create or generate image assets yourself; I draw them. Sprites are defined in the `sprites` tab and named by id from a thing's `sprite` column; sizes to draw at are in `docs/ART_GUIDE.md`.
 - **Balancing data lives in `data/*.csv`** (one file per tab of the designer's Google Sheet, where it is edited; see `docs/M2J_DATA_SHEET_ADDENDUM.md`). The game loads it at start-up (`js/boot.js`, `js/data/`), and `js/config.js` fills its data values from it in `applyData()`. A value lives in exactly one place: never copy a CSV value into code.
 - **`data/*.csv` text is plain ASCII only** (notes, descriptions, names, labels): `-` not an em dash, `x` not `×`, `->` not `→`, `+/-` not `±`, `>=` / `<=` not `≥` / `≤`, `...` not `…`, and `sec.` not `§`.
 - **`data/*.csv` text cells must never start with `+`, `-`, `=` or `@`**, because Google Sheets reads them as formulas (e.g. `Adds 20 max HP.` not `+20 max HP.`). **Avoid semicolons in CSV text too**: use commas (with the cell quoted) or "and" instead.

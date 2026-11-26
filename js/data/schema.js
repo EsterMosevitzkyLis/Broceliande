@@ -90,10 +90,7 @@ export const TABS = {
       attacksTurrets: { type: 'bool' }, attackRange: { type: 'number' }, camouflage: { type: 'bool' },
       stationary: { type: 'bool' }, // M6b §5.1: a stationary target (an egg sac): never moves, blocks or attacks
       venomDps: { type: 'number' }, venomDuration: { type: 'number' }, // its bite poisons the Druid (venomSystem.js)
-      // A hand-drawn sprite (sprites.js): its file in assets/sprites/ (blank: procedural), frames, frame
-      // size in px, scale (blank = 1) and px walked per full walk cycle.
-      sprite: { type: 'text' }, spriteFrames: { type: 'int' }, spriteFrameW: { type: 'number' }, spriteFrameH: { type: 'number' },
-      spriteScale: { type: 'number' }, spriteStride: { type: 'number' },
+      sprite: { type: 'id' }, // its walk sprite (a sprites tab id); blank: drawn procedurally
     },
   },
   drops: { columns: { enemy: { type: 'id', required: true }, resource: { type: 'id', required: true }, chance: { type: 'number', required: true }, min: { type: 'int', required: true }, max: { type: 'int', required: true } } },
@@ -192,6 +189,18 @@ export const TABS = {
       price: { type: 'number' }, patternWeight: { type: 'number' }, patternPrice: { type: 'number' },
     },
     pattern: [/^cost_[a-z][a-zA-Z0-9]*$/, COST],
+  },
+  // Hand-drawn sprites (sprites.js): a horizontal strip of `frames` frames, each frameW x frameH px,
+  // in assets/sprites/<file>. scale (blank = 1); anchor in frame px (blank = bottom centre), the point
+  // set on the thing's ground point; stride: px walked per full cycle (movers) or fps (loops); facing:
+  // the way it is drawn (left / right). Things name one by id in their sprite column.
+  sprites: {
+    columns: {
+      id: { type: 'id', required: true }, file: { type: 'text', required: true }, frames: { type: 'int', required: true },
+      frameW: { type: 'number', required: true }, frameH: { type: 'number', required: true }, scale: { type: 'number' },
+      anchorX: { type: 'number' }, anchorY: { type: 'number' }, stride: { type: 'number' }, fps: { type: 'number' },
+      facing: { type: 'id', required: true },
+    },
   },
   // Debug only: what Jump to region sets the run's resources to, one row per region and resource.
   debugLoadouts: { columns: { region: { type: 'id', required: true }, resource: { type: 'id', required: true }, amount: { type: 'int', required: true } } },
