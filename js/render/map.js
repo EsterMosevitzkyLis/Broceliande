@@ -7,6 +7,7 @@
 
 import * as C from '../config.js';
 import { createRng } from '../rng.js';
+import { pixelRatio, hiResCanvas } from './resolution.js';
 import { mapNode, nodeState, nodeRadius, regionStartNode } from '../run.js';
 import { roadCurve, curvePoint, nodeDegrees, pathTotal } from '../mapGen.js';
 import { drawWolfHead, drawDruid, DRUID_REST_POSE } from './entities.js';
@@ -83,15 +84,15 @@ function mapBackground(map) {
 // willows, the Vale's river body and ruins) is drawn once per map into its own canvas and pasted
 // each frame; the moving one (embers, ash, mist, the Vale's glint, falls, ferns, light shafts and
 // the Ironspan) is drawn live on top.
-let stillLayer = { bg: null, canvas: null };
+let stillLayer = { bg: null, canvas: null, ratio: 0 };
 function drawMapBackground(ctx, map, t) {
   const bg = mapBackground(map);
-  if (stillLayer.bg !== bg) {
-    const canvas = Object.assign(document.createElement('canvas'), { width: C.STAGE_WIDTH, height: C.STAGE_HEIGHT });
+  if (stillLayer.bg !== bg || stillLayer.ratio !== pixelRatio()) {
+    const canvas = hiResCanvas(C.STAGE_WIDTH, C.STAGE_HEIGHT); // at the screen's resolution (render/resolution.js)
     drawMapLayer(canvas.getContext('2d'), map, 0, true);
-    stillLayer = { bg, canvas };
+    stillLayer = { bg, canvas, ratio: pixelRatio() };
   }
-  ctx.drawImage(stillLayer.canvas, 0, 0);
+  ctx.drawImage(stillLayer.canvas, 0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
   drawMapLayer(ctx, map, t, false);
 }
 

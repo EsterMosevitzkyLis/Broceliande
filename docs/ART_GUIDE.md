@@ -6,8 +6,10 @@ counted; soft glows and ground shadows left out).
 
 ## How sizes work
 
-- **World px = stage px.** The game draws on a 1920 x 1080 stage, which the browser then scales to
-  fit the window. At a 1920 x 1080 window, 1 world px is 1 screen px.
+- **World px = stage px.** The game is laid out on a 1920 x 1080 stage scaled to fit the window,
+  but the canvas renders at the screen's real resolution (up to 2 device px per CSS px), so art is
+  drawn sharp at any window size rather than blurred by the browser. At a 1920 x 1080 window on a
+  normal screen, 1 world px is 1 screen px; on a high-DPI screen, up to 2.
 - **Crisp pixel art:** draw at the size listed and set the sprite's `scale` to 1, or draw at exactly
   half and set `scale` to 2. Other scales (like 1.2) make some of your pixels 1 px wide and some 2.
 - **Facing:** every procedural creature is drawn facing **right**; the game flips it when it moves

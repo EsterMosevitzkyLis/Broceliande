@@ -29,6 +29,7 @@ import { drawSlotFloater } from './render/items.js';
 import { drawWisp, drawWispTarget, drawWispGhost, drawWispBurst, drawSlowSpiral } from './render/wisp.js';
 import { isSlowed, isCorroded, isBurning } from './systems/statusSystem.js';
 import { drawEnemyLook } from './render/enemyLook.js';
+import { pixelRatio, hiResCanvas } from './render/resolution.js';
 import { drawSpear, drawShieldBubble, drawShieldShatter, drawShamanThreads, drawTurretHpBar, drawWreck, drawDebris } from './render/vale.js'; // M6b
 import { drawEggHatch, drawRelicPulse, drawOracleWard, drawPylonLinks, drawLinkSnap, drawPylonBreak, drawPylonHpBar, drawIronCall } from './render/valeBosses.js'; // M6b §5–§6
 import { pylonCore, oracleChest, standingPylons } from './systems/oracleSystem.js'; // an enemy's look, Grims included (M2l §2.1)
@@ -50,43 +51,44 @@ export const COLORS = {
 };
 
 export function createRenderer(canvas) {
-  const ctx = canvas.getContext('2d');
-  canvas.width = C.STAGE_WIDTH;
-  canvas.height = C.STAGE_HEIGHT;
+  const ctx = canvas.getContext('2d'); // sized by main.js (fitStage) to the screen's resolution
 
   // Static decor of each level's scene, built once per level; everything else is merged in
   // and y-sorted per frame. M6b §6: relic pylons are targets, drawn from game.pylons instead.
   // Each item is pasted from its cached sprite (decorSprite), or drawn live if it has none.
-  const decorByLevel = new Map();
+  const decorByLevel = new Map(); // `${levelId}@${pixelRatio}` → items (built again at a new resolution)
   const decorOf = (scene) => {
-    if (!decorByLevel.has(scene.levelId)) {
-      decorByLevel.set(scene.levelId, scene.decor.filter((item) => item.kind !== 'relicPylon').map((item) => {
+    const key = `${scene.levelId}@${pixelRatio()}`;
+    if (!decorByLevel.has(key)) {
+      decorByLevel.clear();
+      decorByLevel.set(key, scene.decor.filter((item) => item.kind !== 'relicPylon').map((item) => {
         const sprite = decorSprite(item, scene.level);
         const draw = !sprite ? () => drawDecor(ctx, item, scene.level)
-          : sprite.canvas ? () => ctx.drawImage(sprite.canvas, sprite.x, sprite.y) : () => {};
+          : sprite.canvas ? () => ctx.drawImage(sprite.canvas, sprite.x, sprite.y, sprite.w, sprite.h) : () => {};
         return { y: item.y, draw };
       }));
     }
-    return decorByLevel.get(scene.levelId);
+    return decorByLevel.get(key);
   };
 
   // The still ground (floor, stream, corridors, flat patches) of the current scene, drawn once into
   // its own canvas and pasted each frame. Only the current scene's is kept (each is a full screen).
-  let ground = { scene: null, canvas: null };
+  let ground = { scene: null, canvas: null, ratio: 0 };
   const groundOf = (scene) => {
-    if (ground.scene !== scene) {
-      const canvas = Object.assign(document.createElement('canvas'), { width: C.STAGE_WIDTH, height: C.STAGE_HEIGHT });
+    if (ground.scene !== scene || ground.ratio !== pixelRatio()) {
+      const canvas = hiResCanvas(C.STAGE_WIDTH, C.STAGE_HEIGHT);
       const g = canvas.getContext('2d');
       drawFloor(g, scene);
       drawStream(g, scene); // M2f §4.2: under the corridors, which cross it as fords
       drawCorridors(g, scene);
       drawFlats(g, scene);
-      ground = { scene, canvas };
+      ground = { scene, canvas, ratio: pixelRatio() };
     }
     return ground.canvas;
   };
 
   function render(game, view) {
+    ctx.setTransform(pixelRatio(), 0, 0, pixelRatio(), 0, 0); // world px onto the screen-resolution canvas
     if (game.state === GameState.MAP || game.state === GameState.CROSSING) {
       // The level map (M2a §4) instead of an encounter scene (M3a §3: under the crossing dialog too).
       drawMap(ctx, game.run, view.mapHover, performance.now() / 1000, view.debug);
@@ -133,7 +135,7 @@ export function createRenderer(canvas) {
     if (scene.background) {
       ctx.drawImage(scene.background, 0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
     } else {
-      ctx.drawImage(groundOf(scene), 0, 0); // floor, stream, corridors and flats, drawn once
+      ctx.drawImage(groundOf(scene), 0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT); // floor, stream, corridors and flats, drawn once
     }
     drawMire(ctx, scene, animationTime(game)); // M3c §3.1: mire ground (never on a corridor), under everything upright
     // M2f §4.11: the Heartwood's sickly glow at its lane entrances.

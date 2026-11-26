@@ -5,6 +5,7 @@
 import * as C from '../config.js';
 import { corridorWidth } from '../levelSettings.js';
 import { hasMire } from '../mire.js';
+import { pixelRatio, hiResCanvas } from './resolution.js';
 import * as VD from './valeDecor.js'; // M6e: the Lost Vale's decoration
 
 // Scene colours come from the level's palette (M2a §5.5); only the ground shadow is shared, since
@@ -90,21 +91,25 @@ export function drawDecor(ctx, item, level) {
 // A static decoration drawn once into its own small canvas, cropped to what it drew, so a battle
 // pastes one image per item each frame instead of redrawing hundreds of shapes (a Lost Vale fern
 // is ~100 strokes). It is drawn at its true position, shifted by whole pixels, so the pasted copy
-// matches a live drawing pixel for pixel. Returns { canvas, x, y } (the stage position of its top
-// left), or null if it reaches the edge of the biggest window (then it is drawn live).
+// matches a live drawing pixel for pixel. Drawn at the canvas's pixel ratio (render/resolution.js),
+// shifted by whole device pixels. Returns { canvas, x, y, w, h } (the stage position of its top left
+// and its size, in world px), or null if it reaches the edge of the biggest window (then it is drawn
+// live).
 let spriteScratch = null;
-const SPRITE_WINDOWS = [256, 768]; // px: tried in turn, the small one first (most items are small)
+const SPRITE_WINDOWS = [256, 768]; // world px: tried in turn, the small one first (most items are small)
 export function decorSprite(item, level) {
-  for (const win of SPRITE_WINDOWS) {
+  const k = pixelRatio();
+  for (const worldWin of SPRITE_WINDOWS) {
+    const win = Math.ceil(worldWin * k); // device px
     if (!spriteScratch || spriteScratch.width !== win) {
       spriteScratch = Object.assign(document.createElement('canvas'), { width: win, height: win });
     }
     const g = spriteScratch.getContext('2d', { willReadFrequently: true });
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, win, win);
-    const ox = Math.round(win / 2 - item.x); // the item's base sits low in the window: things grow upwards
-    const oy = Math.round(win * 0.7 - item.y);
-    g.setTransform(1, 0, 0, 1, ox, oy);
+    const ox = Math.round(win / 2 - item.x * k); // device px; the item's base sits low in the window: things grow upwards
+    const oy = Math.round(win * 0.7 - item.y * k);
+    g.setTransform(k, 0, 0, k, ox, oy);
     drawDecor(g, item, level);
     g.setTransform(1, 0, 0, 1, 0, 0);
     const { data } = g.getImageData(0, 0, win, win);
@@ -124,7 +129,7 @@ export function decorSprite(item, level) {
     const h = bottom - top + 1;
     const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
     canvas.getContext('2d').drawImage(spriteScratch, left, top, w, h, 0, 0, w, h);
-    return { canvas, x: left - ox, y: top - oy };
+    return { canvas, x: (left - ox) / k, y: (top - oy) / k, w: w / k, h: h / k };
   }
   return null;
 }
@@ -1016,15 +1021,15 @@ function drawRock(ctx, { x, y, size: s }, P) {
 // M4a §1.2: the mire is a grid of cells, each drawn as a round dab, so the patches keep soft, lumpy
 // edges; deep cells (2+ cells from the edge) are darker. Everything but the bubbles is drawn once
 // per mire to an offscreen canvas.
-const mireLayers = new WeakMap(); // mire → { canvas, bubbles: [[{ x, y }]] (per patch) }
+const mireLayers = new WeakMap(); // mire → { canvas, ratio, bubbles: [[{ x, y }]] (per patch) }
 const DAB = 0.8;                  // dab radius, × the cell size
 
 export function drawMire(ctx, scene, t) {
   const m = scene.mire;
   if (!hasMire(m)) return;
-  if (!mireLayers.has(m)) mireLayers.set(m, renderMire(m));
+  if (mireLayers.get(m)?.ratio !== pixelRatio()) mireLayers.set(m, { ...renderMire(m), ratio: pixelRatio() });
   const { canvas, bubbles } = mireLayers.get(m);
-  ctx.drawImage(canvas, 0, 0);
+  ctx.drawImage(canvas, 0, 0, C.STAGE_WIDTH, C.STAGE_HEIGHT);
   // An occasional slow bubble per patch: one spot at a time, swelling and popping.
   const M = C.MIRE_COLORS;
   const cycle = 4.5; // s per bubble
@@ -1046,9 +1051,7 @@ const cellHash = (c, r) => (((Math.imul(c + 1, 73856093) ^ Math.imul(r + 1, 1934
 
 function renderMire(m) {
   const M = C.MIRE_COLORS;
-  const canvas = document.createElement('canvas');
-  canvas.width = C.STAGE_WIDTH;
-  canvas.height = C.STAGE_HEIGHT;
+  const canvas = hiResCanvas(C.STAGE_WIDTH, C.STAGE_HEIGHT); // at the screen's resolution
   const g = canvas.getContext('2d');
   const at = (c, r) => c >= 0 && r >= 0 && c < m.cols && r < m.rows && m.cells[r * m.cols + c] === 1;
   const cells = [];

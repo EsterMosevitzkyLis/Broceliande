@@ -3,6 +3,7 @@
 import * as C from './config.js';
 import { GameState, createGame, startEncounter, startCombat, beginEnding, updateGame, validateConfig, killAllEnemies, spawnDebugBear, spawnDebugOgre, spawnDebugStirges, spawnDebugGrimWolves, spawnDebugBogKing, grantResources, togglePrepMode, newRun, restartEncounter, continueRun, winNow, crossRegion, returnToRegion, debugNextRegion, debugJumpToRegion, spawnDebugEnemy, showRunOnHud } from './game.js';
 import { createInput } from './input.js';
+import { setPixelRatio } from './render/resolution.js';
 import { createRenderer } from './renderer.js';
 import { createUI, checkLevelNameLabel, checkBossBar, checkWavePreview, levelNameLabelArea } from './ui.js';
 import { callNextWave, skipWave } from './systems/waveSystem.js';
@@ -38,7 +39,10 @@ const stage = document.getElementById('stage');
 const canvas = document.getElementById('game-canvas');
 
 // ---------------------------------------------------------------------------
-// Stage scaling: fixed 1920×1080 stage, CSS-scaled and letterboxed to 16:9.
+// Stage scaling: fixed 1920×1080 stage, CSS-scaled and letterboxed to 16:9. The game canvas keeps
+// the stage's size in CSS px but has as many pixels as it covers on the screen (devicePixelRatio
+// capped at MAX_PIXEL_RATIO), so the browser's scaling doesn't blur it; drawing stays in world px
+// (renderer.js sets the context's transform each frame).
 // ---------------------------------------------------------------------------
 let scale = 1;
 
@@ -47,7 +51,17 @@ function fitStage() {
   const left = (window.innerWidth - C.STAGE_WIDTH * scale) / 2;
   const top = (window.innerHeight - C.STAGE_HEIGHT * scale) / 2;
   stage.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
+  const k = scale * Math.min(window.devicePixelRatio || 1, C.MAX_PIXEL_RATIO);
+  const w = Math.round(C.STAGE_WIDTH * k);
+  if (canvas.width !== w) {
+    canvas.width = w;
+    canvas.height = Math.round(C.STAGE_HEIGHT * k);
+  }
+  setPixelRatio(canvas.width / C.STAGE_WIDTH);
 }
+
+canvas.style.width = `${C.STAGE_WIDTH}px`;
+canvas.style.height = `${C.STAGE_HEIGHT}px`;
 
 stage.style.width = `${C.STAGE_WIDTH}px`;
 stage.style.height = `${C.STAGE_HEIGHT}px`;

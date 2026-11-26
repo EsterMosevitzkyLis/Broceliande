@@ -13,6 +13,7 @@ import * as C from '../config.js';
 import { drawWolf, drawBear, drawOgre, drawStirge, drawGrimSmoke } from './entities.js';
 import { drawThrall, drawBrute, drawKnight, drawBogKing } from './undead.js';
 import { drawSpriteEnemy, hasSprite } from './sprites.js';
+import { pixelRatio } from './resolution.js';
 import { drawSpider, drawLizardman, drawHunter, drawGiantLizard, drawShaman } from './vale.js';
 import { drawBroodmother, drawEggSac, drawHighShaman, drawIronOracle } from './valeBosses.js';
 
@@ -84,25 +85,32 @@ export function drawEnemyLook(ctx, e, hit, lunging, anim, { smoke = true } = {})
   }
 
   draw(ctx, { ...d, part: 'shadow' }, hit, lunging, anim);
-  const size = Math.ceil(d.radius * SCRATCH_SIZE);
-  const { body, tint } = scratchPair(size);
-  const ox = size / 2;
-  const oy = Math.round(size * SCRATCH_ANCHOR);
+  // The scratch canvases are at the canvas's pixel ratio (render/resolution.js), so the pasted body is
+  // as sharp as a live drawing: dev device px across, `size` world px.
+  const k = pixelRatio();
+  const dev = Math.ceil(d.radius * SCRATCH_SIZE * k);
+  const size = dev / k;
+  const { body, tint } = scratchPair(dev);
+  const ox = Math.round(dev / 2) / k;
+  const oy = Math.round(dev * SCRATCH_ANCHOR) / k;
   const bx = body.getContext('2d');
-  bx.clearRect(0, 0, size, size);
+  bx.setTransform(1, 0, 0, 1, 0, 0);
+  bx.clearRect(0, 0, dev, dev);
+  bx.setTransform(k, 0, 0, k, 0, 0);
   draw(bx, { ...d, x: ox, y: oy, part: 'body' }, hit, lunging, anim);
   if (e.risen) tornAndMuddy(bx, ox, oy, d.radius, e.id);
+  bx.setTransform(1, 0, 0, 1, 0, 0);
   const tx = tint.getContext('2d');
   tx.globalCompositeOperation = 'copy';
   tx.drawImage(body, 0, 0);
   tx.globalCompositeOperation = 'source-in';
   tx.fillStyle = undead ? C.UNDEAD_OUTLINE_COLOR : C.GRIM_OUTLINE_COLOR;
-  tx.fillRect(0, 0, size, size);
+  tx.fillRect(0, 0, dev, dev);
   tx.globalCompositeOperation = 'source-over';
 
-  // A sprite's scratch copy lands on whole pixels, so its pixels stay crisp.
-  const left = sprite ? Math.round(d.x - ox) : d.x - ox;
-  const top = sprite ? Math.round(d.y - oy) : d.y - oy;
+  // A sprite's scratch copy lands on whole device pixels, so its pixels stay crisp.
+  const left = sprite ? Math.round((d.x - ox) * k) / k : d.x - ox;
+  const top = sprite ? Math.round((d.y - oy) * k) / k : d.y - oy;
   const pulse = 0.5 + 0.5 * Math.sin((anim / C.GRIM_OUTLINE_PERIOD) * Math.PI * 2 + e.id);
   const [lo, hi] = C.GRIM_OUTLINE_ALPHA;
   if (grim) {
@@ -111,11 +119,11 @@ export function drawEnemyLook(ctx, e, hit, lunging, anim, { smoke = true } = {})
     const w = C.GRIM_OUTLINE_WIDTH;
     for (let k = 0; k < 8; k++) {
       const a = (k / 8) * Math.PI * 2;
-      ctx.drawImage(tint, left + Math.cos(a) * w, top + Math.sin(a) * w);
+      ctx.drawImage(tint, left + Math.cos(a) * w, top + Math.sin(a) * w, size, size);
     }
     ctx.restore();
   }
-  ctx.drawImage(body, left, top);
+  ctx.drawImage(body, left, top, size, size);
   if (rising < 1) ctx.restore();
 
   if (!smoke || !grim) return;

@@ -3,6 +3,7 @@
 
 import * as C from '../config.js';
 import { drawShadow } from './environment.js';
+import { pixelRatio } from './resolution.js';
 import { resourceIconImage } from '../icons.js';
 import { AttackState } from '../entities/enemy.js';
 
@@ -276,28 +277,35 @@ const TINT_CANVAS_SIZE = 220; // px, room for the Druid and his staff at any pos
 let tintCanvas = null;
 let maskCanvas = null;
 
-function scratchCanvas() {
+// At the canvas's pixel ratio (render/resolution.js), so the Double is as sharp as the Druid.
+function scratchCanvas(dev) {
   const c = document.createElement('canvas');
-  c.width = TINT_CANVAS_SIZE;
-  c.height = TINT_CANVAS_SIZE;
+  c.width = dev;
+  c.height = dev;
   return c;
 }
 
 function drawTintedDruid(ctx, x, y, pose, look) {
-  tintCanvas ??= scratchCanvas();
-  maskCanvas ??= scratchCanvas();
+  const k = pixelRatio();
+  const dev = Math.ceil(TINT_CANVAS_SIZE * k);
+  if (tintCanvas?.width !== dev) {
+    tintCanvas = scratchCanvas(dev);
+    maskCanvas = scratchCanvas(dev);
+  }
   const ox = TINT_CANVAS_SIZE / 2;
   const oy = TINT_CANVAS_SIZE * 0.6;
   const m = maskCanvas.getContext('2d');
-  m.clearRect(0, 0, TINT_CANVAS_SIZE, TINT_CANVAS_SIZE);
+  m.setTransform(1, 0, 0, 1, 0, 0);
+  m.clearRect(0, 0, dev, dev);
+  m.setTransform(k, 0, 0, k, 0, 0);
   drawDruid(m, ox, oy, false, 0, pose);
   const t = tintCanvas.getContext('2d');
   t.globalCompositeOperation = 'source-over';
-  t.clearRect(0, 0, TINT_CANVAS_SIZE, TINT_CANVAS_SIZE);
+  t.clearRect(0, 0, dev, dev);
   t.drawImage(maskCanvas, 0, 0);
   t.globalCompositeOperation = 'color';
   t.fillStyle = look.tint;
-  t.fillRect(0, 0, TINT_CANVAS_SIZE, TINT_CANVAS_SIZE);
+  t.fillRect(0, 0, dev, dev);
   t.globalCompositeOperation = 'destination-in';
   t.drawImage(maskCanvas, 0, 0);
   t.globalCompositeOperation = 'source-over';
@@ -308,7 +316,7 @@ function drawTintedDruid(ctx, x, y, pose, look) {
   ctx.globalAlpha *= look.alpha;
   ctx.translate(x, y + feet);
   ctx.scale(s, s);
-  ctx.drawImage(tintCanvas, -ox, -oy - feet);
+  ctx.drawImage(tintCanvas, -ox, -oy - feet, dev / k, dev / k);
   ctx.restore();
 }
 

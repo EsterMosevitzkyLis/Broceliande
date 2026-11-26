@@ -3,6 +3,7 @@
 
 import * as C from '../config.js';
 import { drawShadow } from './environment.js';
+import { pixelRatio } from './resolution.js';
 
 const FERN = { dark: '#2c4f26', mid: '#4a7f36', light: '#79ad4e', tip: '#a3cc6a' };
 
@@ -97,19 +98,23 @@ export function drawCamouflaged(ctx, e, anim, draw) {
     const top = Math.ceil(e.radius * 7);
     const w = half * 2;
     const h = top + Math.ceil(e.radius * 2.5);
+    // At the canvas's pixel ratio (render/resolution.js): kw x kh device px for w x h world px.
+    const k = pixelRatio();
+    const kw = Math.ceil(w * k);
+    const kh = Math.ceil(h * k);
     scratch ??= document.createElement('canvas');
-    if (scratch.width < w || scratch.height < h) {
-      scratch.width = Math.max(scratch.width, w);
-      scratch.height = Math.max(scratch.height, h);
+    if (scratch.width < kw || scratch.height < kh) {
+      scratch.width = Math.max(scratch.width, kw);
+      scratch.height = Math.max(scratch.height, kh);
     }
     const sx = scratch.getContext('2d');
     sx.setTransform(1, 0, 0, 1, 0, 0);
-    sx.clearRect(0, 0, w, h);
-    sx.translate(half - e.x, top - e.y);
+    sx.clearRect(0, 0, kw, kh);
+    sx.setTransform(k, 0, 0, k, (half - e.x) * k, (top - e.y) * k);
     draw(sx);
     ctx.save();
     ctx.globalAlpha = C.CAMO_ALPHA + (1 - C.CAMO_ALPHA) * show;
-    ctx.drawImage(scratch, 0, 0, w, h, e.x - half + dx, e.y - top + dy, w, h);
+    ctx.drawImage(scratch, 0, 0, kw, kh, e.x - half + dx, e.y - top + dy, kw / k, kh / k);
     ctx.restore();
   }
   if (flash < C.THROW_FLASH_TIME && show < 1) {

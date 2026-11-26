@@ -11,6 +11,7 @@ import { levelFromMap } from './mapFile.js';
 // ---------------------------------------------------------------------------
 export const STAGE_WIDTH = 1920;
 export const STAGE_HEIGHT = 1080;
+export const MAX_PIXEL_RATIO = 2; // the canvas renders at the screen's real resolution, at most this many device px per CSS px (main.js fitStage)
 
 export const SIM_STEP = 1 / 60;          // seconds, fixed timestep
 export const MAX_FRAME_DT = 0.05;        // real seconds; larger frame gaps (tab switch) are clamped
