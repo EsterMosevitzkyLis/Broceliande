@@ -12,6 +12,7 @@
 import * as C from '../config.js';
 import { drawWolf, drawBear, drawOgre, drawStirge, drawGrimSmoke } from './entities.js';
 import { drawThrall, drawBrute, drawKnight, drawBogKing } from './undead.js';
+import { drawSpriteEnemy, hasSprite } from './sprites.js';
 import { drawSpider, drawLizardman, drawHunter, drawGiantLizard, drawShaman } from './vale.js';
 import { drawBroodmother, drawEggSac, drawHighShaman, drawIronOracle } from './valeBosses.js';
 
@@ -63,7 +64,8 @@ export function drawEnemyLook(ctx, e, hit, lunging, anim, { smoke = true } = {})
   const t = C.ENEMY_TYPES[e.type];
   const s = t.drawScale ?? 1; // drawing only (M2l §2.1), enlarged about its feet
   const d = s === 1 ? e : { ...e, radius: e.radius * s, y: e.y + e.radius * 0.5 * (1 - s) };
-  const draw = ENEMY_DRAW[t.baseType];
+  const sprite = hasSprite(e.type);
+  const draw = sprite ? drawSpriteEnemy : ENEMY_DRAW[t.baseType]; // a hand-drawn sprite (enemies tab), else procedural
   const grim = t.variant === 'grim';
   const undead = UNDEAD.has(t.baseType);
   // M3b §3.3: pulling itself up, just risen: squashed into the mire, growing back to full height.
@@ -98,8 +100,9 @@ export function drawEnemyLook(ctx, e, hit, lunging, anim, { smoke = true } = {})
   tx.fillRect(0, 0, size, size);
   tx.globalCompositeOperation = 'source-over';
 
-  const left = d.x - ox;
-  const top = d.y - oy;
+  // A sprite's scratch copy lands on whole pixels, so its pixels stay crisp.
+  const left = sprite ? Math.round(d.x - ox) : d.x - ox;
+  const top = sprite ? Math.round(d.y - oy) : d.y - oy;
   const pulse = 0.5 + 0.5 * Math.sin((anim / C.GRIM_OUTLINE_PERIOD) * Math.PI * 2 + e.id);
   const [lo, hi] = C.GRIM_OUTLINE_ALPHA;
   if (grim) {

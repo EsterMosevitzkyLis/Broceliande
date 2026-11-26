@@ -90,6 +90,10 @@ export const TABS = {
       attacksTurrets: { type: 'bool' }, attackRange: { type: 'number' }, camouflage: { type: 'bool' },
       stationary: { type: 'bool' }, // M6b §5.1: a stationary target (an egg sac): never moves, blocks or attacks
       venomDps: { type: 'number' }, venomDuration: { type: 'number' }, // its bite poisons the Druid (venomSystem.js)
+      // A hand-drawn sprite (sprites.js): its file in assets/sprites/ (blank: procedural), frames, frame
+      // size in px, scale (blank = 1) and px walked per full walk cycle.
+      sprite: { type: 'text' }, spriteFrames: { type: 'int' }, spriteFrameW: { type: 'number' }, spriteFrameH: { type: 'number' },
+      spriteScale: { type: 'number' }, spriteStride: { type: 'number' },
     },
   },
   drops: { columns: { enemy: { type: 'id', required: true }, resource: { type: 'id', required: true }, chance: { type: 'number', required: true }, min: { type: 'int', required: true }, max: { type: 'int', required: true } } },

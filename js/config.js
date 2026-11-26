@@ -580,6 +580,11 @@ export const FLASK_BREAK_TIME = 0.4;      // s, the glass shards bursting where 
 export const ACID_SPLASH_TIME = 0.9;      // s, Acid's splash on the ground (visual only; the Corrosion lasts its duration)
 export const POTION_FIELD_FADE_TIME = 0.6; // s, a flask's fire, cloud or vines fade out over their last this many seconds (visual only)
 export const ROOT_MARKER_SIZE = 1.25;     // a rooted enemy's vines reach this many times its radius round its feet (drawing only)
+// Hand-drawn enemy sprites (render/sprites.js), drawing only.
+export const SPRITE_HIT_FLASH = 'rgba(255, 236, 236, 0.5)';    // a hit's flash over the sprite
+export const SPRITE_STRIKE_FLASH = 'rgba(244, 240, 255, 0.85)'; // a Druid strike's white flash
+export const SPRITE_GRIM_TINT = 'rgba(28, 8, 12, 0.42)';        // a Grim drawn from its base type's sprite: darker
+export const SPRITE_EYES = { 'wolf_walk_1.png': { x: 34, y: 7 } }; // px in the frame: where a Grim's red eye glow sits
 export const ELDER_SQUIRREL_SCALE = 1.3;  // an Elder Squirrel (Burrowcall) is drawn this much larger (drawing only)
 
 
@@ -837,6 +842,8 @@ export function applyData(t, maps = {}, backgrounds = {}) {
     for (const k of ['slowResist', 'armor', 'splashRatio', 'splashRadius', 'lifesteal', 'drawScale', 'soundPitch']) opt(e, k, r[k]);
     // Venom (venomSystem.js): its bite poisons the Druid for venomDps per second over venomDuration s.
     for (const k of ['venomDps', 'venomDuration']) opt(e, k, r[k]);
+    // A hand-drawn sprite (sprites.js, render/sprites.js); absent = its procedural drawing.
+    for (const k of ['sprite', 'spriteFrames', 'spriteFrameW', 'spriteFrameH', 'spriteScale', 'spriteStride']) opt(e, k, r[k]);
     // M6b §2.1, §4.2: whether it can damage turrets, a ranged enemy's range, camouflage (M6c).
     e.attacksTurrets = r.attacksTurrets ?? false;
     opt(e, 'attackRange', r.attackRange);
